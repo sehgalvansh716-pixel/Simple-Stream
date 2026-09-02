@@ -41,14 +41,7 @@ class SetupFragmentLanguage : BaseFragment<FragmentSetupLanguageBinding>(
 
             binding.apply {
                 // Icons may crash on some weird android versions?
-                safe {
-                    val drawable = when {
-                        BuildConfig.DEBUG -> R.drawable.cloud_2_gradient_debug
-                        BuildConfig.FLAVOR == "prerelease" -> R.drawable.cloud_2_gradient_beta
-                        else -> R.drawable.cloud_2_gradient
-                    }
-                    appIconImage.setImageDrawable(ContextCompat.getDrawable(ctx, drawable))
-                }
+                    appIconImage.setImageDrawable(ContextCompat.getDrawable(ctx, R.drawable.splash_logo))
 
                 val current = getCurrentLocale(ctx)
                 val languageTagsIETF = appLanguages.map { it.second }
