@@ -397,4 +397,27 @@ During physical device testing of the initial v1.0.1 build, two critical issues 
     - Updated `@drawable/outline` stroke to `3dp` Electric Indigo (`#6366F1`) with subtle `1A6366F1` ambient glow, animated at 60fps via hardware-accelerated scale/translation transforms in `SearchResultBuilder.kt`.
 
 ---
-*Manual fully updated on September 4, 2026. SimpleStream v1.0.1 hotfix compiled, verified, tagged, and published to GitHub.*
+
+## 12. Hotfix 2: Bundled NetMirror.cs3 (v12) Pre-Packaging & ExoPlayer External Audio Merging
+
+### 1. ExoPlayer External Audio Merging & Track Selection (`CS3IPlayer.kt`)
+- **Root Cause**: In `getAudioSources(audioTracks: List<AudioFile>, interceptor: Interceptor?)`, external audio sources previously instantiated `getMediaItem(MimeTypes.AUDIO_UNKNOWN, audio.url)`. When `MimeTypes.AUDIO_UNKNOWN` was passed for `.m3u8` streams, ExoPlayer's `DefaultMediaSourceFactory` failed to recognize them as HLS and delegated to progressive extractors (MP3/AAC), throwing `UnrecognizedInputFormatException` and discarding regional audio tracks.
+- **Resolution**:
+  - Implemented dynamic mime detection:
+    - URLs containing `.m3u8` -> `MimeTypes.APPLICATION_M3U8`
+    - URLs containing `.mpd` -> `MimeTypes.APPLICATION_MPD`
+    - Default fallback -> `MimeTypes.AUDIO_UNKNOWN`
+  - Allows seamless ExoPlayer merging of external Hindi / Tamil / Telugu dub audio streams from NetMirror and other providers. Both English and regional audio tracks appear in the player audio track dialog and can be switched dynamically without interrupting video playback.
+
+### 2. Zero-Config Prepackaged NetMirror Extension (`NetMirror.cs3` v12)
+- **APK Assets Bundling**:
+  - Bundled `NetMirror.cs3` (v12) directly inside APK assets: `app/src/main/assets/plugins/NetMirror.cs3`.
+- **Auto-Extraction Engine (`PluginManager.kt`)**:
+  - Added `suspend fun initPrepackagedPlugins(context: Context)` to `object PluginManager`.
+  - On app launch, scans `assets/plugins/`, extracts `.cs3` files to `files/plugins/Prepackaged/`, and registers them into `getPluginsOnline()` with version 12 and the online repository update URL (`https://raw.githubusercontent.com/sehgalvansh716-pixel/Personal/master/$pluginFileName`).
+- **Startup Hook (`MainActivity.kt`)**:
+  - `initPrepackagedPlugins(this@MainActivity)` is called inside `onCreate()`'s `ioSafe` block before online plugins load/update.
+  - Ensures NetMirror (Netflix, Prime Video, Disney+ Hotstar) is available out-of-the-box on fresh installations without requiring manual repository addition.
+
+---
+*Manual fully updated on September 4, 2026. SimpleStream v1.0.1 Hotfix 2 compiled, verified, tagged, and published to GitHub.*
