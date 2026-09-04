@@ -1357,6 +1357,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                 }
 
                 ioSafe {
+                    PluginManager.initPrepackagedPlugins(this@MainActivity)
                     if (settingsManager.getBoolean(
                             getString(R.string.auto_update_plugins_key),
                             true
@@ -1366,7 +1367,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                             this@MainActivity
                         )
                     } else {
-                        ___DO_NOT_CALL_FROM_A_PLUGIN_loadAllOnlinePlugins(this@MainActivity)
+                        PluginManager.___DO_NOT_CALL_FROM_A_PLUGIN_loadAllOnlinePlugins(this@MainActivity)
                     }
 
                     //Automatically download not existing plugins, using mode specified.

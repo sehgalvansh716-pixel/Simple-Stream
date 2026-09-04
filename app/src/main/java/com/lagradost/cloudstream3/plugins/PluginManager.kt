@@ -496,6 +496,52 @@ object PluginManager {
     }
 
     /**
+     * Extracts and registers prepackaged plugins bundled inside the APK's assets/plugins/ directory.
+     * Ensures extensions like NetMirror work immediately out-of-the-box on fresh installs.
+     */
+    suspend fun initPrepackagedPlugins(context: Context) {
+        try {
+            val assetManager = context.assets
+            val pluginList = assetManager.list("plugins") ?: return
+            val prepackagedFolder = File("${context.filesDir}/${ONLINE_PLUGINS_FOLDER}/Prepackaged")
+            if (!prepackagedFolder.exists()) {
+                prepackagedFolder.mkdirs()
+            }
+            var hasNewPlugin = false
+            val currentOnline = getPluginsOnline().toMutableList()
+            for (pluginFileName in pluginList) {
+                if (!pluginFileName.endsWith(".cs3")) continue
+                val internalName = pluginFileName.removeSuffix(".cs3")
+                val targetFile = File(prepackagedFolder, pluginFileName)
+                assetManager.open("plugins/$pluginFileName").use { input ->
+                    val assetBytes = input.readBytes()
+                    if (!targetFile.exists() || targetFile.length() != assetBytes.size.toLong()) {
+                        targetFile.writeBytes(assetBytes)
+                    }
+                }
+                if (currentOnline.none { it.internalName == internalName }) {
+                    val pluginData = PluginData(
+                        internalName = internalName,
+                        url = "https://raw.githubusercontent.com/sehgalvansh716-pixel/Personal/master/$pluginFileName",
+                        isOnline = true,
+                        filePath = targetFile.absolutePath,
+                        version = 12
+                    )
+                    currentOnline.add(pluginData)
+                    hasNewPlugin = true
+                }
+            }
+            if (hasNewPlugin) {
+                lock.withLock {
+                    setKey(PLUGINS_KEY, currentOnline.toTypedArray())
+                }
+            }
+        } catch (t: Throwable) {
+            logError(t)
+        }
+    }
+
+    /**
      * @param forceReload see afterPluginsLoadedEvent, basically a way to load all local plugins
      * and reload all pages even if they are previously valid
      *
