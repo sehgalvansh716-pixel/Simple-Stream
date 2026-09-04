@@ -96,6 +96,9 @@ open class ParentItemAdapter(
         if (binding !is HomepageParentBinding) return
         val info = item.list
         binding.apply {
+            if (position == 0) {
+                homeChildRecyclerview.nextFocusUpId = R.id.home_preview_info_btt
+            }
             val currentAdapter = homeChildRecyclerview.adapter as? HomeChildItemAdapter
             if (currentAdapter == null) {
                 homeChildRecyclerview.setRecycledViewPool(HomeChildItemAdapter.sharedPool)

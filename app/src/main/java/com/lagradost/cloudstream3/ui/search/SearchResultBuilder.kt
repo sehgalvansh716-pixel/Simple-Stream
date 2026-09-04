@@ -258,6 +258,13 @@ object SearchResultBuilder {
         }*/
 
         itemView.setOnFocusChangeListener { view, b ->
+            if (isLayout(TV)) {
+                if (b) {
+                    view.animate().scaleX(1.06f).scaleY(1.06f).translationZ(6f).setDuration(150).start()
+                } else {
+                    view.animate().scaleX(1.0f).scaleY(1.0f).translationZ(0f).setDuration(150).start()
+                }
+            }
             focus(view, b)
         }
 

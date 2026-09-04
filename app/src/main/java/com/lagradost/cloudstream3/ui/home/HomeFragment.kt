@@ -96,6 +96,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
         // Used for configuration changed events to fix any popups that are not attached to a fragment
         val configEvent = EmptyEvent()
         var currentSpan = 1
+        var lastFocusedItem: java.lang.ref.WeakReference<View>? = null
 
         private val errorProfilePics = listOf(
             R.drawable.monke_benene,
@@ -467,6 +468,10 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
                 }
                 listView?.adapter = arrayAdapter
                 listView?.choiceMode = AbsListView.CHOICE_MODE_SINGLE
+                if (isLayout(TV)) {
+                    listView?.isFocusable = true
+                    listView?.isFocusableInTouchMode = true
+                }
 
                 listView?.setOnItemClickListener { _, _, i, _ ->
                     if (currentValidApis.isNotEmpty()) {
@@ -521,6 +526,12 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
                     listView?.setItemChecked(index, true)
                     arrayAdapter.addAll(names)
                     arrayAdapter.notifyDataSetChanged()
+                    if (isLayout(TV) && index >= 0) {
+                        listView?.setSelection(index)
+                        listView?.post {
+                            listView?.requestFocus()
+                        }
+                    }
                 }
                 // pin provider on hold
                 listView?.setOnItemLongClickListener { _, _, i, _ ->
@@ -995,20 +1006,27 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
             }
             parent = parent.parent
         }
+        val changeApiButton = activity?.findViewById<View>(R.id.home_preview_change_api)
+            ?: binding?.homeChangeApi
         when {
-            // Case 1: Focus is within plugin content -> Move to plugin selector
-            isInsideRecycler -> {
-                binding?.homeMasterRecycler?.scrollToPosition(0)
-                // Defer focus request until after scroll ends
-                binding?.homeChangeApi?.post {
-                    binding?.homeChangeApi?.requestFocus()
-                }
-            }
-            // Case 2: Focus is on plugin selector or nearby buttons -> Move to home navigation
+            // Case 1: Focus is on plugin selector, hero banner, or header buttons -> Move to home navigation rail
+            currentFocus.id == R.id.home_preview_change_api ||
             currentFocus.id == R.id.home_change_api ||
             currentFocus.id == R.id.home_preview_reload_provider ||
-            currentFocus.id == R.id.home_preview_search_button -> {
+            currentFocus.id == R.id.home_preview_search_button ||
+            currentFocus.id == R.id.home_preview_info_btt -> {
                 activity?.findViewById<View>(R.id.navigation_home)?.requestFocus()
+            }
+            // Case 2: Focus is within content rows -> Move up to header / hero banner
+            isInsideRecycler -> {
+                binding?.homeMasterRecycler?.scrollToPosition(0)
+                changeApiButton?.post {
+                    if (!changeApiButton.requestFocus()) {
+                        activity?.findViewById<View>(R.id.home_preview_info_btt)?.requestFocus()
+                    }
+                } ?: run {
+                    activity?.findViewById<View>(R.id.home_preview_info_btt)?.requestFocus()
+                }
             }
             // Case 3: Any other location -> Use default back behavior
             else -> helper.runDefault()

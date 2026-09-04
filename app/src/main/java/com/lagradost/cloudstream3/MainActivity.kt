@@ -58,6 +58,7 @@ import com.google.android.gms.cast.framework.SessionManagerListener
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.navigationrail.NavigationRailView
+import com.lagradost.cloudstream3.ui.home.HomeFragment
 import com.google.android.material.snackbar.Snackbar
 import com.google.common.collect.Comparators.min
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
@@ -745,6 +746,33 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
     private fun NavDestination.matchDestination(@IdRes destId: Int): Boolean =
         hierarchy.any { it.id == destId }
 
+    fun updateNavRailNextFocusRight(destinationId: Int) {
+        if (!isLayout(TV or EMULATOR)) return
+        val fromView = binding?.navRailView ?: return
+        val targetView = when (destinationId) {
+            R.id.navigation_home -> R.id.home_preview_change_api
+            R.id.navigation_search -> R.id.main_search
+            R.id.navigation_library -> R.id.main_search
+            R.id.navigation_downloads -> R.id.download_appbar
+            R.id.navigation_settings -> R.id.settings_general
+            else -> null
+        }
+        if (targetView != null) {
+            fromView.nextFocusRightId = targetView
+
+            for (focusView in arrayOf(
+                R.id.navigation_downloads,
+                R.id.navigation_home,
+                R.id.navigation_search,
+                R.id.navigation_library,
+                R.id.navigation_settings,
+            )) {
+                fromView.findViewById<View?>(focusView)?.nextFocusRightId = targetView
+            }
+            fromView.findViewById<View?>(R.id.nav_footer_profile_card)?.nextFocusRightId = targetView
+        }
+    }
+
     private var lastNavTime = 0L
     private fun onNavDestinationSelected(item: MenuItem, navController: NavController): Boolean {
         val currentTime = System.currentTimeMillis()
@@ -757,35 +785,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
         // Check if we are already at the selected destination
         if (navController.currentDestination?.id == destinationId) return false
 
-        // Make all nav buttons focus on this specific view when nextFocusRightId
-        val targetView = when (destinationId) {
-            // Please note that if R.id.navigation_home is readded, then it will only take affect when
-            // navigation to home for the second time as onNavDestinationSelected will not get called
-            // when first loading up the app
-
-            // R.id.navigation_home -> R.id.home_preview_change_api
-            R.id.navigation_search -> R.id.main_search
-            R.id.navigation_library -> R.id.main_search
-            R.id.navigation_downloads -> R.id.download_appbar
-            else -> null
-        }
-        if (targetView != null && isLayout(TV or EMULATOR)) {
-            val fromView = binding?.navRailView
-            if (fromView != null) {
-                fromView.nextFocusRightId = targetView
-
-                for (focusView in arrayOf(
-                    R.id.navigation_downloads,
-                    R.id.navigation_home,
-                    R.id.navigation_search,
-                    R.id.navigation_library,
-                    R.id.navigation_settings,
-                )) {
-                    fromView.findViewById<View?>(focusView)?.nextFocusRightId = targetView
-                }
-                fromView.findViewById<View?>(R.id.nav_footer_profile_card)?.nextFocusRightId = targetView
-            }
-        }
+        updateNavRailNextFocusRight(destinationId)
 
         val builder = NavOptions.Builder().setLaunchSingleTop(true).setRestoreState(true)
             .setEnterAnim(R.anim.enter_anim)
@@ -1254,8 +1254,6 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                     val exceptionButtons = listOf(
                         //R.id.home_preview_play_btt,
                         R.id.home_preview_info_btt,
-                        R.id.home_preview_hidden_next_focus,
-                        R.id.home_preview_hidden_prev_focus,
                         R.id.result_play_movie_button,
                         R.id.result_play_series_button,
                         R.id.result_resume_series_button,
@@ -1674,6 +1672,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
         navController.addOnDestinationChangedListener { _: NavController, navDestination: NavDestination, bundle: Bundle? ->
             // Intercept search and add a query
             updateNavBar(navDestination)
+            updateNavRailNextFocusRight(navDestination.id)
             if (navDestination.matchDestination(R.id.navigation_search) && !nextSearchQuery.isNullOrBlank()) {
                 bundle?.apply {
                     this.putString(SearchFragment.SEARCH_QUERY, nextSearchQuery)
@@ -1791,6 +1790,20 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
             // write a nextFocus for the navrail
             rail.findViewById<View?>(R.id.navigation_settings)?.nextFocusDownId =
                 R.id.nav_footer_profile_card
+            rail.findViewById<View?>(R.id.nav_footer_profile_card)?.nextFocusUpId =
+                R.id.navigation_settings
+            rail.findViewById<View?>(R.id.nav_footer_profile_card)?.nextFocusDownId =
+                R.id.nav_footer_profile_card
+
+            val railItems = arrayOf(
+                R.id.navigation_home,
+                R.id.navigation_search,
+                R.id.navigation_library,
+                R.id.navigation_downloads,
+                R.id.navigation_settings,
+                R.id.nav_footer_profile_card
+            )
+
             for (id in arrayOf(
                 R.id.navigation_home,
                 R.id.navigation_search,
@@ -1804,6 +1817,61 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
 
                 prevView = view
                 prevId = id
+            }
+
+            if (isLayout(TV or EMULATOR)) {
+                updateNavRailNextFocusRight(navController.currentDestination?.id ?: R.id.navigation_home)
+
+                val rightKeyHandler = View.OnKeyListener { _, keyCode, event ->
+                    if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                        val currentDest = navController.currentDestination?.id ?: R.id.navigation_home
+                        when (currentDest) {
+                            R.id.navigation_home -> {
+                                val lastItem = HomeFragment.lastFocusedItem?.get()
+                                if (lastItem != null && lastItem.isShown && lastItem.isAttachedToWindow && lastItem.requestFocus()) {
+                                    return@OnKeyListener true
+                                }
+                                val headerApi = findViewById<View>(R.id.home_preview_change_api)
+                                if (headerApi != null && headerApi.isShown && headerApi.requestFocus()) {
+                                    return@OnKeyListener true
+                                }
+                                val hero = findViewById<View>(R.id.home_preview_info_btt)
+                                if (hero != null && hero.isShown && hero.requestFocus()) {
+                                    return@OnKeyListener true
+                                }
+                                false
+                            }
+                            R.id.navigation_settings -> {
+                                val settingsGeneral = findViewById<View>(R.id.settings_general)
+                                if (settingsGeneral != null && settingsGeneral.isShown && settingsGeneral.requestFocus()) {
+                                    return@OnKeyListener true
+                                }
+                                false
+                            }
+                            R.id.navigation_search -> {
+                                val search = findViewById<View>(R.id.main_search)
+                                if (search != null && search.isShown && search.requestFocus()) {
+                                    return@OnKeyListener true
+                                }
+                                false
+                            }
+                            R.id.navigation_downloads -> {
+                                val downloads = findViewById<View>(R.id.download_appbar)
+                                if (downloads != null && downloads.isShown && downloads.requestFocus()) {
+                                    return@OnKeyListener true
+                                }
+                                false
+                            }
+                            else -> false
+                        }
+                    } else {
+                        false
+                    }
+                }
+
+                for (id in railItems) {
+                    rail.findViewById<View?>(id)?.setOnKeyListener(rightKeyHandler)
+                }
             }
         }
 

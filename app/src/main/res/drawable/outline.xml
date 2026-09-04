@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" >
-    <stroke android:width="2dp"
-            android:color="?attr/white"/>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <stroke
+        android:width="3dp"
+        android:color="#6366F1" />
+    <solid android:color="#1A6366F1" />
     <corners
-            android:bottomLeftRadius="@dimen/rounded_image_radius"
-            android:bottomRightRadius="@dimen/rounded_image_radius"
-            android:topLeftRadius="@dimen/rounded_image_radius"
-            android:topRightRadius="@dimen/rounded_image_radius" />
+        android:bottomLeftRadius="@dimen/rounded_image_radius"
+        android:bottomRightRadius="@dimen/rounded_image_radius"
+        android:topLeftRadius="@dimen/rounded_image_radius"
+        android:topRightRadius="@dimen/rounded_image_radius" />
 </shape>

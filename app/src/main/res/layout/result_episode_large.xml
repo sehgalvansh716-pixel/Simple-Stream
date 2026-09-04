@@ -8,7 +8,7 @@
 
     android:layout_height="wrap_content"
     android:layout_marginBottom="10dp"
-    android:foreground="@drawable/outline_drawable"
+    android:foreground="@drawable/outline_active_episode"
     android:nextFocusRight="@id/download_button"
     app:cardBackgroundColor="?attr/boxItemBackground"
     app:cardElevation="0dp"
@@ -34,7 +34,7 @@
                 android:layout_height="72dp"
                 app:cardElevation="0dp"
                 app:cardMaxElevation="0dp"
-                android:foreground="@drawable/outline_drawable">
+                android:foreground="@drawable/outline_active_episode">
 
                 <ImageView
                     android:id="@+id/episode_poster"
