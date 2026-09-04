@@ -32,7 +32,8 @@
         android:layout_rowWeight="1"
         android:layout_marginBottom="60dp"
         android:paddingTop="10dp"
-        android:requiresFadingEdge="vertical"
+        android:nextFocusDown="@id/next_btt"
+        android:nextFocusRight="@id/next_btt"
         tools:listitem="@layout/sort_bottom_single_choice" />
 
     <LinearLayout
@@ -49,6 +50,9 @@
             style="@style/WhiteButton"
             android:layout_width="wrap_content"
             android:layout_gravity="center_vertical|end"
+            android:nextFocusUp="@id/listview1"
+            android:nextFocusLeft="@id/listview1"
+            android:nextFocusRight="@id/skip_btt"
             android:text="@string/next" />
 
         <com.google.android.material.button.MaterialButton
@@ -56,10 +60,9 @@
             style="@style/BlackButton"
             android:layout_width="wrap_content"
             android:layout_gravity="center_vertical|end"
-            android:text="@string/skip_setup">
-
-            <requestFocus />
-        </com.google.android.material.button.MaterialButton>
+            android:nextFocusUp="@id/listview1"
+            android:nextFocusLeft="@id/next_btt"
+            android:text="@string/skip_setup" />
     </LinearLayout>
 
 

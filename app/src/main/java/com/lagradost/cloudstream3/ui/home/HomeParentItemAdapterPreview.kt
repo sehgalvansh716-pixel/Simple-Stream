@@ -707,9 +707,20 @@ class HomeParentItemAdapterPreview(
             }
         }
 
+        private fun updatePreviewNextFocusDown() {
+            (binding as? FragmentHomeHeadTvBinding)?.apply {
+                homePreviewInfoBtt.nextFocusDownId = when {
+                    resumeHolder.isVisible -> R.id.home_watch_child_recyclerview
+                    bookmarkHolder.isVisible -> R.id.home_type_holder
+                    else -> View.NO_ID
+                }
+            }
+        }
+
         private fun updateResume(resumeWatching: List<SearchResponse>) {
             resumeHolder.isVisible = resumeWatching.isNotEmpty()
             resumeAdapter.submitList(resumeWatching)
+            updatePreviewNextFocusDown()
 
             if (
                 binding is FragmentHomeHeadBinding ||
@@ -740,6 +751,7 @@ class HomeParentItemAdapterPreview(
             val (visible, list) = data
             bookmarkHolder.isVisible = visible
             bookmarkAdapter.submitList(list)
+            updatePreviewNextFocusDown()
 
             if (
                 binding is FragmentHomeHeadBinding ||

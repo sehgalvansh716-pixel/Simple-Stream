@@ -1183,7 +1183,8 @@
             android:clipToPadding="false"
             android:descendantFocusability="afterDescendants"
             android:nextFocusLeft="@id/player_episodes_button"
-            android:requiresFadingEdge="vertical"
+            android:fadingEdge="none"
+            android:overScrollMode="never"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             tools:listitem="@layout/player_episodes">
 

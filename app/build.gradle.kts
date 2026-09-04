@@ -53,10 +53,11 @@ abstract class GenerateGitHashTask : DefaultTask() {
 }
 
 val generateGitHash = tasks.register<GenerateGitHashTask>("generateGitHash") {
-    val gitDir = layout.projectDirectory.dir("../.git")
-
-    headFile.set(gitDir.file("HEAD"))
-    headsDir.set(gitDir.dir("refs/heads"))
+    val gitDir = layout.projectDirectory.dir("../.git").asFile
+    if (gitDir.exists() && File(gitDir, "HEAD").exists()) {
+        headFile.set(layout.projectDirectory.dir("../.git").file("HEAD"))
+        headsDir.set(layout.projectDirectory.dir("../.git").dir("refs/heads"))
+    }
 
     outputDir.set(layout.buildDirectory.dir("generated/git"))
 }
@@ -106,8 +107,8 @@ android {
         applicationId = "com.github.sehgalvansh716pixel.simplestream"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 102
+        versionName = "1.0.1"
 
         manifestPlaceholders["target_sdk_version"] = libs.versions.targetSdk.get()
 

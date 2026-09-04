@@ -137,6 +137,7 @@ import com.lagradost.cloudstream3.utils.AppContextUtils.loadRepository
 import com.lagradost.cloudstream3.utils.AppContextUtils.loadResult
 import com.lagradost.cloudstream3.utils.AppContextUtils.loadSearchResult
 import com.lagradost.cloudstream3.utils.AppContextUtils.setDefaultFocus
+import com.lagradost.cloudstream3.utils.InternalStreamBridge
 import com.lagradost.cloudstream3.utils.AppContextUtils.updateHasTrailers
 import com.lagradost.cloudstream3.utils.BackPressedCallbackHelper.attachBackPressedCallback
 import com.lagradost.cloudstream3.utils.BackPressedCallbackHelper.detachBackPressedCallback
@@ -666,7 +667,6 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
             logError(e)
         }
     }
-
     override fun dispatchKeyEvent(event: KeyEvent): Boolean =
         CommonActivity.dispatchKeyEvent(this, event) ?: super.dispatchKeyEvent(event)
 
@@ -783,6 +783,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                 )) {
                     fromView.findViewById<View?>(focusView)?.nextFocusRightId = targetView
                 }
+                fromView.findViewById<View?>(R.id.nav_footer_profile_card)?.nextFocusRightId = targetView
             }
         }
 
@@ -1341,6 +1342,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
             }
         }
 
+        InternalStreamBridge.init(this@MainActivity)
         ioSafe { SafeFile.check(this@MainActivity) }
 
         if (PluginManager.checkSafeModeFile()) {
@@ -1349,6 +1351,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
             }
         } else if (lastError == null) {
             ioSafe {
+                InternalStreamBridge.init(this@MainActivity)
                 DataStoreHelper.currentHomePage?.let { homeApi ->
                     mainPluginsLoadedEvent.invoke(loadSinglePlugin(this@MainActivity, homeApi))
                 } ?: run {
@@ -1801,29 +1804,6 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
 
                 prevView = view
                 prevId = id
-                // Uncomment for focus expand
-                /*if (!isLayout(TV)) {
-                    view.onFocusChangeListener = null
-                } else {
-                    view.onFocusChangeListener =
-                        View.OnFocusChangeListener { v, hasFocus ->
-                            if (hasFocus) {
-                                focus += id
-                                binding?.navRailView?.labelVisibilityMode =
-                                    NavigationRailView.LABEL_VISIBILITY_LABELED
-                                binding?.navRailView?.expand()
-                            } else {
-                                focus -= id
-                                v.post {
-                                    if (focus.isEmpty()) {
-                                        binding?.navRailView?.labelVisibilityMode =
-                                            NavigationRailView.LABEL_VISIBILITY_UNLABELED
-                                        binding?.navRailView?.collapse()
-                                    }
-                                }
-                            }
-                        }
-                }*/
             }
         }
 

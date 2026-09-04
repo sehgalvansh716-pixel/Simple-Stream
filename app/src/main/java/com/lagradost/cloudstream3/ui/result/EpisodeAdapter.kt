@@ -1,8 +1,10 @@
 package com.lagradost.cloudstream3.ui.result
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.core.view.setPadding
@@ -79,6 +81,15 @@ class EpisodeAdapter(
 }, contentSame = { a, b ->
     a == b
 })) {
+    var currentPlayingIndex: Int? = null
+        set(value) {
+            val changed = field != value
+            field = value
+            if (changed) {
+                notifyDataSetChanged()
+            }
+        }
+
     companion object {
         const val HAS_POSTER: Int = 0
         const val HAS_NO_POSTER: Int = 1
@@ -143,8 +154,7 @@ class EpisodeAdapter(
         val itemView = holder.itemView
         when (val binding = holder.view) {
             is ResultEpisodeLargeBinding -> {
-                val setWidth =
-                    if (isLayout(TV or EMULATOR)) TV_EP_SIZE.toPx else ViewGroup.LayoutParams.MATCH_PARENT
+                val setWidth = ViewGroup.LayoutParams.MATCH_PARENT
 
                 binding.apply {
                     episodeLinHolder.layoutParams.width = setWidth
@@ -352,6 +362,15 @@ class EpisodeAdapter(
                             return@setOnLongClickListener true
                         }
                     }
+
+                    val isCurrentPlaying = currentPlayingIndex != null && item.index == currentPlayingIndex
+                    if (isCurrentPlaying) {
+                        episodeHolderLarge.foreground = ContextCompat.getDrawable(itemView.context, R.drawable.outline_active_episode)
+                        episodePlayIcon.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(itemView.context, R.color.colorPrimary))
+                    } else {
+                        episodeHolderLarge.foreground = ContextCompat.getDrawable(itemView.context, R.drawable.outline_drawable)
+                        episodePlayIcon.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(itemView.context, R.color.white))
+                    }
                 }
 
                 itemView.setOnClickListener {
@@ -449,6 +468,15 @@ class EpisodeAdapter(
                                 isVisible = displayPos > 0L
                             }
                         }
+                    }
+
+                    val isCurrentPlaying = currentPlayingIndex != null && item.index == currentPlayingIndex
+                    if (isCurrentPlaying) {
+                        episodeHolder.foreground = ContextCompat.getDrawable(itemView.context, R.drawable.outline_active_episode)
+                        episodePlayIcon.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(itemView.context, R.color.colorPrimary))
+                    } else {
+                        episodeHolder.foreground = ContextCompat.getDrawable(itemView.context, R.drawable.outline_drawable)
+                        episodePlayIcon.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(itemView.context, R.color.white))
                     }
 
                     itemView.setOnClickListener {

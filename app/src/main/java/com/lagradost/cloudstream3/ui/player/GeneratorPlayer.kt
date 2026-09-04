@@ -103,6 +103,7 @@ import com.lagradost.cloudstream3.ui.subtitles.SubtitlesFragment
 import com.lagradost.cloudstream3.ui.subtitles.SubtitlesFragment.Companion.getAutoSelectLanguageTagIETF
 import com.lagradost.cloudstream3.utils.AppContextUtils.getShortSeasonText
 import com.lagradost.cloudstream3.utils.AppContextUtils.html
+import com.lagradost.cloudstream3.utils.SingleSelectionHelper.showDialog
 import com.lagradost.cloudstream3.utils.AppContextUtils.sortSubs
 import com.lagradost.cloudstream3.utils.Coroutines.ioSafe
 import com.lagradost.cloudstream3.utils.Coroutines.runOnMainThread
@@ -2148,30 +2149,108 @@ class GeneratorPlayer : FullScreenPlayer() {
                             isNextEpisode = false
                             releasePlayer()
                             playerEpisodeOverlay.isGone = true
-                            episodeClick.position?.let { viewModel.loadThisEpisode(it) }
+                            val targetIndex = episodeClick.data.index
+                            viewModel.loadThisEpisode(targetIndex)
                         }
                     },
                     { downloadClickEvent ->
                         DownloadButtonSetup.handleDownloadClick(downloadClickEvent)
                     }
                 )
+                val episodes = allMeta ?: emptyList()
+                val currentEpIndex = viewModel.state.generatorState?.index ?: 0
+                val currentEp = episodes.getOrNull(currentEpIndex)
+                val activePlayingIndex = currentEp?.index ?: currentEpIndex
+
+                (playerEpisodeList.adapter as? EpisodeAdapter)?.currentPlayingIndex = activePlayingIndex
+
+                // Group episodes into seasons
+                data class PlayerSeasonOption(
+                    val name: String,
+                    val episodes: List<ResultEpisode>,
+                    val isAllOption: Boolean = false
+                )
+
+                val seasonGroups = episodes.groupBy { it.seasonIndex ?: it.season ?: 0 }
+                val nextUpTarget = if (seasonGroups.size > 1) R.id.player_season_picker_button else R.id.player_episode_overlay_close
                 playerEpisodeList.setLinearListLayout(
                     isHorizontal = false,
-                    nextUp = FOCUS_SELF,
+                    nextUp = nextUpTarget,
                     nextDown = FOCUS_SELF,
                     nextRight = FOCUS_SELF,
                 )
-                val episodes = allMeta ?: emptyList()
-                (playerEpisodeList.adapter as? EpisodeAdapter)?.submitList(episodes)
+                val seasonOptions = ArrayList<PlayerSeasonOption>()
 
-                // Scroll to current episode
-                viewModel.state.generatorState?.index?.let { index ->
-                    playerEpisodeList.scrollToPosition(index)
-                    // Ensure focus on tv
+                if (seasonGroups.size > 1) {
+                    val allText = root.context.getString(R.string.all_episodes)
+                    seasonOptions.add(PlayerSeasonOption(allText, episodes, isAllOption = true))
+                }
+
+                seasonGroups.forEach { (seasonId, epList) ->
+                    val firstEp = epList.firstOrNull()
+                    val sName = firstEp?.let { ResultViewModel2.seasonToTxt(it.seasonData, it.seasonIndex)?.asStringNull(root.context) }
+                        ?: if (seasonId > 0) root.context.getString(R.string.season_format, root.context.getString(R.string.season), seasonId, "")
+                        else root.context.getString(R.string.no_season)
+                    seasonOptions.add(PlayerSeasonOption(sName, epList))
+                }
+
+                // Select current playing season by default
+                var selectedSeasonOptionIndex = if (seasonGroups.size > 1) {
+                    val matchingIdx = seasonOptions.indexOfFirst { !it.isAllOption && it.episodes.any { ep -> ep.index == activePlayingIndex } }
+                    if (matchingIdx >= 0) matchingIdx else 0
+                } else {
+                    0
+                }
+
+                fun applySeasonSelection(optionIdx: Int, isInitialLoad: Boolean = false) {
+                    if (optionIdx !in seasonOptions.indices) return
+                    selectedSeasonOptionIndex = optionIdx
+                    val option = seasonOptions[optionIdx]
+                    playerSeasonPickerButton.text = option.name
+
+                    (playerEpisodeList.adapter as? EpisodeAdapter)?.currentPlayingIndex = activePlayingIndex
+                    (playerEpisodeList.adapter as? EpisodeAdapter)?.submitList(option.episodes) {
+                        val targetPos = option.episodes.indexOfFirst { it.index == activePlayingIndex }
+                        val scrollPos = if (targetPos >= 0) targetPos else 0
+                        playerEpisodeList.scrollToPosition(scrollPos)
+
+                        if (isInitialLoad && isLayout(TV)) {
+                            playerEpisodeList.post {
+                                val viewHolder = playerEpisodeList.findViewHolderForAdapterPosition(scrollPos)
+                                viewHolder?.itemView?.requestFocus()
+                                viewHolder?.itemView?.let { itemView ->
+                                    itemView.isFocusableInTouchMode = true
+                                    itemView.requestFocus()
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (seasonGroups.size > 1) {
+                    playerSeasonPickerHolder.isVisible = true
+                    applySeasonSelection(selectedSeasonOptionIndex, isInitialLoad = true)
+
+                    playerSeasonPickerButton.setOnClickListener {
+                        val displayLabels = seasonOptions.map { "${it.name} (${it.episodes.size})" }
+                        activity?.showDialog(
+                            displayLabels,
+                            selectedSeasonOptionIndex,
+                            root.context.getString(R.string.season),
+                            false,
+                            {}
+                        ) { chosenIdx ->
+                            applySeasonSelection(chosenIdx)
+                        }
+                    }
+                } else {
+                    playerSeasonPickerHolder.isGone = true
+                    (playerEpisodeList.adapter as? EpisodeAdapter)?.currentPlayingIndex = activePlayingIndex
+                    (playerEpisodeList.adapter as? EpisodeAdapter)?.submitList(episodes)
+                    playerEpisodeList.scrollToPosition(currentEpIndex)
                     if (isLayout(TV)) {
                         playerEpisodeList.post {
-                            val viewHolder =
-                                playerEpisodeList.findViewHolderForAdapterPosition(index)
+                            val viewHolder = playerEpisodeList.findViewHolderForAdapterPosition(currentEpIndex)
                             viewHolder?.itemView?.requestFocus()
                             viewHolder?.itemView?.let { itemView ->
                                 itemView.isFocusableInTouchMode = true
@@ -2181,7 +2260,7 @@ class GeneratorPlayer : FullScreenPlayer() {
                     }
                 }
 
-                // update overlay season title
+                // update overlay season title when scrolling through "All Episodes"
                 var lastTopIndex = -1
                 playerEpisodeList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
                     override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
@@ -2191,14 +2270,15 @@ class GeneratorPlayer : FullScreenPlayer() {
                         if (topIndex != RecyclerView.NO_POSITION && topIndex != lastTopIndex) {
                             @Suppress("AssignedValueIsNeverRead")
                             lastTopIndex = topIndex
-                            val topItem = episodes.getOrNull(topIndex)
+                            val topItem = (playerEpisodeList.adapter as? EpisodeAdapter)?.getItemOrNull(topIndex)
                             topItem?.let {
-                                playerEpisodeOverlayTitle.setText(
-                                    ResultViewModel2.seasonToTxt(
-                                        topItem.seasonData,
-                                        topItem.seasonIndex
-                                    )
-                                )
+                                val sText = ResultViewModel2.seasonToTxt(
+                                    topItem.seasonData,
+                                    topItem.seasonIndex
+                                )?.asStringNull(root.context)
+                                if (sText != null && seasonOptions.getOrNull(selectedSeasonOptionIndex)?.isAllOption == true) {
+                                    playerSeasonPickerButton.text = sText
+                                }
                             }
                         }
                     }

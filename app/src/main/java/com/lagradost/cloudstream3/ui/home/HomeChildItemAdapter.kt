@@ -164,6 +164,8 @@ open class HomeChildItemAdapter(
         val sharedPool =
             newSharedPool { setMaxRecycledViews(CONTENT, 20) }
 
+        val orientationCache = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+
         var minPosterSize: Int = 0
         var maxPosterSize: Int = 0
 
@@ -187,14 +189,19 @@ open class HomeChildItemAdapter(
         }
     }
 
-    protected fun applyBinding(holder: ViewHolderState<Boolean>, isFirstItem: Boolean) {
+    protected fun applyBinding(holder: ViewHolderState<Boolean>, isFirstItem: Boolean, item: SearchResponse? = null) {
+        val url = item?.posterUrl
+        val isCardLandscape = isHorizontal || (url != null && orientationCache[url] == true)
+        val w = if (isCardLandscape) maxPosterSize else setWidth
+        val h = if (isCardLandscape) minPosterSize else setHeight
+
         when (val binding = holder.view) {
             is HomeResultGridBinding -> {
-                updateLayoutParms(binding.backgroundCard, setWidth, setHeight)
+                updateLayoutParms(binding.backgroundCard, w, h)
             }
 
             is HomeResultGridExpandedBinding -> {
-                updateLayoutParms(binding.backgroundCard, setWidth, setHeight)
+                updateLayoutParms(binding.backgroundCard, w, h)
 
                 if (isFirstItem) { // to fix tv
                     binding.backgroundCard.nextFocusLeftId = R.id.nav_rail_view
@@ -208,7 +215,7 @@ open class HomeChildItemAdapter(
         item: SearchResponse,
         position: Int
     ) {
-        applyBinding(holder, position == 0)
+        applyBinding(holder, position == 0, item)
 
         SearchResultBuilder.bind(
             clickCallback = { click ->

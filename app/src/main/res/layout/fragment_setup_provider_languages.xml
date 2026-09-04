@@ -25,14 +25,12 @@
     <ListView
         android:id="@+id/listview1"
         android:layout_width="match_parent"
-
         android:layout_height="match_parent"
         android:layout_rowWeight="1"
         android:layout_marginBottom="60dp"
-        android:nextFocusLeft="@id/apply_btt"
-        android:nextFocusRight="@id/cancel_btt"
+        android:nextFocusDown="@id/next_btt"
+        android:nextFocusRight="@id/next_btt"
         android:paddingTop="10dp"
-        android:requiresFadingEdge="vertical"
         tools:listitem="@layout/sort_bottom_single_choice" />
 
     <LinearLayout
@@ -49,6 +47,9 @@
             style="@style/WhiteButton"
             android:layout_width="wrap_content"
             android:layout_gravity="center_vertical|end"
+            android:nextFocusUp="@id/listview1"
+            android:nextFocusLeft="@id/listview1"
+            android:nextFocusRight="@id/prev_btt"
             android:text="@string/next" />
 
         <com.google.android.material.button.MaterialButton
@@ -56,6 +57,8 @@
             style="@style/BlackButton"
             android:layout_width="wrap_content"
             android:layout_gravity="center_vertical|end"
+            android:nextFocusUp="@id/listview1"
+            android:nextFocusLeft="@id/next_btt"
             android:text="@string/previous" />
     </LinearLayout>
 

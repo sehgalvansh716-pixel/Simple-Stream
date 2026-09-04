@@ -20,6 +20,7 @@ import com.lagradost.cloudstream3.mvvm.safe
 import com.lagradost.cloudstream3.syncproviders.AccountManager
 import com.lagradost.cloudstream3.syncproviders.AuthRepo
 import com.lagradost.cloudstream3.ui.BaseFragment
+import com.lagradost.cloudstream3.ui.account.AccountHelper.showAccountSelectLinear
 import com.lagradost.cloudstream3.ui.home.HomeFragment.Companion.errorProfilePic
 import com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR
 import com.lagradost.cloudstream3.ui.settings.Globals.PHONE
@@ -220,7 +221,16 @@ class SettingsFragment : BaseFragment<MainSettingsBinding>(
             binding.settingsProfileText.text = currentAccount?.name
         }
 
+        val isTv = isLayout(TV)
         binding.apply {
+            settingsProfile.apply {
+                setOnClickListener {
+                    activity?.showAccountSelectLinear()
+                }
+                isFocusable = isTv
+                isFocusableInTouchMode = false
+            }
+
             listOf(
                 settingsGeneral to R.id.action_navigation_global_to_navigation_settings_general,
                 settingsPlayer to R.id.action_navigation_global_to_navigation_settings_player,
@@ -234,15 +244,13 @@ class SettingsFragment : BaseFragment<MainSettingsBinding>(
                     setOnClickListener {
                         navigate(navigationId)
                     }
-                    if (isLayout(TV)) {
-                        isFocusable = true
-                        isFocusableInTouchMode = true
-                    }
+                    isFocusable = isTv
+                    isFocusableInTouchMode = false
                 }
             }
 
-            // Default focus on TV
-            if (isLayout(TV)) {
+            // Default focus on TV only if navigation rail is not currently focused
+            if (isLayout(TV) && activity?.findViewById<View>(R.id.nav_rail_view)?.hasFocus() != true) {
                 settingsGeneral.requestFocus()
             }
         }

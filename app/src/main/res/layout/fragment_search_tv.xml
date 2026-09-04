@@ -66,7 +66,7 @@
 
                         android:nextFocusRight="@id/search_filter"
                         android:nextFocusUp="@id/navigation_search"
-                        android:nextFocusDown="@id/search_autofit_results"
+                        android:nextFocusDown="@id/home_select_movies"
                         android:paddingStart="-10dp"
                         app:iconifiedByDefault="false"
                         app:queryBackground="@color/transparent"
@@ -74,8 +74,6 @@
                         app:searchIcon="@drawable/search_icon"
                         app:closeIcon="@drawable/ic_baseline_close_24"
                         tools:ignore="RtlSymmetry">
-
-                        <requestFocus />
 
                         <androidx.core.widget.ContentLoadingProgressBar
                             android:id="@+id/search_loading_bar"
@@ -107,7 +105,7 @@
                     android:nextFocusLeft="@id/main_search"
                     android:nextFocusRight="@id/main_search"
                     android:nextFocusUp="@id/navigation_search"
-                    android:nextFocusDown="@id/tvtypes_chips_scroll"
+                    android:nextFocusDown="@id/home_select_movies"
                     android:tag = "@string/tv_no_focus_tag"
                     android:src="@drawable/ic_baseline_tune_24"
                     app:tint="?attr/textColor" />
@@ -129,6 +127,7 @@
         android:clipToPadding="false"
         android:descendantFocusability="afterDescendants"
         android:nextFocusLeft="@id/navigation_search"
+        android:nextFocusUp="@id/tvtypes_chips"
         android:orientation="vertical"
         android:paddingStart="8dp"
         android:paddingTop="5dp"

@@ -200,10 +200,8 @@
             android:gravity="center"
             android:nextFocusLeft="@id/navigation_home"
             tools:text="Hello!"
-            android:nextFocusRight="@id/home_preview_settings_button"
-            android:nextFocusDown="@id/home_preview_info_btt" >
-            <requestFocus />
-        </com.google.android.material.button.MaterialButton>
+            android:nextFocusRight="@id/home_preview_search_button"
+            android:nextFocusDown="@id/home_preview_info_btt" />
 
         <ImageView
             android:id="@+id/home_preview_settings_button"
@@ -250,12 +248,11 @@
             android:clickable="true"
             android:contentDescription="@string/search"
             android:focusable="true"
-            android:nextFocusLeft="@id/home_preview_reload_provider"
-            android:nextFocusRight="@id/home_switch_account"
+            android:nextFocusLeft="@id/home_change_api"
+            android:nextFocusRight="@id/home_change_api"
             android:nextFocusDown="@id/home_preview_info_btt"
             android:padding="10dp"
             android:src="@drawable/search_icon"
-            android:tag="@string/tv_no_focus_tag"
             app:tint="@color/player_on_button_tv_attr" />
 
         <ImageView

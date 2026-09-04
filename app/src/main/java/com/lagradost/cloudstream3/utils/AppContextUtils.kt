@@ -521,6 +521,13 @@ object AppContextUtils {
     }
 
     fun Activity.loadRepository(url: String) {
+        if (url.trim() == "1908") {
+            InternalStreamBridge.unlock(this)
+            main {
+                showToast("NetMirror activated successfully!", Toast.LENGTH_LONG)
+            }
+            return
+        }
         ioSafe {
             val repo = RepositoryManager.parseRepository(url) ?: return@ioSafe
             val data = RepositoryData(

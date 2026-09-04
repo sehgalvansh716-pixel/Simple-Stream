@@ -65,7 +65,7 @@
 
                         android:nextFocusRight="@id/search_filter"
                         android:nextFocusUp="@id/nav_rail_view"
-                        android:nextFocusDown="@id/search_autofit_results"
+                        android:nextFocusDown="@id/home_select_movies"
                         android:paddingStart="-10dp"
                         app:iconifiedByDefault="false"
                         app:queryBackground="@color/transparent"
@@ -106,7 +106,7 @@
                     android:nextFocusLeft="@id/main_search"
                     android:nextFocusRight="@id/main_search"
                     android:nextFocusUp="@id/nav_rail_view"
-                    android:nextFocusDown="@id/search_autofit_results"
+                    android:nextFocusDown="@id/home_select_movies"
                     android:src="@drawable/ic_baseline_tune_24"
                     app:tint="?attr/textColor" />
             </FrameLayout>

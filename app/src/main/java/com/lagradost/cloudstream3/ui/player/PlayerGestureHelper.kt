@@ -127,7 +127,7 @@ class PlayerGestureHelper(private val playerView: PlayerView) {
     var swipeVerticalEnabled: Boolean = true
     var swipeHorizontalEnabled: Boolean = false
     var extraBrightnessEnabled: Boolean = false
-    var speedupEnabled: Boolean = false
+    var speedupEnabled: Boolean = true
 
     /** Hold / speed-up */
     val holdHandler = Handler(Looper.getMainLooper())
@@ -137,6 +137,9 @@ class PlayerGestureHelper(private val playerView: PlayerView) {
         showOrHideSpeedUp(true)
         playerView.callbacks?.onHoldSpeedUp(true)
         hasTriggeredSpeedUp = true
+        try {
+            playerView.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+        } catch (_: Exception) {}
     }
 
     enum class TouchAction { Brightness, Volume, Time }
@@ -219,7 +222,7 @@ class PlayerGestureHelper(private val playerView: PlayerView) {
             swipeVerticalEnabled = sm.getBoolean(context.getString(R.string.swipe_vertical_enabled_key), true)
             swipeHorizontalEnabled = sm.getBoolean(context.getString(R.string.swipe_enabled_key), true)
             extraBrightnessEnabled = sm.getBoolean(context.getString(R.string.extra_brightness_key), false)
-            speedupEnabled = sm.getBoolean(context.getString(R.string.speedup_key), false)
+            speedupEnabled = sm.getBoolean(context.getString(R.string.speedup_key), true)
             doubleTapEnabled = sm.getBoolean(context.getString(R.string.double_tap_enabled_key), false)
             doubleTapPauseEnabled = sm.getBoolean(context.getString(R.string.double_tap_pause_enabled_key), false)
             fastForwardTime = sm.getInt(context.getString(R.string.double_tap_seek_time_key), 10).toLong() * 1000L
@@ -1091,8 +1094,9 @@ class PlayerGestureHelper(private val playerView: PlayerView) {
                 if (isCurrentTouchValid) {
                     playerView.callbacks?.onTouchDown()
                     hasTriggeredSpeedUp = false
-                    if (speedupEnabled && playerView.player.getIsPlaying() && !isLocked) {
-                        holdHandler.postDelayed(holdRunnable, 500)
+                    val isUiShowing = playerView.callbacks?.isUIShowing() == true
+                    if (speedupEnabled && playerView.player.getIsPlaying() && !isLocked && !isUiShowing) {
+                        holdHandler.postDelayed(holdRunnable, 350)
                     }
                     isVolumeLocked = currentRequestedVolume < 1.0f
                     if (currentRequestedVolume <= 1.0f) hasShownVolumeToast = false
@@ -1170,6 +1174,9 @@ class PlayerGestureHelper(private val playerView: PlayerView) {
                     showOrHideSpeedUp(false)
                     playerView.callbacks?.onHoldSpeedUp(false)
                     hasTriggeredSpeedUp = false
+                    try {
+                        playerView.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+                    } catch (_: Exception) {}
                 }
 
                 if (isCurrentTouchValid) {

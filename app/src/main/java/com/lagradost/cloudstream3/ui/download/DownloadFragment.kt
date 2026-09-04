@@ -91,10 +91,17 @@ class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
         observe(downloadViewModel.headerCards) { cards ->
             when (cards) {
                 is Resource.Success -> {
+                    val isEmpty = cards.value.isEmpty()
                     (binding.downloadList.adapter as? DownloadAdapter)?.submitList(cards.value)
-                    binding.textNoDownloads.isVisible = cards.value.isEmpty()
+                    binding.textNoDownloads.isVisible = isEmpty
                     binding.downloadLoading.isVisible = false
                     binding.downloadList.isVisible = true
+
+                    val targetUp = if (isEmpty) R.id.download_stream_button_tv else R.id.download_list
+                    val targetDown = if (isEmpty) R.id.download_queue_button else R.id.download_list
+                    binding.downloadQueueButton.nextFocusUpId = targetUp
+                    binding.downloadStreamButtonTv.nextFocusDownId = targetDown
+                    binding.downloadAppbar.nextFocusDownId = targetDown
                 }
 
                 is Resource.Loading -> {
@@ -244,8 +251,12 @@ class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
                 activity?.navigate(R.id.action_navigation_global_to_navigation_download_queue)
             }
 
-            downloadStreamButtonTv.isFocusableInTouchMode = isLayout(TV)
-            downloadAppbar.isFocusableInTouchMode = isLayout(TV)
+            downloadStreamButtonTv.isFocusable = true
+            downloadStreamButtonTv.isFocusableInTouchMode = true
+            downloadAppbar.isFocusable = true
+            downloadAppbar.isFocusableInTouchMode = true
+            downloadQueueButton.isFocusable = true
+            downloadQueueButton.isFocusableInTouchMode = true
 
             downloadStreamButtonTv.setOnClickListener { showStreamInputDialog(it.context) }
             steamImageviewHolder.isVisible = isLayout(TV)

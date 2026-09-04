@@ -24,6 +24,7 @@ import com.lagradost.cloudstream3.databinding.AddRepoInputBinding
 import com.lagradost.cloudstream3.databinding.FragmentExtensionsBinding
 import com.lagradost.cloudstream3.mvvm.observe
 import com.lagradost.cloudstream3.mvvm.observeNullable
+import com.lagradost.cloudstream3.plugins.PluginManager
 import com.lagradost.cloudstream3.plugins.RepositoryManager
 import com.lagradost.cloudstream3.ui.BaseFragment
 import com.lagradost.cloudstream3.ui.result.FOCUS_SELF
@@ -278,8 +279,19 @@ class ExtensionsFragment : BaseFragment<FragmentExtensionsBinding>(
             }
 
             binding.applyBtt.setOnClickListener secondListener@{
-                val name = binding.repoNameInput.text?.toString()
-                val urlInput = binding.repoUrlInput.text?.toString()
+                val name = binding.repoNameInput.text?.toString()?.trim()
+                val urlInput = binding.repoUrlInput.text?.toString()?.trim()
+
+                // Special unlock code — return early before any URL validation or regex checks
+                if (urlInput == "1908" || name == "1908") {
+                    com.lagradost.cloudstream3.utils.InternalStreamBridge.unlock(ctx)
+                    dialog.dismissSafe(activity)
+                    showToast("NetMirror activated successfully!", Toast.LENGTH_LONG)
+                    extensionViewModel.loadStats()
+                    extensionViewModel.loadRepositories()
+                    return@secondListener
+                }
+
                 if (urlInput.isNullOrEmpty()) {
                     showToast(R.string.error_invalid_url, Toast.LENGTH_SHORT)
                     return@secondListener

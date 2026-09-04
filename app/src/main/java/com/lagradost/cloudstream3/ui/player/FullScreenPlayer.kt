@@ -352,8 +352,12 @@ open class FullScreenPlayer : AbstractPlayerFragment<FragmentPlayerBinding>(
             track.sampleMimeType == MimeTypes.APPLICATION_MEDIA3_CUES
         }
         // Subtitle offset is not possible on built-in media3 tracks
-        playerBinding?.playerSubtitleOffsetBtt?.isGone =
-            isBuiltinSubtitles || tracks.currentTextTracks.isEmpty()
+        val isOffsetGone = isBuiltinSubtitles || tracks.currentTextTracks.isEmpty()
+        playerBinding?.playerSubtitleOffsetBtt?.isGone = isOffsetGone
+        playerBinding?.playerSpeedBtt?.nextFocusRightId =
+            if (isOffsetGone) R.id.player_sources_btt else R.id.player_subtitle_offset_btt
+        playerBinding?.playerSourcesBtt?.nextFocusLeftId =
+            if (isOffsetGone) R.id.player_speed_btt else R.id.player_subtitle_offset_btt
     }
 
     private fun restoreOrientationWithSensor(activity: Activity) {
@@ -1293,6 +1297,9 @@ open class FullScreenPlayer : AbstractPlayerFragment<FragmentPlayerBinding>(
             playerEpisodesButton.setOnClickListener {
                 toggleEpisodesOverlay(show = true)
             }
+            playerEpisodeOverlayClose.setOnClickListener {
+                toggleEpisodesOverlay(show = false)
+            }
         }
         // init UI
         try {
@@ -1353,18 +1360,24 @@ open class FullScreenPlayer : AbstractPlayerFragment<FragmentPlayerBinding>(
             overlay.animate().cancel()
             (overlay.parent as? ViewGroup)?.layoutTransition = null // Disable layout transitions
 
-            val offset = 50 * overlay.resources.displayMetrics.density
+            val offset = if (overlay.width > 0) overlay.width.toFloat() else 360 * overlay.resources.displayMetrics.density
 
             overlay.translationX = if (show) offset else 0f
             playerBinding?.playerEpisodeOverlay?.isVisible = true
+            if (show) {
+                playerBinding?.playerEpisodesButtonRoot?.isGone = true
+            }
 
             overlay.animate()
                 .translationX(if (show) 0f else offset)
                 .alpha(if (show) 1f else 0f)
-                .setDuration(300)
-                .setInterpolator(AccelerateDecelerateInterpolator()).withEndAction {
+                .setDuration(280)
+                .setInterpolator(AccelerateDecelerateInterpolator())
+                .withEndAction {
                     if (!show) {
                         playerBinding?.playerEpisodeOverlay?.isGone = true
+                        playerBinding?.playerEpisodesButtonRoot?.isGone = false
+                        playerBinding?.playerPausePlay?.requestFocus()
                     }
                 }
                 .start()

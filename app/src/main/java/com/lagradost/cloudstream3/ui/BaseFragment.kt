@@ -15,6 +15,8 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.lagradost.cloudstream3.CommonActivity.showToast
 import com.lagradost.cloudstream3.R
 import com.lagradost.cloudstream3.mvvm.logError
+import com.lagradost.cloudstream3.ui.settings.Globals.TV
+import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
 import com.lagradost.cloudstream3.ui.settings.SettingsFragment.Companion.setSystemBarsPadding
 import com.lagradost.cloudstream3.utils.txt
 
@@ -269,6 +271,13 @@ abstract class BasePreferenceFragmentCompat() : PreferenceFragmentCompat() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setSystemBarsPadding()
+        listView?.post {
+            if (isLayout(TV)) {
+                if (activity?.currentFocus == null || activity?.currentFocus == view) {
+                    listView?.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                }
+            }
+        }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

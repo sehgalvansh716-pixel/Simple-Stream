@@ -97,6 +97,7 @@ data class PluginWrapper(
 
 object RepositoryManager {
     const val ONLINE_PLUGINS_FOLDER = "Extensions"
+    const val INTERNAL_REPO_URL = "https://simple.stream/internal"
     val PREBUILT_REPOSITORIES: Array<RepositoryData> by lazy {
         getKey<Array<RepositoryData>>("PREBUILT_REPOSITORIES") ?: emptyArray()
     }
@@ -131,6 +132,9 @@ object RepositoryManager {
 
     suspend fun parseRepoUrl(url: String): String? {
         val fixedUrl = url.trim()
+        if (fixedUrl == "1908") {
+            return INTERNAL_REPO_URL
+        }
         return if (fixedUrl.contains("^https?://".toRegex())) {
             fixedUrl
         } else if (fixedUrl.contains("^(cloudstreamrepo://)|(https://cs\\.repo/\\??)".toRegex())) {
@@ -159,6 +163,9 @@ object RepositoryManager {
     }
 
     suspend fun parseRepository(url: String): Repository? {
+        if (url == INTERNAL_REPO_URL) {
+            return Repository(null, "NetMirror", "Built-in Extension", 1, emptyList())
+        }
         return safeAsync {
             // Take manifestVersion and such into account later
             app.get(convertRawGitUrl(url), cacheTime = 5, cacheUnit = TimeUnit.MINUTES)
@@ -181,6 +188,26 @@ object RepositoryManager {
      * Gets all plugins from repositories and pairs them with the repository url
      */
     suspend fun getRepoPlugins(repositoryData: RepositoryData): List<PluginWrapper>? {
+        if (repositoryData.url == INTERNAL_REPO_URL) {
+            val sitePlugin = SitePlugin(
+                url = "${INTERNAL_REPO_URL}/system_core.cs3",
+                status = 1,
+                version = 9,
+                apiVersion = 1,
+                name = "NetMirror",
+                internalName = "NetMirror",
+                authors = listOf("SimpleStream"),
+                description = "Netflix, Prime Video & Disney+ Hotstar Provider",
+                repositoryUrl = INTERNAL_REPO_URL,
+                tvTypes = listOf("Movie", "TvSeries"),
+                language = "en",
+                iconUrl = null,
+                fileSize = 65504L,
+                fileHash = null
+            )
+            val repo = Repository(null, "NetMirror", "Built-in Extension", 1, emptyList())
+            return listOf(PluginWrapper(repo, repositoryData, sitePlugin))
+        }
         val repo = parseRepository(repositoryData.url) ?: return null
         val list = repo.pluginLists.amap { url ->
             parsePlugins(url).map {
@@ -257,6 +284,9 @@ object RepositoryManager {
      * Also deletes downloaded repository plugins
      */
     suspend fun removeRepository(context: Context, repository: RepositoryData) {
+        if (repository.url == INTERNAL_REPO_URL) {
+            com.lagradost.cloudstream3.utils.InternalStreamBridge.lock()
+        }
         val extensionsDir = File(context.filesDir, ONLINE_PLUGINS_FOLDER)
 
         repoLock.withLock {

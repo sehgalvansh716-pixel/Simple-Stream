@@ -42,7 +42,7 @@
                 android:backgroundTint="@color/transparent"
                 android:focusable="true"
                 android:foreground="@drawable/outline_drawable"
-                android:nextFocusLeft="@id/home_preview_hidden_prev_focus"
+                android:nextFocusLeft="@id/navigation_home"
                 android:nextFocusRight="@id/home_preview_hidden_next_focus"
                 android:nextFocusUp="@id/home_change_api"
                 android:nextFocusDown="@id/home_watch_child_recyclerview"
@@ -200,10 +200,7 @@
                 android:nextFocusLeft="@id/home_preview_info_btt"
                 android:nextFocusRight="@id/home_preview_reload_provider"
                 android:nextFocusUp="@id/home_preview_change_api"
-                android:nextFocusDown="@id/home_preview_info_btt">
-
-                <requestFocus />
-            </com.google.android.material.button.MaterialButton>
+                android:nextFocusDown="@id/home_preview_info_btt" />
 
             <ImageView
                 android:id="@+id/home_preview_reload_provider"

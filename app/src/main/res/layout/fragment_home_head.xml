@@ -45,6 +45,7 @@
                 android:gravity="center_vertical"
                 android:iconifiedByDefault="true"
                 android:nextFocusRight="@id/home_head_profile_padding"
+                android:nextFocusDown="@id/home_preview_play"
                 android:padding="0dp"
                 android:textColor="@color/white"
                 android:textColorHint="@color/white"
@@ -64,6 +65,7 @@
                 android:foreground="@drawable/rounded_select_ripple"
                 android:gravity="center"
                 android:nextFocusLeft="@id/home_search"
+                android:nextFocusDown="@id/home_preview_play"
                 android:orientation="horizontal">
 
                 <androidx.cardview.widget.CardView
@@ -87,24 +89,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!--
-                        <TextView
-                            android:visibility="gone"
-                            android:id="@+id/test_search"
-                            android:background="?android:attr/selectableItemBackgroundBorderless"
-                            android:layout_gravity="start"
-                            android:gravity="center"
-
-                            android:textSize="20dp"
-                            android:layout_margin="20dp"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/search"
-                            android:textColor="@color/white"
-                            app:drawableLeftCompat="@drawable/search_icon"
-                            app:tint="@color/white" />
-        -->
-
         <LinearLayout
             android:id="@+id/home_preview_title_holder"
             android:layout_width="match_parent"
@@ -118,12 +102,18 @@
                 android:layout_width="70dp"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:layout_marginStart="25dp"
-                android:layout_marginEnd="25dp"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="@drawable/outline_drawable"
                 android:gravity="center"
+                android:nextFocusUp="@id/home_search"
+                android:nextFocusRight="@id/home_preview_play"
                 android:text="@string/none"
                 android:textColor="?attr/white"
+                android:textSize="12sp"
                 app:drawableTint="?attr/white"
                 app:drawableTopCompat="@drawable/ic_baseline_add_24"
                 app:tint="?attr/white" />
@@ -132,8 +122,18 @@
                 android:id="@+id/home_preview_play"
                 style="@style/WhiteButton"
                 android:layout_width="wrap_content"
+                android:layout_height="44dp"
                 android:layout_gravity="center"
+                android:paddingHorizontal="24dp"
+                app:cornerRadius="22dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:nextFocusUp="@id/home_search"
+                android:nextFocusLeft="@id/home_preview_bookmark"
+                android:nextFocusRight="@id/home_preview_info"
                 android:text="@string/home_play"
+                android:textSize="15sp"
+                android:textStyle="bold"
                 app:icon="@drawable/ic_baseline_play_arrow_24" />
 
             <TextView
@@ -141,12 +141,18 @@
                 android:layout_width="70dp"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:layout_marginStart="25dp"
-                android:layout_marginEnd="25dp"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="@drawable/outline_drawable"
                 android:gravity="center"
+                android:nextFocusUp="@id/home_search"
+                android:nextFocusLeft="@id/home_preview_play"
                 android:text="@string/home_info"
                 android:textColor="?attr/white"
+                android:textSize="12sp"
                 app:drawableTint="?attr/white"
                 app:drawableTopCompat="@drawable/ic_outline_info_24"
                 app:tint="?attr/white" />

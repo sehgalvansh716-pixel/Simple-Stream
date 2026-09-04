@@ -234,18 +234,12 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
     private fun toggleEpisodes(show: Boolean) {
         binding?.apply {
             if (show) {
-                activity?.attachBackPressedCallback(this@ResultFragmentTv.toString()) {
-                    toggleEpisodes(false)
+                resultFinishLoading.smoothScrollTo(0, episodesSection.top)
+                if (resultSeasonSelection.isVisible) {
+                    resultSeasonSelection.requestFocus()
+                } else {
+                    resultEpisodes.requestFocus()
                 }
-            } else {
-                activity?.detachBackPressedCallback(this@ResultFragmentTv.toString())
-            }
-            episodesShadow.fade(show)
-            episodeHolderTv.fade(show)
-            if (episodesShadow.isRtl()) {
-                episodesShadowBackground.scaleX = -1f
-            } else {
-                episodesShadowBackground.scaleX = 1f
             }
         }
     }
@@ -333,10 +327,9 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
                 resultEpisodesShowButton to resultEpisodesShowText
             ).forEach { (button, text) ->
 
-                button.setOnFocusChangeListener { view, hasFocus ->
+                button.setOnFocusChangeListener { _, hasFocus ->
                     if (!hasFocus) {
                         text.isSelected = false
-                        if (view.id == R.id.result_episodes_show_button) toggleEpisodes(false)
                         return@setOnFocusChangeListener
                     }
 
@@ -344,42 +337,34 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
                     if (button.tag == context?.getString(R.string.tv_no_focus_tag)) {
                         resultFinishLoading.scrollTo(0, 0)
                     }
-                    when (button.id) {
-                        R.id.result_episodes_show_button -> {
-                            toggleEpisodes(true)
-                        }
-
-                        else -> {
-                            toggleEpisodes(false)
-                        }
-                    }
                 }
             }
 
             resultEpisodesShowButton.setOnClickListener {
-                // toggle, to make it more touch accessible just in case someone thinks that a
-                // tv layout is better but is using a touch device
-                toggleEpisodes(!episodeHolderTv.isVisible)
+                resultFinishLoading.smoothScrollTo(0, episodesSection.top)
+                if (resultSeasonSelection.isVisible) {
+                    resultSeasonSelection.requestFocus()
+                } else {
+                    resultEpisodes.requestFocus()
+                }
             }
 
-            resultEpisodes.setLinearListLayout(
-                isHorizontal = false,
-                nextUp = FOCUS_SELF,
-                nextDown = FOCUS_SELF,
-                nextRight = FOCUS_SELF,
-            )
+            resultEpisodes.apply {
+                layoutManager = androidx.recyclerview.widget.LinearLayoutManager(context, androidx.recyclerview.widget.RecyclerView.VERTICAL, false)
+                isNestedScrollingEnabled = false
+            }
             resultDubSelection.setLinearListLayout(
-                isHorizontal = false,
+                isHorizontal = true,
                 nextUp = FOCUS_SELF,
                 nextDown = FOCUS_SELF,
             )
             resultRangeSelection.setLinearListLayout(
-                isHorizontal = false,
+                isHorizontal = true,
                 nextUp = FOCUS_SELF,
                 nextDown = FOCUS_SELF,
             )
             resultSeasonSelection.setLinearListLayout(
-                isHorizontal = false,
+                isHorizontal = true,
                 nextUp = FOCUS_SELF,
                 nextDown = FOCUS_SELF,
             )
@@ -479,6 +464,7 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
         observeNullable(viewModel.resumeWatching) { resume ->
             binding.apply {
                 if (resume == null) {
+                    resultResumeProgressHolder.isVisible = false
                     return@observeNullable
                 }
 
@@ -489,13 +475,16 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
                 // show progress no matter if series or movie
                 resume.progress?.let { progress ->
                     resultResumeSeriesTitle.apply {
-                        isVisible = !resume.isMovie
-                        text =
-                            if (resume.isMovie) null else context?.getNameFull(
+                        isVisible = true
+                        text = if (resume.isMovie) {
+                            (viewModel.page.value as? Resource.Success)?.value?.title ?: resume.result.name
+                        } else {
+                            context?.getNameFull(
                                 resume.result.name,
                                 resume.result.episode,
                                 resume.result.season
                             )
+                        }
                     }
                     resultResumeSeriesProgressText.setText(progress.progressLeft)
                     resultResumeSeriesProgress.apply {
@@ -503,9 +492,26 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
                         this.max = progress.maxProgress
                         this.progress = progress.progress
                     }
+
+                    // Load episode thumbnail (or fall back to page poster / background)
+                    val thumbUrl = resume.result.poster?.takeIf { it.isNotBlank() }
+                    if (thumbUrl != null) {
+                        resultResumeThumbnail.loadImage(thumbUrl)
+                    } else {
+                        val pageData = (viewModel.page.value as? Resource.Success)?.value
+                        resultResumeThumbnail.loadImage(pageData?.posterImage, headers = pageData?.posterHeaders)
+                    }
+
                     resultResumeProgressHolder.isVisible = true
                 } ?: run {
                     resultResumeProgressHolder.isVisible = false
+                }
+
+                resultResumeProgressHolder.setOnClickListener {
+                    resultResumeSeriesButton.performClick()
+                }
+                resultResumeProgressHolder.setOnLongClickListener {
+                    resultResumeSeriesButton.performLongClick()
                 }
 
                 focusPlayButton()
@@ -808,8 +814,11 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
             binding.apply {
                 if (comingSoon) resultBookmarkButton.requestFocus()
 
-                //    resultEpisodeLoading.isVisible = episodes is Resource.Loading
+                resultEpisodeLoading.isVisible = episodes is Resource.Loading
                 if (episodes is Resource.Success) {
+                    val hasEpisodes = episodes.value.isNotEmpty()
+                    episodesSection.isVisible = hasEpisodes && !comingSoon
+
                     val lastWatchedIndex = episodes.value.indexOfLast { ep ->
                         ep.getWatchProgress() >= NEXT_WATCH_EPISODE_PERCENTAGE.toFloat() / 100.0f || ep.videoWatchState == VideoWatchState.Watched
                     }
@@ -850,7 +859,6 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
                             resultPlaySeriesButton.requestFocus()
                         }
                     }
-
 
                     (resultEpisodes.adapter as? EpisodeAdapter)?.submitList(episodes.value)
                 }

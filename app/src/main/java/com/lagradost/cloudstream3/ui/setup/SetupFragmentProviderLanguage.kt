@@ -1,5 +1,6 @@
 package com.lagradost.cloudstream3.ui.setup
 
+import android.view.KeyEvent
 import android.view.View
 import android.widget.AbsListView
 import android.widget.ArrayAdapter
@@ -13,6 +14,8 @@ import com.lagradost.cloudstream3.databinding.FragmentSetupProviderLanguagesBind
 import com.lagradost.cloudstream3.mvvm.safe
 import com.lagradost.cloudstream3.R
 import com.lagradost.cloudstream3.ui.BaseFragment
+import com.lagradost.cloudstream3.ui.settings.Globals.TV
+import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
 import com.lagradost.cloudstream3.utils.AppContextUtils.getApiProviderLangSettings
 import com.lagradost.cloudstream3.utils.SubtitleHelper.getNameNextToFlagEmoji
 import com.lagradost.cloudstream3.utils.UIHelper.fixSystemBarsPadding
@@ -73,6 +76,44 @@ class SetupFragmentProviderLanguage : BaseFragment<FragmentSetupProviderLanguage
 
                 prevBtt.setOnClickListener {
                     findNavController().popBackStack()
+                }
+
+                if (isLayout(TV)) {
+                    listview1.post {
+                        listview1.requestFocus()
+                    }
+
+                    listview1.setOnKeyListener { _, keyCode, event ->
+                        if (event.action == KeyEvent.ACTION_DOWN) {
+                            when (keyCode) {
+                                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                                    nextBtt.requestFocus()
+                                    true
+                                }
+                                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                                    if (listview1.selectedItemPosition >= arrayAdapter.count - 1) {
+                                        nextBtt.requestFocus()
+                                        true
+                                    } else false
+                                }
+                                else -> false
+                            }
+                        } else false
+                    }
+
+                    nextBtt.setOnKeyListener { _, keyCode, event ->
+                        if (event.action == KeyEvent.ACTION_DOWN && (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_LEFT)) {
+                            listview1.requestFocus()
+                            true
+                        } else false
+                    }
+
+                    prevBtt.setOnKeyListener { _, keyCode, event ->
+                        if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                            listview1.requestFocus()
+                            true
+                        } else false
+                    }
                 }
             }
         }
