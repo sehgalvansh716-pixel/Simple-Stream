@@ -135,25 +135,6 @@ object SearchResultBuilder {
         if (!card.posterUrl.isNullOrEmpty()) {
             val url = card.posterUrl!!
             cardView.loadImage(url, card.posterHeaders) {
-                listener(
-                    onSuccess = { _, result ->
-                        val w = result.image.width
-                        val h = result.image.height
-                        if (w > 0 && h > 0) {
-                            val isLandscape = (w.toFloat() / h.toFloat()) > 1.15f
-                            val prev = com.lagradost.cloudstream3.ui.home.HomeChildItemAdapter.orientationCache.put(url, isLandscape)
-                            if (prev != isLandscape) {
-                                val targetW = if (isLandscape) com.lagradost.cloudstream3.ui.home.HomeChildItemAdapter.maxPosterSize else com.lagradost.cloudstream3.ui.home.HomeChildItemAdapter.minPosterSize
-                                val targetH = if (isLandscape) com.lagradost.cloudstream3.ui.home.HomeChildItemAdapter.minPosterSize else com.lagradost.cloudstream3.ui.home.HomeChildItemAdapter.maxPosterSize
-                                if (targetW > 0 && targetH > 0) {
-                                    bg.post {
-                                        com.lagradost.cloudstream3.ui.home.HomeChildItemAdapter.updateLayoutParms(bg, targetW, targetH)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                )
                 error { getImageFromDrawable(itemView.context, R.drawable.default_cover) }
             }
         } else cardView.loadImage(R.drawable.default_cover)

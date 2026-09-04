@@ -35,11 +35,12 @@
                 android:backgroundTint="@color/transparent"
                 android:focusable="true"
                 android:foreground="@drawable/outline_drawable"
-                android:nextFocusLeft="@id/nav_rail_view"
+                android:nextFocusLeft="@id/navigation_home"
                 android:nextFocusRight="@id/home_preview_info_btt"
-                android:nextFocusUp="@id/home_preview_change_api"
+                android:nextFocusUp="@id/home_change_api"
                 android:nextFocusDown="@id/home_watch_child_recyclerview"
 
+                app:cardPreventCornerOverlap="false"
                 app:cardCornerRadius="@dimen/rounded_image_radius">
 
                 <androidx.viewpager2.widget.ViewPager2
@@ -163,67 +164,6 @@
 
             </androidx.cardview.widget.CardView>
 
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/home_preview_header_container"
-            android:layout_width="wrap_content"
-            android:layout_height="42dp"
-            android:layout_gravity="end|top"
-            android:layout_margin="12dp"
-            android:background="@drawable/player_button_tv_attr"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/home_preview_change_api"
-                style="@style/RegularButtonTV"
-                android:layout_width="wrap_content"
-                android:layout_height="38dp"
-                android:layout_gravity="center_vertical"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
-                android:background="@drawable/player_button_tv_attr_no_bg"
-                android:gravity="center"
-                android:focusable="true"
-                android:nextFocusLeft="@id/nav_rail_view"
-                android:nextFocusRight="@id/home_preview_reload_provider"
-                android:nextFocusUp="@id/home_preview_change_api"
-                android:nextFocusDown="@id/home_preview_info_btt" />
-
-            <ImageView
-                android:id="@+id/home_preview_reload_provider"
-                android:layout_width="40dp"
-                android:layout_height="38dp"
-                android:layout_gravity="center_vertical"
-                android:background="@drawable/player_button_tv_attr_no_bg"
-                android:contentDescription="@string/reload_provider"
-                android:focusable="true"
-                android:nextFocusLeft="@id/home_preview_change_api"
-                android:nextFocusRight="@id/home_preview_search_button"
-                android:nextFocusUp="@id/home_preview_reload_provider"
-                android:nextFocusDown="@id/home_preview_info_btt"
-                android:padding="8dp"
-                android:src="@drawable/ic_refresh"
-                android:visibility="gone"
-                app:tint="@color/player_on_button_tv_attr" />
-
-            <ImageView
-                android:id="@+id/home_preview_search_button"
-                android:layout_width="40dp"
-                android:layout_height="38dp"
-                android:layout_gravity="center_vertical"
-                android:layout_marginEnd="4dp"
-                android:background="@drawable/player_button_tv_attr_no_bg"
-                android:contentDescription="@string/search"
-                android:focusable="true"
-                android:nextFocusLeft="@id/home_preview_reload_provider"
-                android:nextFocusRight="@id/home_preview_search_button"
-                android:nextFocusUp="@id/home_preview_search_button"
-                android:nextFocusDown="@id/home_preview_info_btt"
-                android:padding="8dp"
-                android:src="@drawable/search_icon"
-                app:tint="@color/player_on_button_tv_attr" />
         </LinearLayout>
 
     </FrameLayout>

@@ -750,7 +750,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
         if (!isLayout(TV or EMULATOR)) return
         val fromView = binding?.navRailView ?: return
         val targetView = when (destinationId) {
-            R.id.navigation_home -> R.id.home_preview_change_api
+            R.id.navigation_home -> R.id.home_change_api
             R.id.navigation_search -> R.id.main_search
             R.id.navigation_library -> R.id.main_search
             R.id.navigation_downloads -> R.id.download_appbar
@@ -1832,7 +1832,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                                 if (lastItem != null && lastItem.isShown && lastItem.isAttachedToWindow && lastItem.requestFocus()) {
                                     return@OnKeyListener true
                                 }
-                                val headerApi = findViewById<View>(R.id.home_preview_change_api)
+                                val headerApi = findViewById<View>(R.id.home_change_api)
                                 if (headerApi != null && headerApi.isShown && headerApi.requestFocus()) {
                                     return@OnKeyListener true
                                 }

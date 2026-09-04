@@ -588,23 +588,6 @@ class HomeParentItemAdapterPreview(
             }
 
             (binding as? FragmentHomeHeadTvBinding)?.apply {
-                homePreviewChangeApi.setOnClickListener { view ->
-                    view.context.selectHomepage(viewModel.repo?.name) { api: String ->
-                        viewModel.loadAndCancel(api, forceReload = true, fromUI = true)
-                    }
-                }
-                homePreviewReloadProvider.setOnClickListener {
-                    viewModel.loadAndCancel(
-                        viewModel.apiName.value ?: noneApi.name,
-                        forceReload = true,
-                        fromUI = true
-                    )
-                    showToast(R.string.action_reload, Toast.LENGTH_SHORT)
-                }
-                homePreviewSearchButton.setOnClickListener { _ ->
-                    viewModel.queryTextSubmit("")
-                }
-
                 // A workaround to the focus problem of always centering the view on focus
                 // as that causes higher android versions to stretch the ui when switching between shows
                 var lastFocusTimeoutMs = 0L
@@ -638,7 +621,7 @@ class HomeParentItemAdapterPreview(
                             }
                         }
                         KeyEvent.KEYCODE_DPAD_UP -> {
-                            homePreviewChangeApi.requestFocus()
+                            (itemView.context.getActivity() as? MainActivity)?.findViewById<View>(R.id.home_change_api)?.requestFocus()
                             true
                         }
                         KeyEvent.KEYCODE_DPAD_DOWN -> {
@@ -810,21 +793,6 @@ class HomeParentItemAdapterPreview(
             previewViewpager.apply {
                 observe(viewModel.preview) {
                     updatePreview(it)
-                }
-                if (binding is FragmentHomeHeadTvBinding) {
-                    observe(viewModel.apiName) { name ->
-                        val displayName = name ?: noneApi.name
-                        binding.homePreviewChangeApi.text = "$displayName ▾"
-                        val isNone = (name == noneApi.name)
-                        binding.homePreviewReloadProvider.isGone = isNone
-                        if (isNone) {
-                            binding.homePreviewChangeApi.nextFocusRightId = R.id.home_preview_search_button
-                            binding.homePreviewSearchButton.nextFocusLeftId = R.id.home_preview_change_api
-                        } else {
-                            binding.homePreviewChangeApi.nextFocusRightId = R.id.home_preview_reload_provider
-                            binding.homePreviewSearchButton.nextFocusLeftId = R.id.home_preview_reload_provider
-                        }
-                    }
                 }
                 observe(viewModel.resumeWatching) {
                     updateResume(it)

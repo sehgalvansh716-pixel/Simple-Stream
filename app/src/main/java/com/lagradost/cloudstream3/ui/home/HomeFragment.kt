@@ -443,23 +443,33 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
 
                         val name = getItem(position)
                         titleText?.text = name
-                        val providerApi = currentValidApis[position]
-                        val isPinned =
-                            pinnedphashset.contains(providerApi.name)
-                        pinIcon.visibility = if (isPinned) View.VISIBLE else View.GONE
+                        if (position < currentValidApis.size) {
+                            val providerApi = currentValidApis[position]
+                            val isPinned =
+                                pinnedphashset.contains(providerApi.name)
+                            pinIcon.visibility = if (isPinned) View.VISIBLE else View.GONE
 
-                        val pluginInstance = providerApi.sourcePlugin?.let { PluginManager.plugins[it] } as? Plugin
-                        val isDownloadedPluginWithSettings = pluginInstance?.openSettings != null && !isLayout(TV)
+                            val pluginInstance = providerApi.sourcePlugin?.let { PluginManager.plugins[it] } as? Plugin
+                            val isDownloadedPluginWithSettings = pluginInstance?.openSettings != null && !isLayout(TV)
 
-                        settingsIcon.visibility = if (isDownloadedPluginWithSettings) View.VISIBLE else View.GONE
-                        if (isDownloadedPluginWithSettings) {
-                            settingsIcon.setOnClickListener {
-                                try {
-                                    val activityContext = it.context.getActivity() ?: it.context
-                                    pluginInstance.openSettings?.invoke(activityContext)
-                                } catch (e: Throwable) {
-                                    logError(e)
+                            settingsIcon.visibility = if (isDownloadedPluginWithSettings) View.VISIBLE else View.GONE
+                            if (isDownloadedPluginWithSettings) {
+                                settingsIcon.setOnClickListener {
+                                    try {
+                                        val activityContext = it.context.getActivity() ?: it.context
+                                        pluginInstance.openSettings?.invoke(activityContext)
+                                    } catch (e: Throwable) {
+                                        logError(e)
+                                    }
                                 }
+                            }
+                        }
+
+                        view.setOnClickListener {
+                            if (currentValidApis.isNotEmpty() && position < currentValidApis.size) {
+                                currentApiName = currentValidApis[position].name
+                                currentApiName?.let(callback)
+                                dialog.dismissSafe()
                             }
                         }
 
@@ -471,13 +481,13 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
                 if (isLayout(TV)) {
                     listView?.isFocusable = true
                     listView?.isFocusableInTouchMode = true
+                    listView?.itemsCanFocus = false
                 }
 
                 listView?.setOnItemClickListener { _, _, i, _ ->
-                    if (currentValidApis.isNotEmpty()) {
+                    if (currentValidApis.isNotEmpty() && i < currentValidApis.size) {
                         currentApiName = currentValidApis[i].name
-                        //to switch to apply simply remove this
-                        currentApiName.let(callback)
+                        currentApiName?.let(callback)
                         dialog.dismissSafe()
                     }
                 }
@@ -832,9 +842,17 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
             val displayApiName = context?.getDisplayName(apiName) ?: apiName
             binding.apply {
                 homeApiFab.text = displayApiName
-                homeChangeApi.text = displayApiName
-                homePreviewReloadProvider.isGone = (apiName == noneApi.name)
-                homePreviewSearchButton.isGone = (apiName == noneApi.name)
+                homeChangeApi.text = "$displayApiName ▾"
+                val isNone = (apiName == noneApi.name)
+                homePreviewReloadProvider.isGone = isNone
+                homePreviewSearchButton.isGone = isNone
+                if (isNone) {
+                    homeChangeApi.nextFocusRightId = R.id.home_preview_search_button
+                    homePreviewSearchButton.nextFocusLeftId = R.id.home_change_api
+                } else {
+                    homeChangeApi.nextFocusRightId = R.id.home_preview_reload_provider
+                    homePreviewSearchButton.nextFocusLeftId = R.id.home_preview_reload_provider
+                }
             }
         }
 
@@ -1006,11 +1024,10 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
             }
             parent = parent.parent
         }
-        val changeApiButton = activity?.findViewById<View>(R.id.home_preview_change_api)
-            ?: binding?.homeChangeApi
+        val changeApiButton = binding?.homeChangeApi
+            ?: activity?.findViewById<View>(R.id.home_change_api)
         when {
             // Case 1: Focus is on plugin selector, hero banner, or header buttons -> Move to home navigation rail
-            currentFocus.id == R.id.home_preview_change_api ||
             currentFocus.id == R.id.home_change_api ||
             currentFocus.id == R.id.home_preview_reload_provider ||
             currentFocus.id == R.id.home_preview_search_button ||

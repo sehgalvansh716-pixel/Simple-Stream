@@ -584,7 +584,7 @@ abstract class InternalStreamBase(val ottCode: String) : MainAPI() {
         }.distinctBy { it.url }
 
         if (items.isEmpty()) return null
-        val isHorizontal = (ottCode == "pv")
+        val isHorizontal = false
         return HomePageList(name, items, isHorizontalImages = isHorizontal)
     }
 
