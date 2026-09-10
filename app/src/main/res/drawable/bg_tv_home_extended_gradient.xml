@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Base Vertical Scrim:
+         Top navbar clarity -> vibrant hero artwork -> smooth deepening into dark cinematic vignette -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#3307090D"
+                android:centerColor="#2607090D"
+                android:endColor="#E607090D"
+                android:centerY="0.48"
+                android:type="linear" />
+        </shape>
+    </item>
+
+    <!-- Deep Content Rails Vignette:
+         Restores the rich moody dark background behind content cards so artwork colors glow with depth
+         without blinding the viewer or washing out text and poster focus rings -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#0007090D"
+                android:centerColor="#8007090D"
+                android:endColor="#F207090D"
+                android:centerY="0.56"
+                android:type="linear" />
+        </shape>
+    </item>
+
+    <!-- Left Edge Vignette for hero text contrast and navigation clarity -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="0"
+                android:startColor="#8007090D"
+                android:centerColor="#3307090D"
+                android:endColor="#0007090D"
+                android:centerX="0.35"
+                android:type="linear" />
+        </shape>
+    </item>
+
+    <!-- Right Edge Vignette -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="180"
+                android:startColor="#5907090D"
+                android:endColor="#0007090D"
+                android:centerX="0.18"
+                android:type="linear" />
+        </shape>
+    </item>
+</layer-list>

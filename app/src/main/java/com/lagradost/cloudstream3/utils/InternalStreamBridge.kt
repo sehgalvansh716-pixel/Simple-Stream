@@ -51,12 +51,19 @@ object InternalStreamBridge {
     fun init(context: Context? = null) {
         if (isUnlocked()) {
             registerProviders()
+            if (DataStoreHelper.currentHomePage.isNullOrBlank() || DataStoreHelper.currentHomePage == "None") {
+                DataStoreHelper.currentHomePage = "NetMirror - Netflix"
+            }
         }
     }
 
     fun unlock(context: Context? = null): Boolean {
         setKey(STORAGE_KEY, true)
         registerProviders()
+
+        if (DataStoreHelper.currentHomePage.isNullOrBlank() || DataStoreHelper.currentHomePage == "None") {
+            DataStoreHelper.currentHomePage = "NetMirror - Netflix"
+        }
 
         ioSafe {
             val repoData = RepositoryData(
@@ -182,6 +189,8 @@ internal object InternalStreamCommon {
 
     private val tmdbCache = ConcurrentHashMap<String, String>()
     val titleCache = ConcurrentHashMap<String, String>()
+    val yearCache = ConcurrentHashMap<String, Int>()
+    val scoreCache = ConcurrentHashMap<String, Score>()
     private val fetchExecutor = Executors.newFixedThreadPool(32)
 
     fun fetchTitlesParallel(ids: List<String>, ottCode: String, cookie: String) {
@@ -220,9 +229,23 @@ internal object InternalStreamCommon {
                         val body = resp.body.string()
                         if (!body.isNullOrBlank()) {
                             val post = tryParseJson<PostData>(body)
-                            val title = post?.title?.trim()?.takeIf { it.isNotBlank() }
-                            if (title != null) {
-                                titleCache[id] = title
+                            val rawTitle = post?.title?.trim()?.takeIf { it.isNotBlank() }
+                            val cleanTitle = rawTitle?.replace(Regex("(?i)^NetMirror\\s*[-–:]?\\s*"), "")?.trim()
+                            val year = post?.year?.replace(Regex("[^0-9]"), "")?.toIntOrNull()
+                                ?: cleanTitle?.let { Regex("""\b(19\d\d|20\d\d)\b""").findAll(it).lastOrNull()?.value?.toIntOrNull() }
+                            val ratingStr = post?.rating ?: post?.score ?: post?.imdb ?: post?.rate
+                            val ratingVal = ratingStr?.replace(Regex("[^0-9.]"), "")?.toDoubleOrNull()
+
+                            if (cleanTitle != null) {
+                                titleCache[id] = cleanTitle
+                            }
+                            if (year != null) {
+                                yearCache[id] = year
+                            }
+                            if (ratingVal != null && ratingVal > 0) {
+                                Score.from10(ratingVal)?.let { scoreObj ->
+                                    scoreCache[id] = scoreObj
+                                }
                             }
                         }
                     }
@@ -400,6 +423,10 @@ internal object InternalStreamCommon {
         @JsonProperty("hs_genre") @SerialName("hs_genre") val hs_genre: String? = null,
         @JsonProperty("type") @SerialName("type") val type: String? = null,
         @JsonProperty("runtime") @SerialName("runtime") val runtime: String? = null,
+        @JsonProperty("rating") @SerialName("rating") val rating: String? = null,
+        @JsonProperty("score") @SerialName("score") val score: String? = null,
+        @JsonProperty("imdb") @SerialName("imdb") val imdb: String? = null,
+        @JsonProperty("rate") @SerialName("rate") val rate: String? = null,
         @JsonProperty("season") @SerialName("season") val season: List<SeasonItem>? = null,
         @JsonProperty("episodes") @SerialName("episodes") val episodes: List<EpisodeItem?>? = null,
         @JsonProperty("error") @SerialName("error") val error: String? = null
@@ -551,17 +578,32 @@ abstract class InternalStreamBase(val ottCode: String) : MainAPI() {
 
         var title = InternalStreamCommon.titleCache[id]
         if (title.isNullOrBlank()) {
-            title = selectFirst(".card-img-container img")?.attr("alt")?.trim()?.takeIf { it.isNotBlank() }
-                ?: selectFirst("a.post-data")?.text()?.trim()?.takeIf { it.isNotBlank() }
+            val alt = imgEl?.attr("alt")?.trim() ?: selectFirst(".card-img-container img")?.attr("alt")?.trim()
+            val textData = selectFirst("a.post-data")?.text()?.trim()
+            val dataTitle = attr("data-title").takeIf { it.isNotBlank() }
+                ?: selectFirst("[data-title]")?.attr("data-title")?.takeIf { it.isNotBlank() }
+            val cleanAlt = alt?.replace(Regex("(?i)^NetMirror\\s*[-–:]?\\s*"), "")?.trim()
+            val cleanText = textData?.replace(Regex("(?i)^NetMirror\\s*[-–:]?\\s*"), "")?.trim()
+
+            title = cleanAlt?.takeIf { it.isNotBlank() }
+                ?: cleanText?.takeIf { it.isNotBlank() }
+                ?: dataTitle
                 ?: ""
         }
 
-        if (title.startsWith("NetMirror", true)) {
-            title = ""
+        title = title.replace(Regex("(?i)^NetMirror\\s*[-–:]?\\s*"), "").trim()
+        if (title.isNotBlank()) {
+            InternalStreamCommon.titleCache[id] = title
         }
+
+        val cachedYear = InternalStreamCommon.yearCache[id]
+            ?: Regex("""\b(19\d\d|20\d\d)\b""").findAll(title).lastOrNull()?.value?.toIntOrNull()
+        val cachedScore = InternalStreamCommon.scoreCache[id]
 
         return newMovieSearchResponse(title, id, TvType.Movie, fix = false) {
             this.posterUrl = poster
+            this.year = cachedYear
+            this.score = cachedScore
             this.posterHeaders = mapOf("Referer" to "$mainUrl/home")
         }
     }
@@ -577,7 +619,7 @@ abstract class InternalStreamBase(val ottCode: String) : MainAPI() {
         }.distinctBy { it.url }
 
         if (items.isEmpty()) return null
-        val isHorizontal = (ottCode == "pv")
+        val isHorizontal = false
         return HomePageList(name, items, isHorizontalImages = isHorizontal)
     }
 
@@ -626,11 +668,17 @@ abstract class InternalStreamBase(val ottCode: String) : MainAPI() {
         val data = tryParseJson<InternalStreamCommon.SearchData>(res) ?: return emptyList()
         return data.searchResult?.mapNotNull { item ->
             val id = item.id?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            val title = item.t?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            InternalStreamCommon.titleCache[id] = title
+            val rawTitle = item.t?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val cleanTitle = rawTitle.replace(Regex("(?i)^NetMirror\\s*[-–:]?\\s*"), "").trim()
+            InternalStreamCommon.titleCache[id] = cleanTitle
+            val year = InternalStreamCommon.yearCache[id]
+                ?: Regex("""\b(19\d\d|20\d\d)\b""").findAll(cleanTitle).lastOrNull()?.value?.toIntOrNull()
+            val score = InternalStreamCommon.scoreCache[id]
             val poster = getHighResPoster(id, null)
-            newMovieSearchResponse(title, id, TvType.Movie, fix = false) {
+            newMovieSearchResponse(cleanTitle, id, TvType.Movie, fix = false) {
                 this.posterUrl = poster
+                this.year = year
+                this.score = score
                 this.posterHeaders = mapOf("Referer" to "$mainUrl/home")
             }
         } ?: emptyList()
@@ -661,6 +709,22 @@ abstract class InternalStreamBase(val ottCode: String) : MainAPI() {
         InternalStreamCommon.titleCache[id] = title
 
         val year = post.year?.replace(Regex("[^0-9]"), "")?.toIntOrNull()
+        val ratingStr = post.rating ?: post.score ?: post.imdb ?: post.rate
+        val ratingVal = ratingStr?.replace(Regex("[^0-9.]"), "")?.toDoubleOrNull()
+        val scoreObj = ratingVal?.takeIf { it > 0 }?.let { Score.from10(it) }
+
+        if (year != null) {
+            InternalStreamCommon.yearCache[id] = year
+            InternalStreamCommon.yearCache[url] = year
+        }
+        if (scoreObj != null) {
+            InternalStreamCommon.scoreCache[id] = scoreObj
+            InternalStreamCommon.scoreCache[url] = scoreObj
+        }
+        val meta = CardMetadataManager.Metadata(title, year, scoreObj?.toStringNull(0.1, 10, 1))
+        CardMetadataManager.cache[url] = meta
+        CardMetadataManager.cache[id] = meta
+
         val plot = post.desc
         val tags = (post.genre ?: post.hs_genre)?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }
         val actors = post.cast?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }
@@ -690,6 +754,7 @@ abstract class InternalStreamBase(val ottCode: String) : MainAPI() {
                 this.backgroundPosterUrl = getHighResBanner(id)
                 this.posterHeaders = mapOf("Referer" to "$mainUrl/home")
                 this.year = year
+                this.score = scoreObj
                 this.plot = plot
                 this.tags = tags
                 this.actors = actors?.map { ActorData(Actor(it)) }
@@ -701,6 +766,7 @@ abstract class InternalStreamBase(val ottCode: String) : MainAPI() {
                 this.backgroundPosterUrl = getHighResBanner(id)
                 this.posterHeaders = mapOf("Referer" to "$mainUrl/home")
                 this.year = year
+                this.score = scoreObj
                 this.plot = plot
                 this.tags = tags
                 this.actors = actors?.map { ActorData(Actor(it)) }

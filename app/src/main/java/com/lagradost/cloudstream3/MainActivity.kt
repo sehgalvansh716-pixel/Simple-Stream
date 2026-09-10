@@ -22,13 +22,16 @@ import android.view.WindowManager
 import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
+import androidx.core.widget.TextViewCompat
 import androidx.activity.result.ActivityResultLauncher
 import androidx.annotation.IdRes
 import androidx.annotation.MainThread
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.core.view.children
@@ -36,6 +39,13 @@ import androidx.core.view.get
 import androidx.core.view.isGone
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
+import android.graphics.Color
+import android.graphics.Outline
+import android.os.Build
+import android.view.ViewOutlineProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.marginStart
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
@@ -58,6 +68,7 @@ import com.google.android.gms.cast.framework.SessionManagerListener
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.navigationrail.NavigationRailView
+import com.lagradost.cloudstream3.ui.home.HomeFragment
 import com.google.android.material.snackbar.Snackbar
 import com.google.common.collect.Comparators.min
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
@@ -556,15 +567,18 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
         }*/
 
         binding?.apply {
-            navRailView.isVisible = isNavVisible && isLandscape()
-            navView.isVisible = isNavVisible && !isLandscape()
+            navRailView.isVisible = isNavVisible && isLandscape() && !isLayout(TV or EMULATOR)
+            val showBottomNav = isNavVisible && !isLandscape() && !isLayout(TV or EMULATOR)
+            navBlurView.isVisible = showBottomNav
+            navView.isVisible = showBottomNav
             navHostFragment.apply {
                 val marginPx = resources.getDimensionPixelSize(R.dimen.nav_rail_view_width)
-                layoutParams =
-                    (navHostFragment.layoutParams as ViewGroup.MarginLayoutParams).apply {
-                        marginStart =
-                            if (isNavVisible && isLandscape() && isLayout(TV or EMULATOR)) marginPx else 0
-                    }
+                val targetMargin = if (isNavVisible && isLandscape() && !isLayout(TV or EMULATOR)) marginPx else 0
+                val lp = navHostFragment.layoutParams as? ViewGroup.MarginLayoutParams
+                if (lp != null && lp.marginStart != targetMargin) {
+                    lp.marginStart = targetMargin
+                    layoutParams = lp
+                }
             }
 
             /**
@@ -578,8 +592,8 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                     R.id.navigation_download_child,
                     R.id.navigation_download_queue
                 ) -> {
-                    navRailView.menu.findItem(R.id.navigation_downloads).isChecked = true
-                    navView.menu.findItem(R.id.navigation_downloads).isChecked = true
+                    navRailView.menu.findItem(R.id.navigation_downloads)?.isChecked = true
+                    navView.menu.findItem(R.id.navigation_downloads)?.isChecked = true
                 }
 
                 in listOf(
@@ -596,10 +610,139 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                     R.id.navigation_settings_plugins,
                     R.id.navigation_test_providers
                 ) -> {
-                    navRailView.menu.findItem(R.id.navigation_settings).isChecked = true
-                    navView.menu.findItem(R.id.navigation_settings).isChecked = true
+                    navRailView.menu.findItem(R.id.navigation_settings)?.isChecked = true
+                    navView.menu.findItem(R.id.navigation_settings)?.isChecked = true
                 }
             }
+
+            val activeMobileDestId = when (destination.id) {
+                R.id.navigation_home -> R.id.navigation_home
+                R.id.navigation_search -> R.id.navigation_search
+                R.id.navigation_library -> R.id.navigation_library
+                in listOf(
+                    R.id.navigation_downloads,
+                    R.id.navigation_download_child,
+                    R.id.navigation_download_queue
+                ) -> R.id.navigation_downloads
+                in listOf(
+                    R.id.navigation_settings,
+                    R.id.navigation_subtitles,
+                    R.id.navigation_chrome_subtitles,
+                    R.id.navigation_settings_player,
+                    R.id.navigation_settings_updates,
+                    R.id.navigation_settings_ui,
+                    R.id.navigation_settings_account,
+                    R.id.navigation_settings_providers,
+                    R.id.navigation_settings_general,
+                    R.id.navigation_settings_extensions,
+                    R.id.navigation_settings_plugins,
+                    R.id.navigation_test_providers
+                ) -> R.id.navigation_settings
+                else -> null
+            }
+
+            fun setMobileTabStyle(pill: View, icon: ImageView, isActive: Boolean) {
+                if (isActive) {
+                    pill.setBackgroundResource(R.drawable.bg_mobile_nav_pill_active)
+                    icon.imageTintList = ColorStateList.valueOf(0xFFFFFFFF.toInt())
+                    icon.scaleX = 1.05f
+                    icon.scaleY = 1.05f
+                } else {
+                    pill.background = null
+                    icon.imageTintList = ColorStateList.valueOf(0xFF7E8B9B.toInt())
+                    icon.scaleX = 1.0f
+                    icon.scaleY = 1.0f
+                }
+            }
+
+            mobileNavLayout.apply {
+                setMobileTabStyle(mobileTabHomePill, mobileTabHomeIcon, activeMobileDestId == R.id.navigation_home)
+                setMobileTabStyle(mobileTabSearchPill, mobileTabSearchIcon, activeMobileDestId == R.id.navigation_search)
+                setMobileTabStyle(mobileTabLibraryPill, mobileTabLibraryIcon, activeMobileDestId == R.id.navigation_library)
+                setMobileTabStyle(mobileTabDownloadsPill, mobileTabDownloadsIcon, activeMobileDestId == R.id.navigation_downloads)
+                setMobileTabStyle(mobileTabSettingsPill, mobileTabSettingsIcon, activeMobileDestId == R.id.navigation_settings)
+            }
+        }
+
+        tvBinding?.apply {
+            val isTvNavVisible = listOf(
+                R.id.navigation_home,
+                R.id.navigation_search,
+                R.id.navigation_library,
+                R.id.navigation_downloads,
+                R.id.navigation_settings,
+            ).contains(destination.id)
+
+            tvTopBar.isVisible = isTvNavVisible
+
+            val activeDestId = when (destination.id) {
+                R.id.navigation_home -> R.id.navigation_home
+                R.id.navigation_search -> R.id.navigation_search
+                R.id.navigation_library -> R.id.navigation_library
+                in listOf(
+                    R.id.navigation_downloads,
+                    R.id.navigation_download_child,
+                    R.id.navigation_download_queue
+                ) -> R.id.navigation_downloads
+                in listOf(
+                    R.id.navigation_settings,
+                    R.id.navigation_subtitles,
+                    R.id.navigation_chrome_subtitles,
+                    R.id.navigation_settings_player,
+                    R.id.navigation_settings_updates,
+                    R.id.navigation_settings_ui,
+                    R.id.navigation_settings_account,
+                    R.id.navigation_settings_providers,
+                    R.id.navigation_settings_general,
+                    R.id.navigation_settings_extensions,
+                    R.id.navigation_settings_plugins,
+                    R.id.navigation_test_providers
+                ) -> R.id.navigation_settings
+                else -> null
+            }
+
+            fun setTabStyle(tab: TextView, isActive: Boolean, iconTint: Boolean = false) {
+                if (isActive) {
+                    tab.setBackgroundResource(R.drawable.bg_tv_nav_active_pill)
+                    tab.setTextColor(0xFF0B0C10.toInt())
+                    if (iconTint) {
+                        TextViewCompat.setCompoundDrawableTintList(tab, ColorStateList.valueOf(0xFF0B0C10.toInt()))
+                    }
+                } else {
+                    tab.setBackgroundResource(R.drawable.bg_tv_nav_item_selector)
+                    tab.setTextColor(0xB3FFFFFF.toInt())
+                    if (iconTint) {
+                        TextViewCompat.setCompoundDrawableTintList(tab, ColorStateList.valueOf(0xB3FFFFFF.toInt()))
+                    }
+                }
+            }
+
+            setTabStyle(tvNavHome, activeDestId == R.id.navigation_home, iconTint = true)
+            setTabStyle(tvNavSearch, activeDestId == R.id.navigation_search)
+            setTabStyle(tvNavLibrary, activeDestId == R.id.navigation_library)
+            setTabStyle(tvNavDownloads, activeDestId == R.id.navigation_downloads)
+
+            if (activeDestId == R.id.navigation_settings) {
+                tvNavSettings.setBackgroundResource(R.drawable.bg_tv_nav_active_pill)
+                tvNavSettings.imageTintList = ColorStateList.valueOf(0xFF0B0C10.toInt())
+            } else {
+                tvNavSettings.setBackgroundResource(R.drawable.bg_tv_nav_item_selector)
+                tvNavSettings.imageTintList = ColorStateList.valueOf(0xB3FFFFFF.toInt())
+            }
+
+            val nextDown = when (destination.id) {
+                R.id.navigation_home -> R.id.home_preview_play
+                R.id.navigation_search -> androidx.appcompat.R.id.search_src_text
+                R.id.navigation_library -> R.id.main_search
+                R.id.navigation_downloads -> R.id.download_appbar
+                R.id.navigation_settings -> if (isLayout(TV or EMULATOR)) R.id.settings_profile else R.id.settings_general
+                else -> View.NO_ID
+            }
+            tvNavHome.nextFocusDownId = nextDown
+            tvNavSearch.nextFocusDownId = nextDown
+            tvNavLibrary.nextFocusDownId = nextDown
+            tvNavDownloads.nextFocusDownId = nextDown
+            tvNavSettings.nextFocusDownId = nextDown
         }
     }
 
@@ -745,6 +888,33 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
     private fun NavDestination.matchDestination(@IdRes destId: Int): Boolean =
         hierarchy.any { it.id == destId }
 
+    fun updateNavRailNextFocusRight(destinationId: Int) {
+        if (!isLayout(TV or EMULATOR)) return
+        val fromView = binding?.navRailView ?: return
+        val targetView = when (destinationId) {
+            R.id.navigation_home -> R.id.home_change_api
+            R.id.navigation_search -> R.id.main_search
+            R.id.navigation_library -> R.id.main_search
+            R.id.navigation_downloads -> R.id.download_appbar
+            R.id.navigation_settings -> if (isLayout(TV or EMULATOR)) R.id.settings_profile else R.id.settings_general
+            else -> null
+        }
+        if (targetView != null) {
+            fromView.nextFocusRightId = targetView
+
+            for (focusView in arrayOf(
+                R.id.navigation_downloads,
+                R.id.navigation_home,
+                R.id.navigation_search,
+                R.id.navigation_library,
+                R.id.navigation_settings,
+            )) {
+                fromView.findViewById<View?>(focusView)?.nextFocusRightId = targetView
+            }
+            fromView.findViewById<View?>(R.id.nav_footer_profile_card)?.nextFocusRightId = targetView
+        }
+    }
+
     private var lastNavTime = 0L
     private fun onNavDestinationSelected(item: MenuItem, navController: NavController): Boolean {
         val currentTime = System.currentTimeMillis()
@@ -757,35 +927,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
         // Check if we are already at the selected destination
         if (navController.currentDestination?.id == destinationId) return false
 
-        // Make all nav buttons focus on this specific view when nextFocusRightId
-        val targetView = when (destinationId) {
-            // Please note that if R.id.navigation_home is readded, then it will only take affect when
-            // navigation to home for the second time as onNavDestinationSelected will not get called
-            // when first loading up the app
-
-            // R.id.navigation_home -> R.id.home_preview_change_api
-            R.id.navigation_search -> R.id.main_search
-            R.id.navigation_library -> R.id.main_search
-            R.id.navigation_downloads -> R.id.download_appbar
-            else -> null
-        }
-        if (targetView != null && isLayout(TV or EMULATOR)) {
-            val fromView = binding?.navRailView
-            if (fromView != null) {
-                fromView.nextFocusRightId = targetView
-
-                for (focusView in arrayOf(
-                    R.id.navigation_downloads,
-                    R.id.navigation_home,
-                    R.id.navigation_search,
-                    R.id.navigation_library,
-                    R.id.navigation_settings,
-                )) {
-                    fromView.findViewById<View?>(focusView)?.nextFocusRightId = targetView
-                }
-                fromView.findViewById<View?>(R.id.nav_footer_profile_card)?.nextFocusRightId = targetView
-            }
-        }
+        updateNavRailNextFocusRight(destinationId)
 
         val builder = NavOptions.Builder().setLaunchSingleTop(true).setRestoreState(true)
             .setEnterAnim(R.anim.enter_anim)
@@ -799,6 +941,38 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                 saveState = true
             )
         }
+        return try {
+            navController.navigate(destinationId, null, builder.build())
+            navController.currentDestination?.matchDestination(destinationId) == true
+        } catch (e: IllegalArgumentException) {
+            Log.e("NavigationError", "Failed to navigate: ${e.message}")
+            false
+        }
+    }
+
+    private fun onTvNavDestinationSelected(destinationId: Int, navController: NavController): Boolean {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastNavTime < 400) return false
+        lastNavTime = currentTime
+
+        if (navController.currentDestination?.id == destinationId) {
+            if (destinationId == R.id.navigation_home) {
+                val recycler = binding?.root?.findViewById<RecyclerView?>(R.id.home_master_recycler)
+                recycler?.smoothScrollToPosition(0)
+            }
+            return false
+        }
+
+        val builder = NavOptions.Builder().setLaunchSingleTop(true).setRestoreState(true)
+            .setEnterAnim(R.anim.enter_anim)
+            .setExitAnim(R.anim.exit_anim)
+            .setPopEnterAnim(R.anim.pop_enter)
+            .setPopExitAnim(R.anim.pop_exit)
+        builder.setPopUpTo(
+            navController.graph.findStartDestination().id,
+            inclusive = false,
+            saveState = true
+        )
         return try {
             navController.navigate(destinationId, null, builder.build())
             navController.currentDestination?.matchDestination(destinationId) == true
@@ -906,6 +1080,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
     }
 
     var binding: ActivityMainBinding? = null
+    var tvBinding: ActivityMainTvBinding? = null
 
     object TvFocus {
         data class FocusTarget(
@@ -1235,6 +1410,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
         binding = try {
             if (isLayout(TV or EMULATOR)) {
                 val newLocalBinding = ActivityMainTvBinding.inflate(layoutInflater, null, false)
+                tvBinding = newLocalBinding
                 setContentView(newLocalBinding.root)
 
                 if (isLayout(TV) && ANIMATED_OUTLINE) {
@@ -1254,8 +1430,9 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                     val exceptionButtons = listOf(
                         //R.id.home_preview_play_btt,
                         R.id.home_preview_info_btt,
-                        R.id.home_preview_hidden_next_focus,
-                        R.id.home_preview_hidden_prev_focus,
+                        R.id.home_preview_play,
+                        R.id.home_preview_bookmark,
+                        R.id.home_preview_info,
                         R.id.result_play_movie_button,
                         R.id.result_play_series_button,
                         R.id.result_resume_series_button,
@@ -1280,17 +1457,63 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                 newLocalBinding
             }
         } catch (t: Throwable) {
+            logError(t)
             showToast(txt(R.string.unable_to_inflate, t.message ?: ""), Toast.LENGTH_LONG)
             null
         }
 
         binding?.apply {
-            fixSystemBarsPadding(
-                navView,
-                heightResId = R.dimen.nav_view_height,
-                padTop = false,
-                overlayCutout = false
-            )
+            if (isLayout(TV or EMULATOR)) {
+                fixSystemBarsPadding(
+                    navView,
+                    heightResId = R.dimen.nav_view_height,
+                    padTop = false,
+                    overlayCutout = false
+                )
+            } else {
+                ViewCompat.setOnApplyWindowInsetsListener(navBlurView) { view, windowInsets ->
+                    val insets = windowInsets.getInsets(
+                        WindowInsetsCompat.Type.systemBars() or
+                            WindowInsetsCompat.Type.displayCutout()
+                    )
+                    val targetBottom = 18.toPx + insets.bottom
+                    val targetHeight = 64.toPx
+                    val lp = view.layoutParams as? ViewGroup.MarginLayoutParams
+                    if (lp != null && (lp.bottomMargin != targetBottom || lp.height != targetHeight)) {
+                        lp.bottomMargin = targetBottom
+                        lp.height = targetHeight
+                        view.layoutParams = lp
+                    }
+                    windowInsets
+                }
+
+                try {
+                    val decorView = window.decorView as? ViewGroup
+                    val rootView = decorView?.findViewById<ViewGroup>(android.R.id.content) ?: homeRoot
+                    val windowBackground = decorView?.background
+                    val blurAlgorithm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        eightbitlab.com.blurview.RenderEffectBlur()
+                    } else {
+                        @Suppress("DEPRECATION")
+                        eightbitlab.com.blurview.RenderScriptBlur(this@MainActivity)
+                    }
+                    navBlurView.apply {
+                        outlineProvider = object : ViewOutlineProvider() {
+                            override fun getOutline(view: View, outline: Outline) {
+                                outline.setRoundRect(0, 0, view.width, view.height, 32.toPx.toFloat())
+                            }
+                        }
+                        clipToOutline = true
+                        setupWith(rootView, blurAlgorithm)
+                            .setFrameClearDrawable(windowBackground)
+                            .setBlurRadius(16f)
+                            .setOverlayColor(Color.TRANSPARENT)
+                            .setBlurAutoUpdate(true)
+                    }
+                } catch (t: Throwable) {
+                    logError(t)
+                }
+            }
 
             fixSystemBarsPadding(
                 navRailView,
@@ -1359,6 +1582,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                 }
 
                 ioSafe {
+                    PluginManager.initPrepackagedPlugins(this@MainActivity)
                     if (settingsManager.getBoolean(
                             getString(R.string.auto_update_plugins_key),
                             true
@@ -1368,7 +1592,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                             this@MainActivity
                         )
                     } else {
-                        ___DO_NOT_CALL_FROM_A_PLUGIN_loadAllOnlinePlugins(this@MainActivity)
+                        PluginManager.___DO_NOT_CALL_FROM_A_PLUGIN_loadAllOnlinePlugins(this@MainActivity)
                     }
 
                     //Automatically download not existing plugins, using mode specified.
@@ -1674,6 +1898,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
         navController.addOnDestinationChangedListener { _: NavController, navDestination: NavDestination, bundle: Bundle? ->
             // Intercept search and add a query
             updateNavBar(navDestination)
+            updateNavRailNextFocusRight(navDestination.id)
             if (navDestination.matchDestination(R.id.navigation_search) && !nextSearchQuery.isNullOrBlank()) {
                 bundle?.apply {
                     this.putString(SearchFragment.SEARCH_QUERY, nextSearchQuery)
@@ -1700,17 +1925,62 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
 
         val rippleColor = ColorStateList.valueOf(getResourceColor(R.attr.colorPrimary, 0.1f))
 
-        binding?.navView?.apply {
-            itemRippleColor = rippleColor
-            itemActiveIndicatorColor = rippleColor
-            setupWithNavController(navController)
-            setOnItemSelectedListener { item ->
-                onNavDestinationSelected(
-                    item,
-                    navController
-                )
+        binding?.mobileNavLayout?.apply {
+            mobileTabHome.setOnClickListener {
+                onTvNavDestinationSelected(R.id.navigation_home, navController)
+            }
+            mobileTabSearch.setOnClickListener {
+                onTvNavDestinationSelected(R.id.navigation_search, navController)
+            }
+            mobileTabLibrary.setOnClickListener {
+                onTvNavDestinationSelected(R.id.navigation_library, navController)
+            }
+            mobileTabDownloads.setOnClickListener {
+                onTvNavDestinationSelected(R.id.navigation_downloads, navController)
+            }
+            mobileTabSettings.setOnClickListener {
+                onTvNavDestinationSelected(R.id.navigation_settings, navController)
             }
 
+            mobileTabHome.setOnLongClickListener {
+                val recycler = binding?.root?.findViewById<RecyclerView?>(R.id.home_master_recycler)
+                recycler?.smoothScrollToPosition(0)
+                recycler != null
+            }
+
+            mobileTabLibrary.setOnLongClickListener {
+                val viewPager = binding?.root?.findViewById<ViewPager2?>(R.id.viewpager)
+                    ?: return@setOnLongClickListener false
+                try {
+                    val children = (viewPager[0] as? RecyclerView)?.children
+                        ?: return@setOnLongClickListener false
+                    for (child in children) {
+                        child.findViewById<RecyclerView?>(R.id.page_recyclerview)
+                            ?.smoothScrollToPosition(0)
+                    }
+                } catch (_: Throwable) { }
+                true
+            }
+
+            mobileTabSearch.setOnLongClickListener {
+                for (recyclerId in arrayOf(
+                    R.id.search_master_recycler,
+                    R.id.search_autofit_results,
+                    R.id.search_history_recycler
+                )) {
+                    val recycler = binding?.root?.findViewById<RecyclerView?>(recyclerId)
+                        ?: return@setOnLongClickListener false
+                    recycler.smoothScrollToPosition(0)
+                }
+                true
+            }
+
+            mobileTabDownloads.setOnLongClickListener {
+                val recycler: RecyclerView? = binding?.root?.findViewById(R.id.download_list)
+                    ?: binding?.root?.findViewById(R.id.download_child_list)
+                recycler?.smoothScrollToPosition(0)
+                recycler != null
+            }
         }
 
         binding?.navRailView?.apply {
@@ -1750,11 +2020,11 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
             }
             //noFocus(this)
 
-            val navProfileRoot = findViewById<LinearLayout>(R.id.nav_footer_root)
+            val navProfileRoot = findViewById<LinearLayout?>(R.id.nav_footer_root)
 
             if (isLayout(TV or EMULATOR)) {
-                val navProfilePic = findViewById<ImageView>(R.id.nav_footer_profile_pic)
-                val navProfileCard = findViewById<CardView>(R.id.nav_footer_profile_card)
+                val navProfilePic = findViewById<ImageView?>(R.id.nav_footer_profile_pic)
+                val navProfileCard = findViewById<CardView?>(R.id.nav_footer_profile_card)
 
                 navProfileCard?.setOnClickListener {
                     showAccountSelectLinear()
@@ -1768,13 +2038,66 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                         navProfilePic?.loadImage(
                             currentAccount.image
                         )
-                        navProfileRoot.isVisible = true
+                        navProfileRoot?.isVisible = true
                     } else {
-                        navProfileRoot.isGone = true
+                        navProfileRoot?.isGone = true
                     }
                 }
             } else {
-                navProfileRoot.isGone = true
+                navProfileRoot?.isGone = true
+            }
+        }
+
+        tvBinding?.apply {
+            val tvNavTabs = listOf(tvNavHome, tvNavSearch, tvNavLibrary, tvNavDownloads, tvNavSettings)
+            for (tab in tvNavTabs) {
+                tab.setOnFocusChangeListener { v, hasFocus ->
+                    v.animate()
+                        .scaleX(if (hasFocus) 1.08f else 1.0f)
+                        .scaleY(if (hasFocus) 1.08f else 1.0f)
+                        .setDuration(150)
+                        .start()
+                }
+                tab.setOnKeyListener { _, keyCode, event ->
+                    if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                        val currentDest = navController.currentDestination?.id
+                        if (currentDest == R.id.navigation_search) {
+                            val searchInput = findViewById<View>(androidx.appcompat.R.id.search_src_text)
+                                ?: findViewById<View>(R.id.main_search)
+                            if (searchInput != null) {
+                                searchInput.requestFocus()
+                                return@setOnKeyListener true
+                            }
+                        } else if (currentDest == R.id.navigation_home) {
+                            val overlay = findViewById<View>(R.id.home_plugin_search_overlay)
+                            if (overlay?.isVisible == true) {
+                                val searchInput = findViewById<View>(R.id.home_plugin_search_input)
+                                    ?: findViewById<View>(R.id.home_plugin_search_back)
+                                if (searchInput != null) {
+                                    searchInput.requestFocus()
+                                    return@setOnKeyListener true
+                                }
+                            }
+                        }
+                    }
+                    false
+                }
+            }
+
+            tvNavHome.setOnClickListener {
+                onTvNavDestinationSelected(R.id.navigation_home, navController)
+            }
+            tvNavSearch.setOnClickListener {
+                onTvNavDestinationSelected(R.id.navigation_search, navController)
+            }
+            tvNavLibrary.setOnClickListener {
+                onTvNavDestinationSelected(R.id.navigation_library, navController)
+            }
+            tvNavDownloads.setOnClickListener {
+                onTvNavDestinationSelected(R.id.navigation_downloads, navController)
+            }
+            tvNavSettings.setOnClickListener {
+                onTvNavDestinationSelected(R.id.navigation_settings, navController)
             }
         }
 
@@ -1791,6 +2114,20 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
             // write a nextFocus for the navrail
             rail.findViewById<View?>(R.id.navigation_settings)?.nextFocusDownId =
                 R.id.nav_footer_profile_card
+            rail.findViewById<View?>(R.id.nav_footer_profile_card)?.nextFocusUpId =
+                R.id.navigation_settings
+            rail.findViewById<View?>(R.id.nav_footer_profile_card)?.nextFocusDownId =
+                R.id.nav_footer_profile_card
+
+            val railItems = arrayOf(
+                R.id.navigation_home,
+                R.id.navigation_search,
+                R.id.navigation_library,
+                R.id.navigation_downloads,
+                R.id.navigation_settings,
+                R.id.nav_footer_profile_card
+            )
+
             for (id in arrayOf(
                 R.id.navigation_home,
                 R.id.navigation_search,
@@ -1804,6 +2141,61 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
 
                 prevView = view
                 prevId = id
+            }
+
+            if (isLayout(TV or EMULATOR)) {
+                updateNavRailNextFocusRight(navController.currentDestination?.id ?: R.id.navigation_home)
+
+                val rightKeyHandler = View.OnKeyListener { _, keyCode, event ->
+                    if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                        val currentDest = navController.currentDestination?.id ?: R.id.navigation_home
+                        when (currentDest) {
+                            R.id.navigation_home -> {
+                                val lastItem = HomeFragment.lastFocusedItem?.get()
+                                if (lastItem != null && lastItem.isShown && lastItem.isAttachedToWindow && lastItem.requestFocus()) {
+                                    return@OnKeyListener true
+                                }
+                                val headerApi = findViewById<View>(R.id.home_change_api)
+                                if (headerApi != null && headerApi.isShown && headerApi.requestFocus()) {
+                                    return@OnKeyListener true
+                                }
+                                val hero = findViewById<View>(R.id.home_preview_info_btt)
+                                if (hero != null && hero.isShown && hero.requestFocus()) {
+                                    return@OnKeyListener true
+                                }
+                                false
+                            }
+                            R.id.navigation_settings -> {
+                                val settingsGeneral = findViewById<View>(R.id.settings_general)
+                                if (settingsGeneral != null && settingsGeneral.isShown && settingsGeneral.requestFocus()) {
+                                    return@OnKeyListener true
+                                }
+                                false
+                            }
+                            R.id.navigation_search -> {
+                                val search = findViewById<View>(R.id.main_search)
+                                if (search != null && search.isShown && search.requestFocus()) {
+                                    return@OnKeyListener true
+                                }
+                                false
+                            }
+                            R.id.navigation_downloads -> {
+                                val downloads = findViewById<View>(R.id.download_appbar)
+                                if (downloads != null && downloads.isShown && downloads.requestFocus()) {
+                                    return@OnKeyListener true
+                                }
+                                false
+                            }
+                            else -> false
+                        }
+                    } else {
+                        false
+                    }
+                }
+
+                for (id in railItems) {
+                    rail.findViewById<View?>(id)?.setOnKeyListener(rightKeyHandler)
+                }
             }
         }
 
@@ -1850,6 +2242,53 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                     ?: binding?.root?.findViewById(R.id.download_child_list)
                 recycler?.smoothScrollToPosition(0)
                 return@setOnLongClickListener recycler != null
+            }
+        }
+
+        tvBinding?.apply {
+            tvNavHome.setOnLongClickListener {
+                val recycler = binding?.root?.findViewById<RecyclerView?>(R.id.home_master_recycler)
+                recycler?.smoothScrollToPosition(0)
+                recycler != null
+            }
+
+            tvNavLibrary.setOnLongClickListener {
+                val viewPager = binding?.root?.findViewById<ViewPager2?>(R.id.viewpager)
+                    ?: return@setOnLongClickListener false
+                try {
+                    val children = (viewPager[0] as? RecyclerView)?.children
+                        ?: return@setOnLongClickListener false
+                    for (child in children) {
+                        child.findViewById<RecyclerView?>(R.id.page_recyclerview)
+                            ?.smoothScrollToPosition(0)
+                    }
+                } catch (_: IndexOutOfBoundsException) {
+                } catch (t: Throwable) {
+                    logError(t)
+                }
+                true
+            }
+
+            tvNavSearch.setOnLongClickListener {
+                for (recyclerId in arrayOf(
+                    R.id.search_master_recycler,
+                    R.id.search_autofit_results,
+                    R.id.search_history_recycler
+                )) {
+                    val recycler = binding?.root?.findViewById<RecyclerView?>(recyclerId)
+                    if (recycler != null) {
+                        recycler.smoothScrollToPosition(0)
+                        return@setOnLongClickListener true
+                    }
+                }
+                false
+            }
+
+            tvNavDownloads.setOnLongClickListener {
+                val recycler: RecyclerView? = binding?.root?.findViewById(R.id.download_list)
+                    ?: binding?.root?.findViewById(R.id.download_child_list)
+                recycler?.smoothScrollToPosition(0)
+                recycler != null
             }
         }
 

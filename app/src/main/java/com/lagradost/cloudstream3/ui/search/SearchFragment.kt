@@ -1,24 +1,41 @@
 package com.lagradost.cloudstream3.ui.search
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.DialogInterface
+import android.view.inputmethod.InputMethodManager
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.os.Bundle
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.view.Gravity
+import android.view.KeyEvent
 import android.view.LayoutInflater
+import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.animation.DecelerateInterpolator
+import android.graphics.Outline
+import android.view.ViewOutlineProvider
+import android.os.Build
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
+import androidx.core.content.ContextCompat
 import android.widget.AbsListView
 import android.widget.ArrayAdapter
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -77,10 +94,17 @@ import com.lagradost.cloudstream3.utils.DataStoreHelper.currentAccount
 import com.lagradost.cloudstream3.utils.SubtitleHelper
 import com.lagradost.cloudstream3.utils.BackPressedCallbackHelper.attachBackPressedCallback
 import com.lagradost.cloudstream3.utils.BackPressedCallbackHelper.detachBackPressedCallback
+import com.lagradost.cloudstream3.APIHolder
+import com.lagradost.cloudstream3.APIHolder.allProviders
+import com.lagradost.cloudstream3.ui.utils.TvAmbientVideoHelper
 import com.lagradost.cloudstream3.utils.UIHelper.dismissSafe
 import com.lagradost.cloudstream3.utils.UIHelper.fixSystemBarsPadding
 import com.lagradost.cloudstream3.utils.UIHelper.getSpanCount
 import com.lagradost.cloudstream3.utils.UIHelper.hideKeyboard
+import com.lagradost.cloudstream3.utils.UIHelper.toPx
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.util.concurrent.locks.ReentrantLock
 
@@ -111,7 +135,56 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
     }
 
     private val searchViewModel: SearchViewModel by activityViewModels()
+    private val homeViewModel: HomeViewModel by activityViewModels()
     private var bottomSheetDialog: BottomSheetDialog? = null
+    private var tvAmbientVideoHelper: TvAmbientVideoHelper? = null
+    private var isSearchCardsFocused = false
+
+    private fun setSearchCardsFocusedState(focused: Boolean) {
+        isSearchCardsFocused = focused
+    }
+
+    private fun initTvAmbientVideo(rootView: View) {
+        val textureView = rootView.findViewById<TextureView>(R.id.tv_search_video) ?: return
+        tvAmbientVideoHelper?.release()
+        tvAmbientVideoHelper = TvAmbientVideoHelper(rootView.context).apply {
+            attach(textureView, R.raw.tv_search_bg, autoPlay = true)
+        }
+    }
+
+    private fun loadDefaultTrendingItems() {
+        val rootView = view ?: return
+        val sectionTitle = rootView.findViewById<TextView>(R.id.tv_search_section_title)
+        val searchEmpty = rootView.findViewById<TextView>(R.id.tv_search_empty)
+
+        sectionTitle?.setText(R.string.tv_trending_today)
+        searchEmpty?.isVisible = false
+
+        val pageData = (homeViewModel.page.value as? Resource.Success)?.value
+        val defaultItems = pageData?.values?.firstOrNull()?.list?.list
+        if (!defaultItems.isNullOrEmpty()) {
+            (binding?.searchAutofitResults?.adapter as? SearchAdapter)?.submitList(defaultItems)
+        } else {
+            val api = (homeViewModel.apiName.value?.let { APIHolder.getApiFromNameNull(it) })
+                ?: allProviders.firstOrNull { it.hasMainPage }
+            if (api != null && api.hasMainPage) {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        val repo = APIRepository(api)
+                        val res = repo.getMainPage(1, null)
+                        if (res is Resource.Success) {
+                            val firstList = res.value.firstOrNull()?.items?.firstOrNull()?.list
+                            if (!firstList.isNullOrEmpty()) {
+                                withContext(Dispatchers.Main) {
+                                    (binding?.searchAutofitResults?.adapter as? SearchAdapter)?.submitList(firstList)
+                                }
+                            }
+                        }
+                    } catch (_: Throwable) {}
+                }
+            }
+        }
+    }
 
     private val speechRecognizerLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -143,13 +216,22 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
     override fun onDestroyView() {
         hideKeyboard()
         bottomSheetDialog?.ownHide()
+        tvAmbientVideoHelper?.release()
+        tvAmbientVideoHelper = null
         activity?.detachBackPressedCallback("SearchFragment")
+        activity?.detachBackPressedCallback("SearchFragmentTv")
         super.onDestroyView()
     }
 
     override fun onResume() {
         super.onResume()
         afterPluginsLoadedEvent += ::reloadRepos
+        tvAmbientVideoHelper?.play()
+    }
+
+    override fun onPause() {
+        tvAmbientVideoHelper?.pause()
+        super.onPause()
     }
 
     override fun onStop() {
@@ -218,14 +300,17 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
     }
 
     override fun fixLayout(view: View) {
-        fixSystemBarsPadding(
-            view,
-            padBottom = isLandscape(),
-            padLeft = isLayout(TV or EMULATOR)
-        )
+        val isTv = isLayout(TV or EMULATOR)
+        if (!isTv) {
+            fixSystemBarsPadding(
+                view,
+                padBottom = isLandscape(),
+                padLeft = false
+            )
+        }
 
-        // Fix grid
-        currentSpan = view.context.getSpanCount()
+        // Fix grid: 5 columns on TV for reference mockup parity, phone/tablet uses getSpanCount()
+        currentSpan = if (isTv) 5 else view.context.getSpanCount()
         binding?.searchAutofitResults?.spanCount = currentSpan
         HomeFragment.configEvent.invoke()
     }
@@ -234,20 +319,344 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
         binding: FragmentSearchBinding,
         savedInstanceState: Bundle?
     ) {
+        val isTv = isLayout(TV or EMULATOR)
         reloadRepos()
+        initTvAmbientVideo(binding.root)
+        if (isTv) {
+            binding.root.findViewById<View>(R.id.tv_search_back)?.apply {
+                setOnClickListener {
+                    activity?.onBackPressedDispatcher?.onBackPressed()
+                }
+                setOnKeyListener { _, keyCode, event ->
+                    if (event.action == KeyEvent.ACTION_DOWN) {
+                        when (keyCode) {
+                            KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_DOWN -> {
+                                val searchInput = binding.searchRoot.findViewById<TextView>(androidx.appcompat.R.id.search_src_text)
+                                if (searchInput?.requestFocus() != true) {
+                                    binding.mainSearch.requestFocus()
+                                }
+                                return@setOnKeyListener true
+                            }
+                        }
+                    }
+                    false
+                }
+            }
+        } else {
+            try {
+                val windowBackground = activity?.window?.decorView?.background
+                val blurAlgorithm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    eightbitlab.com.blurview.RenderEffectBlur()
+                } else {
+                    eightbitlab.com.blurview.RenderScriptBlur(requireContext())
+                }
+
+                binding.root.findViewById<eightbitlab.com.blurview.BlurView>(R.id.search_bar_blur)?.let { blurView ->
+                    blurView.outlineProvider = object : ViewOutlineProvider() {
+                        override fun getOutline(view: View, outline: Outline) {
+                            outline.setRoundRect(0, 0, view.width, view.height, 22.toPx.toFloat())
+                        }
+                    }
+                    blurView.clipToOutline = true
+                    blurView.setupWith(binding.root, blurAlgorithm)
+                        .setFrameClearDrawable(windowBackground)
+                        .setBlurRadius(16f)
+                        .setOverlayColor(Color.TRANSPARENT)
+                        .setBlurAutoUpdate(true)
+                }
+
+                val searchHeaderGroup = binding.root.findViewById<View>(R.id.search_header_group)
+                if (!isTv && searchHeaderGroup != null) {
+                    ViewCompat.setOnApplyWindowInsetsListener(searchHeaderGroup) { v, windowInsets ->
+                        val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+                        v.updatePadding(top = insets.top + 16.toPx, bottom = 18.toPx)
+                        windowInsets
+                    }
+                }
+            } catch (t: Throwable) {
+                logError(t)
+            }
+        }
+
         binding.apply {
             val adapter =
                 SearchAdapter(
                     searchAutofitResults,
                 ) { callback ->
-                    SearchHelper.handleSearchClickCallback(callback)
+                    if (isTv && callback.action == SEARCH_ACTION_FOCUSED) {
+                        setSearchCardsFocusedState(true)
+                    } else if (isTv && callback.action == SEARCH_ACTION_DPAD_UP_TOP_ROW) {
+                        setSearchCardsFocusedState(false)
+                        val historyCount = searchHistoryRecycler.adapter?.itemCount ?: 0
+                        if (historyCount > 0 && searchHistoryRecycler.isVisible) {
+                            searchHistoryRecycler.requestFocus()
+                        } else {
+                            val searchInput = searchRoot.findViewById<TextView>(androidx.appcompat.R.id.search_src_text)
+                            searchInput?.requestFocus() ?: mainSearch.requestFocus()
+                        }
+                    } else {
+                        SearchHelper.handleSearchClickCallback(callback)
+                    }
                 }
 
-            searchRoot.findViewById<TextView>(androidx.appcompat.R.id.search_src_text)?.tag =
-                "tv_no_focus_tag"
+            searchRoot.findViewById<TextView>(androidx.appcompat.R.id.search_src_text)?.let { searchInput ->
+                if (!isTv) {
+                    searchInput.tag = "tv_no_focus_tag"
+                } else {
+                    searchInput.isFocusable = true
+                    searchInput.isFocusableInTouchMode = true
+                    searchInput.nextFocusUpId = R.id.tv_nav_search
+                    searchHistoryRecycler.nextFocusUpId = androidx.appcompat.R.id.search_src_text
+                    val tvSearchBar = searchRoot.findViewById<View>(R.id.tv_search_bar)
+                    searchInput.setOnFocusChangeListener { _, hasFocus ->
+                        tvSearchBar?.isActivated = hasFocus
+                    }
+                    searchInput.setOnKeyListener { _, keyCode, event ->
+                        if (event.action == KeyEvent.ACTION_DOWN) {
+                            when (keyCode) {
+                                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                                    val historyCount = searchHistoryRecycler.adapter?.itemCount ?: 0
+                                    if (historyCount > 0 && searchHistoryRecycler.isVisible) {
+                                        searchHistoryRecycler.requestFocus()
+                                        return@setOnKeyListener true
+                                    } else if (searchAutofitResults.isVisible && (searchAutofitResults.adapter?.itemCount ?: 0) > 0) {
+                                        val firstCard = searchAutofitResults.findViewHolderForAdapterPosition(0)?.itemView
+                                        if (firstCard != null) {
+                                            firstCard.requestFocus()
+                                        } else {
+                                            searchAutofitResults.scrollToPosition(0)
+                                            searchAutofitResults.post {
+                                                searchAutofitResults.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                                                    ?: searchAutofitResults.requestFocus()
+                                            }
+                                        }
+                                        return@setOnKeyListener true
+                                    }
+                                }
+                                KeyEvent.KEYCODE_DPAD_UP -> {
+                                    val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                                    imm?.hideSoftInputFromWindow(searchInput.windowToken, 0)
+                                    val navSearch = activity?.findViewById<View>(R.id.tv_nav_search)
+                                    if (navSearch != null) {
+                                        navSearch.requestFocus()
+                                        return@setOnKeyListener true
+                                    }
+                                }
+                                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                                    val backBtn = searchRoot.findViewById<View>(R.id.tv_search_back)
+                                    if (backBtn != null && (searchInput.selectionStart == 0 || searchInput.text.isNullOrEmpty())) {
+                                        backBtn.requestFocus()
+                                        return@setOnKeyListener true
+                                    }
+                                }
+                                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                                    val textLen = searchInput.text?.length ?: 0
+                                    if (searchInput.selectionEnd == textLen || searchInput.text.isNullOrEmpty()) {
+                                        val exitIcon = binding.mainSearch.findViewById<View>(androidx.appcompat.R.id.search_close_btn)
+                                        if (exitIcon != null && exitIcon.isVisible) {
+                                            exitIcon.requestFocus()
+                                            return@setOnKeyListener true
+                                        } else {
+                                            binding.voiceSearch.requestFocus()
+                                            return@setOnKeyListener true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        false
+                    }
+                }
+            }
+            if (isTv) {
+                searchAutofitResults.spanCount = 4
+                searchAutofitResults.layoutManager = androidx.recyclerview.widget.GridLayoutManager(context, 4)
+            }
+            searchAutofitResults.setHasFixedSize(true)
+            searchAutofitResults.setItemViewCacheSize(10)
             searchAutofitResults.setRecycledViewPool(SearchAdapter.sharedPool)
             searchAutofitResults.adapter = adapter
             searchLoadingBar.alpha = 0f
+        }
+
+        val searchExitIcon =
+            binding.mainSearch.findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn)
+
+        if (isTv) {
+            val tvSearchBar = binding.searchRoot.findViewById<View>(R.id.tv_search_bar)
+
+            if (searchExitIcon != null) {
+                searchExitIcon.apply {
+                    background = ContextCompat.getDrawable(context, R.drawable.bg_tv_search_icon_btn)
+                    imageTintList = ContextCompat.getColorStateList(context, R.color.color_tv_search_icon_tint)
+                    scaleType = ImageView.ScaleType.FIT_CENTER
+                    setPadding(5.toPx, 5.toPx, 5.toPx, 5.toPx)
+                    val lp = layoutParams
+                    if (lp != null) {
+                        lp.width = 28.toPx
+                        lp.height = 28.toPx
+                        if (lp is LinearLayout.LayoutParams) {
+                            lp.gravity = Gravity.CENTER_VERTICAL
+                            lp.setMargins(0, 0, 4.toPx, 0)
+                        }
+                        layoutParams = lp
+                    }
+                    isFocusable = true
+                    isFocusableInTouchMode = true
+                    setOnFocusChangeListener { _, hasFocus ->
+                        tvSearchBar?.isActivated = hasFocus
+                        if (hasFocus) {
+                            setSearchCardsFocusedState(false)
+                        }
+                    }
+                    setOnKeyListener { _, keyCode, event ->
+                        if (event.action == KeyEvent.ACTION_DOWN) {
+                            when (keyCode) {
+                                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                                    val searchInput = binding.searchRoot.findViewById<TextView>(androidx.appcompat.R.id.search_src_text)
+                                    if (searchInput != null) {
+                                        searchInput.requestFocus()
+                                        return@setOnKeyListener true
+                                    }
+                                }
+                                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                                    binding.voiceSearch.requestFocus()
+                                    return@setOnKeyListener true
+                                }
+                                KeyEvent.KEYCODE_DPAD_UP -> {
+                                    val navSearch = activity?.findViewById<View>(R.id.tv_nav_search)
+                                    if (navSearch != null) {
+                                        navSearch.requestFocus()
+                                        return@setOnKeyListener true
+                                    }
+                                }
+                                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                                    val historyCount = binding.searchHistoryRecycler.adapter?.itemCount ?: 0
+                                    if (historyCount > 0 && binding.searchHistoryRecycler.isVisible) {
+                                        binding.searchHistoryRecycler.requestFocus()
+                                        return@setOnKeyListener true
+                                    } else if (binding.searchAutofitResults.isVisible && (binding.searchAutofitResults.adapter?.itemCount ?: 0) > 0) {
+                                        setSearchCardsFocusedState(true)
+                                        binding.searchAutofitResults.requestFocus()
+                                        return@setOnKeyListener true
+                                    }
+                                }
+                            }
+                        }
+                        false
+                    }
+                    setOnClickListener {
+                        binding.mainSearch.setQuery("", false)
+                        loadDefaultTrendingItems()
+                        val searchInput = binding.searchRoot.findViewById<TextView>(androidx.appcompat.R.id.search_src_text)
+                        searchInput?.requestFocus()
+                    }
+                }
+            }
+
+            binding.voiceSearch.setOnFocusChangeListener { _, hasFocus ->
+                tvSearchBar?.isActivated = hasFocus
+                if (hasFocus) setSearchCardsFocusedState(false)
+            }
+            binding.searchFilter.setOnFocusChangeListener { _, hasFocus ->
+                tvSearchBar?.isActivated = hasFocus
+                if (hasFocus) setSearchCardsFocusedState(false)
+            }
+            binding.voiceSearch.setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_UP -> {
+                            val navSearch = activity?.findViewById<View>(R.id.tv_nav_search)
+                            if (navSearch != null) {
+                                navSearch.requestFocus()
+                                return@setOnKeyListener true
+                            }
+                        }
+                        KeyEvent.KEYCODE_DPAD_LEFT -> {
+                            if (searchExitIcon?.isVisible == true) {
+                                searchExitIcon.requestFocus()
+                                return@setOnKeyListener true
+                            } else {
+                                val searchInput = binding.searchRoot.findViewById<TextView>(androidx.appcompat.R.id.search_src_text)
+                                searchInput?.requestFocus() ?: binding.mainSearch.requestFocus()
+                                return@setOnKeyListener true
+                            }
+                        }
+                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            val historyCount = binding.searchHistoryRecycler.adapter?.itemCount ?: 0
+                            if (historyCount > 0 && binding.searchHistoryRecycler.isVisible) {
+                                binding.searchHistoryRecycler.requestFocus()
+                                return@setOnKeyListener true
+                            } else if (binding.searchAutofitResults.isVisible && (binding.searchAutofitResults.adapter?.itemCount ?: 0) > 0) {
+                                binding.searchAutofitResults.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                                    ?: binding.searchAutofitResults.requestFocus()
+                                return@setOnKeyListener true
+                            }
+                        }
+                    }
+                }
+                false
+            }
+            binding.searchFilter.setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_UP -> {
+                            val navSearch = activity?.findViewById<View>(R.id.tv_nav_search)
+                            if (navSearch != null) {
+                                navSearch.requestFocus()
+                                return@setOnKeyListener true
+                            }
+                        }
+                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            val historyCount = binding.searchHistoryRecycler.adapter?.itemCount ?: 0
+                            if (historyCount > 0 && binding.searchHistoryRecycler.isVisible) {
+                                binding.searchHistoryRecycler.requestFocus()
+                                return@setOnKeyListener true
+                            } else if (binding.searchAutofitResults.isVisible && (binding.searchAutofitResults.adapter?.itemCount ?: 0) > 0) {
+                                binding.searchAutofitResults.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                                    ?: binding.searchAutofitResults.requestFocus()
+                                return@setOnKeyListener true
+                            }
+                        }
+                    }
+                }
+                false
+            }
+
+            val backBtn = binding.searchRoot.findViewById<View>(R.id.tv_search_back)
+            backBtn?.setOnClickListener {
+                activity?.onBackPressedDispatcher?.onBackPressed()
+            }
+            backBtn?.setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_UP -> {
+                            val navSearch = activity?.findViewById<View>(R.id.tv_nav_search)
+                            if (navSearch != null) {
+                                navSearch.requestFocus()
+                                return@setOnKeyListener true
+                            }
+                        }
+                        KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            val searchInput = binding.searchRoot.findViewById<TextView>(androidx.appcompat.R.id.search_src_text)
+                            searchInput?.requestFocus() ?: binding.mainSearch.requestFocus()
+                            return@setOnKeyListener true
+                        }
+                    }
+                }
+                false
+            }
+
+            val searchInputView = binding.searchRoot.findViewById<View>(androidx.appcompat.R.id.search_src_text)
+            listOf(
+                R.id.tv_nav_home,
+                R.id.tv_nav_search,
+                R.id.tv_nav_library,
+                R.id.tv_nav_downloads,
+                R.id.tv_nav_settings
+            ).mapNotNull { activity?.findViewById<View>(it) }.forEach { tab ->
+                tab.nextFocusDownId = searchInputView?.id ?: R.id.main_search
+            }
         }
 
         binding.voiceSearch.setOnClickListener { searchView ->
@@ -276,9 +685,6 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
             }
         }
 
-        val searchExitIcon =
-            binding.mainSearch.findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn)
-
         selectedApis = DataStoreHelper.searchPreferenceProviders.toMutableSet()
 
         binding.searchFilter.setOnClickListener { searchView ->
@@ -292,6 +698,7 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
                     BottomSheetDialog(ctx)
 
                 builder.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+                builder.behavior.skipCollapsed = true
 
                 val selectMainpageBinding: HomeSelectMainpageBinding =
                     HomeSelectMainpageBinding.inflate(
@@ -300,6 +707,18 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
                         false
                     )
                 builder.setContentView(selectMainpageBinding.root)
+                builder.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                builder.window?.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)?.setBackgroundColor(Color.TRANSPARENT)
+                builder.window?.setDimAmount(0.45f)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    builder.window?.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                    builder.window?.attributes?.blurBehindRadius = 32
+                }
+                selectMainpageBinding.selectMainpageTitle.text = ctx.getString(R.string.search) + " Filters"
+                selectMainpageBinding.selectMainpageClose.setOnClickListener {
+                    builder.dismissSafe()
+                }
+                selectMainpageBinding.applyBttHolder.isVisible = true
                 builder.show()
                 builder.let { dialog ->
                     val previousSelectedApis = selectedApis.toSet()
@@ -380,10 +799,6 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
                         dialog.dismissSafe()
                     }
 
-                    cancelBtt?.setOnClickListener {
-                        dialog.dismissSafe()
-                    }
-
                     applyBtt?.setOnClickListener {
                         //if (currentApiName != selectedApiName) {
                         //    currentApiName?.let(callback)
@@ -441,22 +856,31 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
             override fun onQueryTextChange(newText: String): Boolean {
                 //searchViewModel.quickSearch(newText)
                 val showHistory = newText.isBlank()
+                val isTv = isLayout(TV or EMULATOR)
                 if (showHistory) {
                     searchViewModel.clearSearch()
                     searchViewModel.updateHistory()
                     searchViewModel.clearSuggestions()
+                    loadDefaultTrendingItems()
                 } else {
                     // Fetch suggestions when user is typing (if enabled)
-                    if (isSearchSuggestionsEnabled) {
+                    if (isSearchSuggestionsEnabled && !isTv) {
                         searchViewModel.fetchSuggestions(newText)
                     }
                 }
                 binding.apply {
-                    searchHistoryRecycler.isVisible = showHistory
-                    searchMasterRecycler.isVisible = !showHistory && isAdvancedSearch
-                    searchAutofitResults.isVisible = !showHistory && !isAdvancedSearch
-                    // Hide suggestions when showing history or showing search results
-                    searchSuggestionsRecycler.isVisible = !showHistory && isSearchSuggestionsEnabled
+                    val sectionTitle = root.findViewById<TextView>(R.id.tv_search_section_title)
+                    val emptyView = root.findViewById<TextView>(R.id.tv_search_empty)
+                    if (showHistory) {
+                        sectionTitle?.setText(R.string.tv_trending_today)
+                        emptyView?.isVisible = false
+                    } else {
+                        sectionTitle?.text = root.context.getString(R.string.search_results)
+                    }
+                    searchHistoryRecycler.isVisible = showHistory && ((searchHistoryRecycler.adapter?.itemCount ?: 0) > 0)
+                    searchMasterRecycler.isVisible = false
+                    searchAutofitResults.isVisible = true
+                    searchSuggestionsRecycler.isVisible = false
                 }
 
                 return true
@@ -468,10 +892,15 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
                 is Resource.Success -> {
                     it.value.let { data ->
                         val list = data.list
+                        val emptyView = view?.findViewById<TextView>(R.id.tv_search_empty)
                         if (list.isNotEmpty()) {
                             (binding.searchAutofitResults.adapter as? SearchAdapter)?.submitList(
                                 list
                             )
+                            emptyView?.isVisible = false
+                        } else {
+                            val query = binding.mainSearch.query?.toString()
+                            emptyView?.isVisible = !query.isNullOrBlank()
                         }
                     }
                     searchExitIcon?.alpha = 1f
@@ -480,11 +909,16 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
 
                 is Resource.Failure -> {
                     // Toast.makeText(activity, "Server error", Toast.LENGTH_LONG).show()
+                    val emptyView = view?.findViewById<TextView>(R.id.tv_search_empty)
+                    val query = binding.mainSearch.query?.toString()
+                    emptyView?.isVisible = !query.isNullOrBlank()
                     searchExitIcon?.alpha = 1f
                     binding.searchLoadingBar.alpha = 0f
                 }
 
                 is Resource.Loading -> {
+                    val emptyView = view?.findViewById<TextView>(R.id.tv_search_empty)
+                    emptyView?.isVisible = false
                     searchExitIcon?.alpha = 0f
                     binding.searchLoadingBar.alpha = 1f
                 }
@@ -576,33 +1010,37 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
 
                 SEARCH_HISTORY_CLEAR -> {
                     // Show confirmation dialog (from footer button)
-                    activity?.let { ctx ->
-                        val builder: AlertDialog.Builder = AlertDialog.Builder(ctx)
-                        val dialogClickListener =
-                            DialogInterface.OnClickListener { _, which ->
-                                when (which) {
-                                    DialogInterface.BUTTON_POSITIVE -> {
-                                        removeKeys("$currentAccount/$SEARCH_HISTORY_KEY")
-                                        searchViewModel.updateHistory()
-                                    }
+                    val ctx = activity ?: return@SearchHistoryAdaptor
+                    try {
+                        val dialogView = LayoutInflater.from(ctx).inflate(R.layout.dialog_tv_clear_history, null)
+                        val dialog = AlertDialog.Builder(ctx, R.style.AlertDialogCustomTransparent)
+                            .setView(dialogView)
+                            .create()
 
-                                    DialogInterface.BUTTON_NEGATIVE -> {
-                                    }
-                                }
-                            }
-
-                        try {
-                            builder.setTitle(R.string.clear_history).setMessage(
-                                ctx.getString(R.string.delete_message).format(
-                                    ctx.getString(R.string.history)
-                                )
-                            )
-                                .setPositiveButton(R.string.sort_clear, dialogClickListener)
-                                .setNegativeButton(R.string.cancel, dialogClickListener)
-                                .show().setDefaultFocus()
-                        } catch (e: Exception) {
-                            logError(e)
+                        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                        dialog.window?.setDimAmount(0.45f)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            dialog.window?.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                            dialog.window?.attributes?.blurBehindRadius = 32
                         }
+
+                        val cancelBtn = dialogView.findViewById<View>(R.id.btn_cancel)
+                        val clearBtn = dialogView.findViewById<View>(R.id.btn_clear)
+
+                        cancelBtn?.setOnClickListener {
+                            dialog.dismissSafe()
+                        }
+
+                        clearBtn?.setOnClickListener {
+                            removeKeys("$currentAccount/$SEARCH_HISTORY_KEY")
+                            searchViewModel.updateHistory()
+                            dialog.dismissSafe()
+                        }
+
+                        dialog.show()
+                        cancelBtn?.requestFocus()
+                    } catch (e: Exception) {
+                        logError(e)
                     }
                 }
 
@@ -632,7 +1070,7 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
 
         binding.apply {
             searchHistoryRecycler.adapter = historyAdapter
-            searchHistoryRecycler.setLinearListLayout(isHorizontal = false, nextRight = FOCUS_SELF)
+            searchHistoryRecycler.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
             //searchHistoryRecycler.layoutManager = GridLayoutManager(context, 1)
 
             // Setup suggestions RecyclerView
@@ -668,6 +1106,8 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
 
         observe(searchViewModel.currentHistory) { list ->
             (binding.searchHistoryRecycler.adapter as? SearchHistoryAdaptor?)?.submitList(list)
+            val hasQuery = !binding.mainSearch.query.isNullOrBlank()
+            binding.searchHistoryRecycler.isVisible = !hasQuery && list.isNotEmpty()
              // Scroll to top to show newest items (list is sorted by newest first)
             if (list.isNotEmpty()) {
                 binding.searchHistoryRecycler.scrollToPosition(0)
@@ -698,5 +1138,32 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
         }
 
         searchViewModel.updateHistory()
+
+        if (isTv) {
+            activity?.attachBackPressedCallback("SearchFragmentTv") {
+                if (isSearchCardsFocused) {
+                    setSearchCardsFocusedState(false)
+                    val searchInput = binding.searchRoot.findViewById<TextView>(androidx.appcompat.R.id.search_src_text)
+                    searchInput?.requestFocus() ?: binding.mainSearch.requestFocus()
+                } else if (!binding.mainSearch.query.isNullOrBlank()) {
+                    binding.mainSearch.setQuery("", false)
+                    loadDefaultTrendingItems()
+                } else {
+                    activity?.detachBackPressedCallback("SearchFragmentTv")
+                    activity?.onBackPressedDispatcher?.onBackPressed()
+                }
+            }
+        }
+
+        loadDefaultTrendingItems()
+        observe(homeViewModel.page) { res ->
+            if (binding.mainSearch.query.isNullOrBlank()) {
+                val pageData = (res as? Resource.Success)?.value
+                val defaultItems = pageData?.values?.firstOrNull()?.list?.list
+                if (!defaultItems.isNullOrEmpty()) {
+                    (binding.searchAutofitResults.adapter as? SearchAdapter)?.submitList(defaultItems)
+                }
+            }
+        }
     }
 }

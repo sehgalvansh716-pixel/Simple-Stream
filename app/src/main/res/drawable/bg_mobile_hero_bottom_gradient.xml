@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 120dp slight black gradient transition seamlessly melting hero bottom into dark background -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#0007090D"
+                android:centerColor="#5907090D"
+                android:endColor="#F207090D"
+                android:centerY="0.50"
+                android:type="linear" />
+        </shape>
+    </item>
+</layer-list>

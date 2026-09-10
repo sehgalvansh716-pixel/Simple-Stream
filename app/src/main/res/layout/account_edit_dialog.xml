@@ -50,6 +50,8 @@
                 android:layout_gravity="center"
                 android:contentDescription="@string/preview_background_img_des"
                 android:focusable="true"
+                android:clickable="true"
+                android:nextFocusDown="@id/account_name"
                 android:foreground="@drawable/outline_drawable_forced_round"
                 android:scaleType="centerCrop"
                 android:src="@drawable/profile_bg_blue" />
@@ -61,6 +63,8 @@
                 android:layout_gravity="bottom|end"
                 android:background="@color/skipOpTransparent"
                 android:padding="5dp"
+                android:focusable="false"
+                android:clickable="true"
                 android:src="@drawable/ic_baseline_edit_24" />
         </androidx.cardview.widget.CardView>
 
@@ -71,9 +75,10 @@
             android:autofillHints="username"
             android:hint="@string/default_account"
             android:inputType="text"
+            android:nextFocusUp="@id/account_image"
             android:nextFocusLeft="@id/apply_btt"
             android:nextFocusRight="@id/cancel_btt"
-            android:nextFocusDown="@id/site_url_input"
+            android:nextFocusDown="@id/lockProfileCheckbox"
             android:requiresFadingEdge="vertical"
             android:textColorHint="?attr/grayTextColor"
             tools:ignore="LabelFor" />
@@ -84,6 +89,8 @@
             android:layout_height="wrap_content"
             android:buttonTint="?attr/textColor"
             android:text="@string/lock_profile"
+            android:nextFocusUp="@id/account_name"
+            android:nextFocusDown="@id/apply_btt"
             android:textColor="?attr/grayTextColor" />
 
 

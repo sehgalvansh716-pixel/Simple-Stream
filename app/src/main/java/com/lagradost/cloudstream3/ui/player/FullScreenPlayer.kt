@@ -113,7 +113,7 @@ open class FullScreenPlayer : AbstractPlayerFragment<FragmentPlayerBinding>(
             0L
         }
 
-    private var isShowingEpisodeOverlay: Boolean = false
+    protected var isShowingEpisodeOverlay: Boolean = false
     private var previousPlayStatus: Boolean = false
 
     override fun fixLayout(view: View) = Unit
@@ -244,6 +244,14 @@ open class FullScreenPlayer : AbstractPlayerFragment<FragmentPlayerBinding>(
 
     open fun showEpisodesOverlay() {
         throw NotImplementedError()
+    }
+
+    open fun handleEpisodeOverlayKeyEvent(event: KeyEvent): Boolean {
+        return false
+    }
+
+    open fun closeEpisodesOverlay() {
+        toggleEpisodesOverlay(show = false)
     }
 
     open fun isThereEpisodes(): Boolean {
@@ -438,6 +446,7 @@ open class FullScreenPlayer : AbstractPlayerFragment<FragmentPlayerBinding>(
         keyEventListener = { (event, hasNavigated) ->
             when {
                 event == null -> false
+                isShowingEpisodeOverlay && handleEpisodeOverlayKeyEvent(event) -> true
                 event.action == KeyEvent.ACTION_DOWN &&
                         (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
                                 event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) ->
@@ -961,7 +970,7 @@ open class FullScreenPlayer : AbstractPlayerFragment<FragmentPlayerBinding>(
             // play/pause. Only when the UI is hidden do we treat it as a play/pause toggle.
             KeyEvent.KEYCODE_DPAD_CENTER,
             KeyEvent.KEYCODE_ENTER -> {
-                if (isShowing || isDialogOpen()) {
+                if (isShowing || isDialogOpen() || isShowingEpisodeOverlay) {
                     return null
                 }
                 // If UI is not shown make click instantly skip to next chapter even if locked
@@ -1298,7 +1307,7 @@ open class FullScreenPlayer : AbstractPlayerFragment<FragmentPlayerBinding>(
                 toggleEpisodesOverlay(show = true)
             }
             playerEpisodeOverlayClose.setOnClickListener {
-                toggleEpisodesOverlay(show = false)
+                closeEpisodesOverlay()
             }
         }
         // init UI
@@ -1341,17 +1350,21 @@ open class FullScreenPlayer : AbstractPlayerFragment<FragmentPlayerBinding>(
         updateOrientation()
     }
 
-    private fun toggleEpisodesOverlay(show: Boolean) {
-        if (show && !isShowingEpisodeOverlay) {
-            previousPlayStatus = player.getIsPlaying()
-            player.handleEvent(CSPlayerEvent.Pause)
-            showEpisodesOverlay()
-            isShowingEpisodeOverlay = true
-            animateEpisodesOverlay(true)
-        } else if (isShowingEpisodeOverlay) {
-            if (previousPlayStatus) player.handleEvent(CSPlayerEvent.Play)
-            isShowingEpisodeOverlay = false
-            animateEpisodesOverlay(false)
+    protected open fun toggleEpisodesOverlay(show: Boolean) {
+        if (show) {
+            if (!isShowingEpisodeOverlay) {
+                previousPlayStatus = player.getIsPlaying()
+                player.handleEvent(CSPlayerEvent.Pause)
+                showEpisodesOverlay()
+                isShowingEpisodeOverlay = true
+                animateEpisodesOverlay(true)
+            }
+        } else {
+            if (isShowingEpisodeOverlay || playerBinding?.playerEpisodeOverlay?.isVisible == true) {
+                if (previousPlayStatus) player.handleEvent(CSPlayerEvent.Play)
+                isShowingEpisodeOverlay = false
+                animateEpisodesOverlay(false)
+            }
         }
     }
 

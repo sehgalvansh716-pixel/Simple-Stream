@@ -2,10 +2,11 @@
 
 > **CRITICAL DIRECTIVE FOR ALL AI AGENTS**:  
 > Read this entire document before inspecting or modifying any code.  
-> **SimpleStream 1.0.1 is the official production baseline**, located on `master` in the primary git repository `c:\SimpleStream\Simple-Stream` (tagged `v1.0.1`).  
-> **SimpleStream 1.0.2 is currently in active sandbox development** under `c:\SimpleStream\Simple Stream 1.0.2` with `versionCode = 103`.  
+> **SimpleStream 1.0.2 PRE is the current public release**, tagged `v1.0.2-PRE` on `master` in the git repository `c:\SimpleStream\Simple-Stream`.  
+> **SimpleStream 1.0.2 sandbox** is at `c:\SimpleStream\Simple Stream 1.0.2` with `versionCode = 103`, `versionName = "1.0.2 PRE"`.  
 > The project owner has **zero programming knowledge**. You must make all technical decisions autonomously, never delegate code tasks, and ensure full verification before completing any task.  
-> **Testing Protocol**: The project owner prefers to test APKs themselves on physical devices. **DO NOT** run emulators, ADB background loops, or screencap captures unless explicitly asked.  
+> **Testing & Verification Protocol**: From now on, whenever you fix bugs and compile an APK, automatically sideload and launch it on the Android TV emulator (`emulator-5554`) using `adb -s emulator-5554 install -r <apkPath>`.  
+> **Git Invariant**: **NO GITHUB PUSHING** from now on until the project owner specifically asks you to push to GitHub or release an update. Keep all work local.  
 > **Workspace Hygiene**: Keep the workspace root (`c:\SimpleStream\`) pristine. Never leave loose screenshots, temporary logs, or scratch files in the root folder.
 
 ---
@@ -13,7 +14,8 @@
 ## 1. Project Overview & Origins
 
 - **Application Name**: SimpleStream
-- **Baseline Production Version**: `1.0.1` (`versionCode = 102`, Git Tag: `v1.0.1`)
+- **Current Public Release**: `1.0.2 PRE` (`versionCode = 103`, Git Tag: `v1.0.2-PRE`)
+- **Previous Stable Version**: `1.0.1` (`versionCode = 102`, Git Tag: `v1.0.1`)
 - **Active Development Version**: `1.0.2` (`versionCode = 103`)
 - **Package ID**: `com.github.sehgalvansh716pixel.simplestream` (Debug build appends `.debug`: `com.github.sehgalvansh716pixel.simplestream.debug`)
 - **GitHub Repository**: [https://github.com/sehgalvansh716-pixel/Simple-Stream](https://github.com/sehgalvansh716-pixel/Simple-Stream)
@@ -29,21 +31,24 @@ SimpleStream is organized as follows:
 
 ```
 c:\SimpleStream\
-├── Simple-Stream\                     # 🌟 PRODUCTION GIT REPOSITORY (Clean master branch, tagged v1.0.1)
+├── Simple-Stream\                     # 🌟 PRODUCTION GIT REPOSITORY (master, tagged v1.0.2-PRE)
 │   ├── .git\                          # Git history and origin tracking
-│   ├── app\                           # Android app module (v1.0.1 release)
+│   ├── app\                           # Android app module (v1.0.2 PRE release)
 │   ├── library\                       # Kotlin Multiplatform provider / extension engine
 │   └── build.gradle.kts, etc.
 │
-├── Simple Stream 1.0.2\               # 🧪 ACTIVE DEVELOPMENT SANDBOX (v1.0.2 development, versionCode = 103)
+├── Simple Stream 1.0.2\               # 🧪 ACTIVE DEVELOPMENT SANDBOX (v1.0.2 work, versionCode = 103)
 │   ├── (NO .git / NO .github)         # COMPLETELY DETACHED FROM GIT to prevent accidental commits
 │   ├── app\                           # Android app module with v1.0.2 work
 │   └── library\
 │
+├── Simple-Stream 1.0.2 Pre\           # 📦 CLEAN SOURCE SNAPSHOT OF v1.0.2 PRE (~27 MB, no build caches)
 ├── Simple-Stream 1.0.1\               # 📦 SOURCE BACKUP OF v1.0.1 (Stripped of build caches, ~14 MB)
 ├── NetMirror_Local\                   # 🔌 LOCAL PROVIDER EXTENSION (NetMirror source & NetMirror.cs3)
-├── SimpleStream-1.0.0.apk             # Baseline compiled v1.0.0 release APK
-├── SimpleStream-1.0.1.apk             # Baseline compiled v1.0.1 release APK (versionCode = 102, 72.7 MB)
+├── SimpleStream-1.0.0.apk             # Compiled v1.0.0 release APK
+├── SimpleStream-1.0.1.apk             # Compiled v1.0.1 release APK (versionCode = 102, 72.7 MB)
+├── SimpleStream-1.0.2-Pre.apk         # Compiled v1.0.2 PRE release APK (versionCode = 103, ~85.7 MB)
+├── SimpleStream-1.0.2.apk             # Alias of v1.0.2 PRE APK (for in-app updater compatibility, ~85.7 MB)
 ├── Logo.png                           # Source high-res brand artwork (square)
 ├── Tv Logo.png                        # Source high-res Android TV launcher banner (16:9)
 ├── AGENTS.md                          # THIS DIRECTIVE FILE

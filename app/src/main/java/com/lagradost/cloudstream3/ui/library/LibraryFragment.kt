@@ -7,6 +7,7 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup.FOCUS_AFTER_DESCENDANTS
 import android.view.ViewGroup.FOCUS_BLOCK_DESCENDANTS
@@ -17,6 +18,8 @@ import androidx.appcompat.widget.SearchView
 import androidx.core.view.allViews
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.activityViewModels
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.RecyclerView
@@ -43,9 +46,12 @@ import com.lagradost.cloudstream3.utils.txt
 import com.lagradost.cloudstream3.ui.BaseFragment
 import com.lagradost.cloudstream3.ui.search.SEARCH_ACTION_LOAD
 import com.lagradost.cloudstream3.ui.search.SEARCH_ACTION_SHOW_METADATA
+import com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR
 import com.lagradost.cloudstream3.ui.settings.Globals.PHONE
+import com.lagradost.cloudstream3.ui.settings.Globals.TV
 import com.lagradost.cloudstream3.ui.settings.Globals.isLandscape
 import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
+import com.lagradost.cloudstream3.ui.utils.TvAmbientVideoHelper
 import com.lagradost.cloudstream3.utils.AppContextUtils.loadResult
 import com.lagradost.cloudstream3.utils.AppContextUtils.loadSearchResult
 import com.lagradost.cloudstream3.utils.AppContextUtils.reduceDragSensitivity
@@ -53,6 +59,11 @@ import com.lagradost.cloudstream3.utils.DataStoreHelper.currentAccount
 import com.lagradost.cloudstream3.utils.SingleSelectionHelper.showBottomDialog
 import com.lagradost.cloudstream3.utils.UIHelper.fixSystemBarsPadding
 import com.lagradost.cloudstream3.utils.UIHelper.getSpanCount
+import com.lagradost.cloudstream3.utils.UIHelper.setAppBarNoScrollFlagsOnTV
+import com.lagradost.cloudstream3.utils.UIHelper.toPx
+import com.lagradost.cloudstream3.mvvm.safe
+import android.view.TextureView
+import android.view.ViewGroup
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.util.concurrent.CopyOnWriteArrayList
@@ -95,9 +106,26 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>(
     private val libraryViewModel: LibraryViewModel by activityViewModels()
 
     private var toggleRandomButton = false
+    private var tvAmbientVideoHelper: TvAmbientVideoHelper? = null
 
     override fun pickLayout(): Int? =
         if (isLayout(PHONE)) R.layout.fragment_library else R.layout.fragment_library_tv
+
+    override fun onDestroyView() {
+        tvAmbientVideoHelper?.release()
+        tvAmbientVideoHelper = null
+        super.onDestroyView()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        tvAmbientVideoHelper?.play()
+    }
+
+    override fun onPause() {
+        tvAmbientVideoHelper?.pause()
+        super.onPause()
+    }
 
     override fun onSaveInstanceState(outState: Bundle) {
         binding?.viewpager?.currentItem?.let { currentItem ->
@@ -122,11 +150,13 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>(
     }
 
     override fun fixLayout(view: View) {
-        fixSystemBarsPadding(
-            view,
-            padBottom = isLandscape(),
-            padLeft = !isLayout(PHONE)
-        )
+        if (!isLayout(PHONE)) {
+            fixSystemBarsPadding(
+                view,
+                padBottom = isLandscape(),
+                padLeft = !isLayout(PHONE)
+            )
+        }
     }
 
     @SuppressLint("ResourceType", "CutPasteId")
@@ -134,17 +164,145 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>(
         binding: FragmentLibraryBinding,
         savedInstanceState: Bundle?
     ) {
+        val textureView = binding.root.findViewById<TextureView>(R.id.tv_library_video)
+        if (textureView != null) {
+            tvAmbientVideoHelper?.release()
+            tvAmbientVideoHelper = TvAmbientVideoHelper(binding.root.context).apply {
+                attach(textureView, R.raw.tv_search_bg, autoPlay = true)
+            }
+        }
+
+        if (isLayout(TV or EMULATOR)) {
+            binding.searchBar.setAppBarNoScrollFlagsOnTV()
+
+            binding.root.findViewById<View>(R.id.library_tv_back)?.setOnClickListener {
+                activity?.onBackPressedDispatcher?.onBackPressed()
+            }
+
+            binding.root.findViewById<View>(R.id.tv_provider_pill)?.let { pill ->
+                pill.setOnClickListener { binding.listSelector.performClick() }
+                pill.setOnFocusChangeListener { v, hasFocus ->
+                    val scale = if (hasFocus) 1.05f else 1.0f
+                    v.animate().scaleX(scale).scaleY(scale).translationZ(if (hasFocus) 6f else 0f).setDuration(150).start()
+                }
+            }
+
+            binding.root.findViewById<View>(R.id.tv_open_with_pill)?.let { pill ->
+                pill.setOnClickListener { binding.providerSelector.performClick() }
+                pill.setOnFocusChangeListener { v, hasFocus ->
+                    val scale = if (hasFocus) 1.05f else 1.0f
+                    v.animate().scaleX(scale).scaleY(scale).translationZ(if (hasFocus) 6f else 0f).setDuration(150).start()
+                }
+            }
+
+            binding.root.findViewById<View>(R.id.tv_sort_pill)?.let { pill ->
+                pill.setOnClickListener { binding.librarySort.performClick() }
+                pill.setOnFocusChangeListener { v, hasFocus ->
+                    val scale = if (hasFocus) 1.05f else 1.0f
+                    v.animate().scaleX(scale).scaleY(scale).translationZ(if (hasFocus) 6f else 0f).setDuration(150).start()
+                }
+            }
+
+            binding.root.findViewById<View>(R.id.tv_random_row)?.let { pill ->
+                pill.setOnClickListener { binding.libraryRandomButtonTv.performClick() }
+                pill.setOnFocusChangeListener { v, hasFocus ->
+                    val scale = if (hasFocus) 1.05f else 1.0f
+                    v.animate().scaleX(scale).scaleY(scale).translationZ(if (hasFocus) 6f else 0f).setDuration(150).start()
+                }
+            }
+
+            val searchCapsule = binding.root.findViewById<View>(R.id.tv_library_search_capsule)
+            searchCapsule?.let { capsule ->
+                capsule.setOnFocusChangeListener { v, hasFocus ->
+                    val scale = if (hasFocus) 1.05f else 1.0f
+                    v.animate().scaleX(scale).scaleY(scale).translationZ(if (hasFocus) 6f else 0f).setDuration(150).start()
+                }
+                capsule.setOnClickListener {
+                    binding.mainSearch.isIconified = false
+                    val searchInput = binding.libraryRoot.findViewById<TextView>(androidx.appcompat.R.id.search_src_text)
+                    searchInput?.requestFocus()
+                }
+            }
+
+            val searchInput = binding.libraryRoot.findViewById<TextView>(androidx.appcompat.R.id.search_src_text)
+            searchInput?.setOnFocusChangeListener { _, hasFocus ->
+                binding.searchBar.setExpanded(true)
+                searchCapsule?.isActivated = hasFocus
+                val scale = if (hasFocus) 1.05f else 1.0f
+                searchCapsule?.animate()?.scaleX(scale)?.scaleY(scale)?.translationZ(if (hasFocus) 6f else 0f)?.setDuration(150)?.start()
+            }
+            searchInput?.setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            binding.root.findViewById<View>(R.id.tv_provider_pill)?.requestFocus()
+                            return@setOnKeyListener true
+                        }
+                        KeyEvent.KEYCODE_DPAD_UP -> {
+                            binding.root.findViewById<View>(R.id.library_tv_back)?.requestFocus()
+                            return@setOnKeyListener true
+                        }
+                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                            binding.libraryTabLayout.getTabAt(binding.libraryTabLayout.selectedTabPosition)?.view?.requestFocus()
+                                ?: binding.libraryTabLayout.requestFocus()
+                            return@setOnKeyListener true
+                        }
+                    }
+                }
+                false
+            }
+
+            binding.root.findViewById<View>(R.id.tv_empty_action_btn)?.setOnClickListener {
+                activity?.findViewById<View>(R.id.tv_nav_home)?.performClick()
+                    ?: activity?.let { act ->
+                        safe {
+                            androidx.navigation.Navigation.findNavController(act, R.id.nav_host_fragment).navigate(R.id.navigation_home)
+                        }
+                    }
+            }
+        }
+
         binding.sortFab.setOnClickListener(sortChangeClickListener)
         binding.librarySort.setOnClickListener(sortChangeClickListener)
 
-        binding.libraryRoot.findViewById<TextView>(androidx.appcompat.R.id.search_src_text)
-            ?.apply {
-                tag = "tv_no_focus_tag"
-                // Expand the Appbar when search bar is focused, fixing scroll up issue
-                setOnFocusChangeListener { _, _ ->
-                    binding.searchBar.setExpanded(true)
+        if (!isLayout(TV or EMULATOR)) {
+            binding.libraryRoot.findViewById<TextView>(androidx.appcompat.R.id.search_src_text)
+                ?.apply {
+                    tag = "tv_no_focus_tag"
+                    setOnFocusChangeListener { _, _ ->
+                        binding.searchBar.setExpanded(true)
+                    }
                 }
+
+            ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, windowInsets ->
+                val insets = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+                )
+                val targetTop = insets.top + 6.toPx
+                if (binding.searchBar.paddingTop != targetTop) {
+                    binding.searchBar.setPadding(0, targetTop, 0, 0)
+                }
+
+                val navBarClearance = 82.toPx + insets.bottom
+                val fabBottomMargin = navBarClearance + 16.toPx
+                val sortLp = binding.sortFab.layoutParams as? ViewGroup.MarginLayoutParams
+                if (sortLp != null && sortLp.bottomMargin != fabBottomMargin) {
+                    sortLp.bottomMargin = fabBottomMargin
+                    binding.sortFab.layoutParams = sortLp
+                }
+                val randomLp = binding.libraryRandom.layoutParams as? ViewGroup.MarginLayoutParams
+                if (randomLp != null && randomLp.bottomMargin != fabBottomMargin) {
+                    randomLp.bottomMargin = fabBottomMargin
+                    binding.libraryRandom.layoutParams = randomLp
+                }
+
+                val targetListPadding = navBarClearance + 60.toPx
+                if (binding.viewpager.paddingBottom != targetListPadding) {
+                    binding.viewpager.setPadding(0, 0, 0, targetListPadding)
+                }
+                windowInsets
             }
+        }
 
         val searchCallback = Runnable {
             val newText = binding.mainSearch.query.toString()
@@ -327,12 +485,13 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>(
 
         val startLoading = Runnable {
             binding.apply {
-                gridview.numColumns = root.context.getSpanCount()
+                gridview.numColumns = if (isLayout(TV or EMULATOR)) 5 else root.context.getSpanCount()
                 gridview.adapter =
                     context?.let { LoadingPosterAdapter(it, 6 * 3) }
                 libraryLoadingOverlay.isVisible = true
                 libraryLoadingShimmer.startShimmer()
                 emptyListTextview.isVisible = false
+                root.findViewById<View>(R.id.tv_empty_library_card)?.isVisible = false
             }
         }
 
@@ -351,16 +510,49 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>(
                 is Resource.Success -> {
                     handler.removeCallbacks(startLoading)
                     val pages = resource.value
-                    val showNotice = pages.all { it.items.isEmpty() }
+                    val isTv = isLayout(TV or EMULATOR)
+                    val emptyCard = binding.root.findViewById<View>(R.id.tv_empty_library_card)
+                    val emptyTitle = binding.root.findViewById<TextView>(R.id.tv_empty_title)
+
+                    val pos = libraryViewModel.currentPage.value ?: 0
+                    val allEmpty = pages.all { it.items.isEmpty() }
+                    val currentEmpty = pages.getOrNull(pos)?.items?.isEmpty() ?: allEmpty
 
                     binding.apply {
-                        emptyListTextview.isVisible = showNotice
-                        if (showNotice) {
-                            if (libraryViewModel.availableApiNames.size > 1) {
-                                emptyListTextview.setText(R.string.empty_library_logged_in_message)
+                        if (isTv) {
+                            if (allEmpty) {
+                                emptyTitle?.text = "Your Library is Empty"
+                                if (libraryViewModel.availableApiNames.size > 1) {
+                                    emptyListTextview.setText(R.string.empty_library_logged_in_message)
+                                } else {
+                                    emptyListTextview.setText(R.string.empty_library_no_accounts_message)
+                                }
+                                emptyCard?.isVisible = true
+                                emptyListTextview.isVisible = true
+                            } else if (currentEmpty) {
+                                val catTitle = pages.getOrNull(pos)?.title?.asStringNull(context) ?: "this category"
+                                emptyTitle?.text = "No $catTitle Titles"
+                                emptyListTextview.text = "You don't have any titles saved in $catTitle yet."
+                                emptyCard?.isVisible = true
+                                emptyListTextview.isVisible = true
                             } else {
-                                emptyListTextview.setText(R.string.empty_library_no_accounts_message)
+                                emptyCard?.isVisible = false
+                                emptyListTextview.isVisible = false
                             }
+                        } else {
+                            emptyListTextview.isVisible = allEmpty
+                            if (allEmpty) {
+                                if (libraryViewModel.availableApiNames.size > 1) {
+                                    emptyListTextview.setText(R.string.empty_library_logged_in_message)
+                                } else {
+                                    emptyListTextview.setText(R.string.empty_library_no_accounts_message)
+                                }
+                            }
+                        }
+
+                        libraryViewModel.currentSortingMethod?.let { method ->
+                            binding.root.findViewById<TextView>(R.id.tv_sort_text)?.text =
+                                context?.let { ctx -> txt(method.stringRes).asString(ctx) }
                         }
 
                         (viewpager.adapter as? ViewpagerAdapter)?.submitList(pages.map {
@@ -435,6 +627,7 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>(
                         ) { tab, position ->
                             tab.text = pages.getOrNull(position)?.title?.asStringNull(context)
                             tab.view.tag = "tv_no_focus_tag"
+                            tab.view.nextFocusUpId = R.id.library_tv_back
                             tab.view.nextFocusDownId = R.id.search_result_root
 
                             tab.view.setOnClickListener {
@@ -447,6 +640,50 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>(
                                 binding.searchBar.setExpanded(true)
                             }
                         }.attach()
+
+                        if (isTv) {
+                            for (i in 0 until libraryTabLayout.tabCount) {
+                                val tabView = libraryTabLayout.getTabAt(i)?.view ?: continue
+                                tabView.setBackgroundResource(R.drawable.bg_tv_filter_pill)
+                                tabView.clipChildren = false
+                                tabView.clipToPadding = false
+                                tabView.nextFocusUpId = activity?.findViewById<View>(R.id.tv_nav_library)?.id ?: R.id.library_tv_back
+                                if (i == 0) {
+                                    tabView.nextFocusLeftId = R.id.tv_library_search_capsule
+                                }
+                                val lp = tabView.layoutParams as? ViewGroup.MarginLayoutParams
+                                if (lp != null) {
+                                    lp.marginStart = 4.toPx
+                                    lp.marginEnd = 4.toPx
+                                    tabView.layoutParams = lp
+                                }
+                                tabView.setPadding(13.toPx, 6.toPx, 13.toPx, 6.toPx)
+                                tabView.setOnFocusChangeListener { v, hasFocus ->
+                                    binding.searchBar.setExpanded(true)
+                                    val scale = if (hasFocus) 1.05f else 1.0f
+                                    v.animate()
+                                        .scaleX(scale)
+                                        .scaleY(scale)
+                                        .translationZ(if (hasFocus) 6f else 0f)
+                                        .setDuration(150)
+                                        .start()
+                                }
+                            }
+                        } else {
+                            for (i in 0 until libraryTabLayout.tabCount) {
+                                val tabView = libraryTabLayout.getTabAt(i)?.view ?: continue
+                                tabView.setBackgroundResource(R.drawable.bg_mobile_filter_pill_glass)
+                                tabView.clipChildren = false
+                                tabView.clipToPadding = false
+                                val lp = tabView.layoutParams as? ViewGroup.MarginLayoutParams
+                                if (lp != null) {
+                                    lp.marginStart = 4.toPx
+                                    lp.marginEnd = 4.toPx
+                                    tabView.layoutParams = lp
+                                }
+                                tabView.setPadding(14.toPx, 6.toPx, 14.toPx, 6.toPx)
+                            }
+                        }
 
                         binding.libraryTabLayout.addOnTabSelectedListener(object :
                             TabLayout.OnTabSelectedListener {
@@ -489,6 +726,38 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>(
                 else
                     view.descendantFocusability = FOCUS_BLOCK_DESCENDANTS
             }
+
+            val currentPages = (libraryViewModel.pages.value as? Resource.Success)?.value
+            if (currentPages != null && isLayout(TV or EMULATOR)) {
+                val allEmpty = currentPages.all { it.items.isEmpty() }
+                val currentEmpty = currentPages.getOrNull(position)?.items?.isEmpty() ?: allEmpty
+                val emptyCard = binding.root.findViewById<View>(R.id.tv_empty_library_card)
+                val emptyTitle = binding.root.findViewById<TextView>(R.id.tv_empty_title)
+                if (allEmpty) {
+                    emptyTitle?.text = "Your Library is Empty"
+                    if (libraryViewModel.availableApiNames.size > 1) {
+                        binding.emptyListTextview.setText(R.string.empty_library_logged_in_message)
+                    } else {
+                        binding.emptyListTextview.setText(R.string.empty_library_no_accounts_message)
+                    }
+                    emptyCard?.isVisible = true
+                    binding.emptyListTextview.isVisible = true
+                } else if (currentEmpty) {
+                    val catTitle = currentPages.getOrNull(position)?.title?.asStringNull(context) ?: "this category"
+                    emptyTitle?.text = "No $catTitle Titles"
+                    binding.emptyListTextview.text = "You don't have any titles saved in $catTitle yet."
+                    emptyCard?.isVisible = true
+                    binding.emptyListTextview.isVisible = true
+                } else {
+                    emptyCard?.isVisible = false
+                    binding.emptyListTextview.isVisible = false
+                }
+            }
+        }
+
+        observe(libraryViewModel.currentApiName) { name ->
+            val cleanName = if (name.isNullOrBlank()) "Local" else name
+            binding.root.findViewById<TextView>(R.id.tv_provider_name)?.text = cleanName
         }
     }
 
@@ -568,6 +837,7 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>(
             {
                 val method = libraryViewModel.sortingMethods[it]
                 libraryViewModel.sort(method)
+                binding?.root?.findViewById<TextView>(R.id.tv_sort_text)?.text = txt(method.stringRes).asString(view.context)
             })
     }
 }

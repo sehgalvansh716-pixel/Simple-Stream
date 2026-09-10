@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Focused state: 2dp crisp white focus ring on brightened neutral specular frosted glass (1dp inset for perfect antialiasing) -->
+    <item android:state_focused="true">
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="100dp" />
+                    <solid android:color="#66000000" />
+                </shape>
+            </item>
+            <item android:top="1dp" android:bottom="1dp" android:left="1dp" android:right="1dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="100dp" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#59FFFFFF"
+                        android:centerColor="#33FFFFFF"
+                        android:endColor="#1AFFFFFF" />
+                    <stroke android:width="2dp" android:color="#FFFFFFFF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Selected / Pressed state -->
+    <item android:state_pressed="true">
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="100dp" />
+                    <solid android:color="#80000000" />
+                </shape>
+            </item>
+            <item android:top="1dp" android:bottom="1dp" android:left="1dp" android:right="1dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="100dp" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#66FFFFFF"
+                        android:centerColor="#40FFFFFF"
+                        android:endColor="#20FFFFFF" />
+                    <stroke android:width="2dp" android:color="#FFFFFFFF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Default state: True-Liquid-Glass neutral translucent frosted glass pill -->
+    <item>
+        <layer-list>
+            <!-- Layer 0: Dark absorption base to ensure maximum text contrast over moving video -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="100dp" />
+                    <solid android:color="#4D000000" />
+                </shape>
+            </item>
+            <!-- Layer 1: Neutral specular reflection gradient with refractive 1.2dp border -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="100dp" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#26FFFFFF"
+                        android:centerColor="#14FFFFFF"
+                        android:endColor="#0DFFFFFF" />
+                    <stroke android:width="1.2dp" android:color="#38FFFFFF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>

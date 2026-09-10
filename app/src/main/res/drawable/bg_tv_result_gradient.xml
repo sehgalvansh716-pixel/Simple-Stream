@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 1. Smooth horizontal vignette: Darkens only the left side behind text, leaving the backdrop image & video glowing with vibrant, luminous depth -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="0"
+                android:startColor="#D9090C12"
+                android:centerColor="#55090C12"
+                android:endColor="#00090C12"
+                android:type="linear" />
+        </shape>
+    </item>
+
+    <!-- 2. Gentle top and bottom dissolve: Transparent across hero area, soft dissolve at bottom into episode rows -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#33090C12"
+                android:centerColor="#00000000"
+                android:endColor="#D9090C12"
+                android:type="linear" />
+        </shape>
+    </item>
+</layer-list>

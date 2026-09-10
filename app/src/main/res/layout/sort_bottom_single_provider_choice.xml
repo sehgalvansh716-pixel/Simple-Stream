@@ -1,39 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-     >
+    android:layout_marginStart="8dp"
+    android:layout_marginEnd="8dp"
+    android:layout_marginTop="3dp"
+    android:layout_marginBottom="3dp"
+    android:background="@drawable/bg_mobile_provider_item">
+
     <TextView
         android:id="@+id/text1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        style="@style/CheckLabel"
-        android:layout_gravity="center"
-        tools:text="hello" />
+        android:minHeight="48dp"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="90dp"
+        android:fontFamily="@font/google_sans"
+        android:textColor="#F3F4F6"
+        android:textSize="14.5sp"
+        android:textStyle="bold"
+        android:ellipsize="end"
+        android:maxLines="1"
+        tools:text="Cinejoy" />
+
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end|center_vertical"
+        android:layout_marginEnd="8dp"
+        android:gravity="center_vertical"
         android:orientation="horizontal">
 
         <ImageView
             android:id="@+id/action_settings"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/bg_mobile_search_circle_glass"
+            android:contentDescription="@string/title_settings"
+            android:padding="6dp"
             android:src="@drawable/ic_baseline_tune_24"
             android:visibility="gone"
-            tools:visibility="visible"
-            android:contentDescription="@string/title_settings" />
+            app:tint="#E0E7FF"
+            tools:visibility="visible" />
 
         <ImageView
             android:id="@+id/pinicon"
-            android:layout_width="50dp"
-            android:layout_height="24dp"
+            android:layout_width="36dp"
+            android:layout_height="22dp"
             android:layout_gravity="center_vertical"
+            android:scaleType="fitCenter"
             android:src="@drawable/pin_ic"
             android:visibility="gone"
+            app:tint="#818CF8"
             tools:visibility="visible"
             tools:ignore="RtlHardcoded" />
     </LinearLayout>

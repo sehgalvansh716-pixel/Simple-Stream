@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cast_root"
+    android:layout_width="80dp"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="16dp"
+    android:layout_marginBottom="8dp"
+    android:background="@null"
+    android:clickable="true"
+    android:defaultFocusHighlightEnabled="false"
+    android:focusable="true"
+    android:gravity="center_horizontal"
+    android:orientation="vertical">
+
+    <!-- 76dp Circular Avatar Face Holder (Clean zero-elevation circle, no box boundary) -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cast_avatar_card"
+        android:layout_width="76dp"
+        android:layout_height="76dp"
+        android:clickable="false"
+        android:focusable="false"
+        android:foreground="@drawable/fg_tv_cast_circle"
+        app:cardBackgroundColor="#14161D"
+        app:cardCornerRadius="38dp"
+        app:cardElevation="0dp"
+        app:cardMaxElevation="0dp"
+        app:cardPreventCornerOverlap="false">
+
+        <ImageView
+            android:id="@+id/cast_image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@null"
+            android:scaleType="centerCrop"
+            tools:src="@drawable/example_poster" />
+    </androidx.cardview.widget.CardView>
+
+    <!-- Actor Name (Hidden by default to match clean Cinejoy circular layout, shown on focus) -->
+    <TextView
+        android:id="@+id/cast_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:ellipsize="end"
+        android:gravity="center_horizontal"
+        android:maxLines="1"
+        android:textColor="#E9EAEE"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        tools:text="Simon Baker" />
+
+    <!-- Role / Character Name (if available) -->
+    <TextView
+        android:id="@+id/cast_role"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:ellipsize="end"
+        android:gravity="center_horizontal"
+        android:maxLines="1"
+        android:textColor="#9BA0A4"
+        android:textSize="10sp"
+        android:visibility="gone"
+        tools:text="Patrick Jane"
+        tools:visibility="visible" />
+</LinearLayout>

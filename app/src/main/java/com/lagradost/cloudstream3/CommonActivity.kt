@@ -341,20 +341,22 @@ object CommonActivity {
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(act)
 
         val currentTheme =
-            when (settingsManager.getString(act.getString(R.string.app_theme_key), "AmoledLight")) {
-                "System" -> mapSystemTheme(act)
-                "Black" -> R.style.AppTheme
-                "Light" -> R.style.LightMode
-                "Amoled" -> R.style.AmoledMode
-                "AmoledLight" -> R.style.AmoledModeLight
-                "Monet" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-                    R.style.MonetMode else R.style.AppTheme
+            when (settingsManager.getString(act.getString(R.string.app_theme_key), "MidnightMonochrome")) {
+                "MidnightMonochrome" -> R.style.MidnightMonochromeMode
+                "WarmMinimal" -> R.style.WarmMinimalMode
+                "SageCream" -> R.style.SageCreamMode
+                "ArcticGlass" -> R.style.ArcticGlassMode
+                "SoftLavender" -> R.style.SoftLavenderMode
+                "ObsidianElectric" -> R.style.ObsidianElectricMode
+                "PureMono" -> R.style.PureMonoMode
 
-                "Dracula" -> R.style.DraculaMode
-                "Lavender" -> R.style.LavenderMode
-                "SilentBlue" -> R.style.SilentBlueMode
+                // Graceful legacy theme fallbacks
+                "AmoledLight", "Black", "Amoled", "Dracula", "Monet" -> R.style.MidnightMonochromeMode
+                "Light", "System" -> R.style.PureMonoMode
+                "Lavender" -> R.style.SoftLavenderMode
+                "SilentBlue" -> R.style.ArcticGlassMode
 
-                else -> R.style.AppTheme
+                else -> R.style.MidnightMonochromeMode
             }
 
         val currentOverlayTheme =
@@ -535,6 +537,15 @@ object CommonActivity {
         return null
     }
 
+    private fun isInsideEpisodeOverlay(view: View?): Boolean {
+        var current: View? = view
+        while (current != null) {
+            if (current.id == R.id.player_episode_overlay) return true
+            current = current.parent as? View
+        }
+        return false
+    }
+
     /** overrides focus and custom key events */
     fun dispatchKeyEvent(act: Activity?, event: KeyEvent?): Boolean? {
         if (act == null) return null
@@ -542,6 +553,22 @@ object CommonActivity {
 
         event?.keyCode?.let { keyCode ->
             if (currentFocus == null || event.action != KeyEvent.ACTION_DOWN) return@let
+
+            // Allow hero banner carousel to handle its own left/right DPAD cycling
+            if (currentFocus.id == R.id.home_preview_info_btt &&
+                (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT)
+            ) {
+                return null
+            }
+
+            // When focus is inside the player episode overlay, intercept DPAD events first
+            // to enforce drawer focus containment and direct episode <-> close button navigation
+            if (isInsideEpisodeOverlay(currentFocus)) {
+                if (keyEventListener?.invoke(Pair(event, false)) == true) {
+                    return true
+                }
+            }
+
             val nextView = when (keyCode) {
                 KeyEvent.KEYCODE_DPAD_LEFT -> getNextFocus(
                     act,

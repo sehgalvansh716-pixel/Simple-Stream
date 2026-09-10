@@ -249,6 +249,15 @@ class ResultTrailerPlayer : ResultFragmentPhone() {
         playerBinding?.playerIntroPlay?.setOnClickListener {
             playerBinding?.playerIntroPlay?.isGone = true
             introVisible = false
+            val rawResp = viewModel.getCurrentResponse()
+            val watchTrailerUrl = rawResp?.trailers?.firstOrNull { !it.raw }?.extractorUrl
+            if (watchTrailerUrl != null) {
+                val nonRawIndex = currentTrailers.indexOfFirst { it.second == watchTrailerUrl }
+                if (nonRawIndex >= 0 && nonRawIndex != currentTrailerIndex) {
+                    currentTrailerIndex = nonRawIndex
+                    loadTrailer(nonRawIndex)
+                }
+            }
             player.handleEvent(CSPlayerEvent.Play, PlayerEventSource.UI)
             fixPlayerSize()
             showControls()

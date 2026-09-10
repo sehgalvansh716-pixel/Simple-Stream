@@ -2,71 +2,60 @@
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-
     android:id="@+id/episode_holder_large"
-    android:layout_width="wrap_content"
-
+    android:layout_width="260dp"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="10dp"
-    android:foreground="@drawable/outline_drawable"
+    android:layout_marginEnd="12dp"
+    android:layout_marginBottom="4dp"
+    android:foreground="@drawable/outline_active_episode"
     android:nextFocusRight="@id/download_button"
-    app:cardBackgroundColor="?attr/boxItemBackground"
+    app:cardBackgroundColor="#121620"
     app:cardElevation="0dp"
     app:cardMaxElevation="0dp"
-    app:cardCornerRadius="@dimen/rounded_image_radius">
+    app:cardPreventCornerOverlap="false"
+    app:cardCornerRadius="14dp">
 
     <LinearLayout
         android:id="@+id/episode_holder"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:foreground="?android:attr/selectableItemBackgroundBorderless"
-        android:orientation="vertical"
-        android:padding="10dp">
+        android:orientation="vertical">
 
-        <LinearLayout
+        <!-- Top: 16:9 Full-Width Thumbnail Card -->
+        <FrameLayout
             android:id="@+id/episode_lin_holder"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-            <!--app:cardCornerRadius="@dimen/roundedImageRadius"-->
+            android:layout_height="146dp">
+
             <androidx.cardview.widget.CardView
-                android:layout_width="126dp"
-                android:layout_height="72dp"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 app:cardElevation="0dp"
                 app:cardMaxElevation="0dp"
+                app:cardCornerRadius="14dp"
+                app:cardBackgroundColor="#0C0E14"
                 android:foreground="@drawable/outline_drawable">
 
                 <ImageView
                     android:id="@+id/episode_poster"
-
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:contentDescription="@string/episode_poster_img_des"
-
                     android:foreground="?android:attr/selectableItemBackgroundBorderless"
-                    android:nextFocusRight="@id/download_button"
                     android:scaleType="centerCrop"
-                    tools:src="@drawable/example_poster"
-                    tools:visibility="invisible" />
-
-<!--                <ImageView-->
-<!--                    android:id="@+id/episode_play_icon"-->
-<!--                    android:layout_width="36dp"-->
-<!--                    android:layout_height="36dp"-->
-<!--                    android:layout_gravity="center"-->
-<!--                    android:contentDescription="@string/play_episode"-->
-<!--                    android:src="@drawable/play_button"-->
-<!--                    tools:visibility="invisible" />-->
+                    tools:src="@drawable/example_poster" />
 
                 <ImageView
                     android:id="@+id/episode_upcoming_icon"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:layout_gravity="center"
                     android:src="@drawable/hourglass_24"
                     android:visibility="gone"
                     tools:visibility="visible" />
 
+                <!-- Centered Play Icon & Progress Overlay -->
                 <FrameLayout
                     android:id="@+id/watch_progress_container"
                     android:layout_width="wrap_content"
@@ -75,97 +64,115 @@
 
                     <com.google.android.material.imageview.ShapeableImageView
                         android:id="@+id/episode_play_icon"
-                        style="@style/EpisodePlayUnderlayProgress"
-                        />
+                        style="@style/EpisodePlayUnderlayProgress" />
+
                     <com.google.android.material.progressindicator.CircularProgressIndicator
                         android:id="@+id/episode_progress"
                         style="@style/EpisodeCircularProgress"
                         tools:progress="100" />
                 </FrameLayout>
             </androidx.cardview.widget.CardView>
+        </FrameLayout>
 
+        <!-- Bottom Details Container -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
+
+            <!-- Title & Download Action Row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:layout_marginStart="15dp"
-                android:layout_marginEnd="50dp"
-                android:orientation="vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-                <LinearLayout
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/episode_filler"
+                    style="@style/SmallWhiteButton"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginEnd="6dp"
+                    android:text="@string/filler"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
+                <TextView
+                    android:id="@+id/episode_text"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/google_sans"
+                    tools:text="1. 7:00 A.M." />
+
+                <com.lagradost.cloudstream3.ui.download.button.PieFetchButton
+                    android:id="@+id/download_button"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginStart="8dp"
+                    android:background="?selectableItemBackgroundBorderless"
+                    android:padding="4dp" />
+            </LinearLayout>
+
+            <!-- Metadata Line: Runtime • Rating • Date -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/episode_runtime"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:textColor="#80E9EAEE"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/google_sans"
+                    tools:text="53m" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/episode_filler"
-                        style="@style/SmallWhiteButton"
-                        android:layout_gravity="start"
-                        android:layout_marginEnd="10dp"
-                        android:text="@string/filler" />
-
-                    <TextView
-                        android:id="@+id/episode_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical"
-                        android:textColor="?attr/textColor"
-                        android:textStyle="bold"
-                        tools:text="1. Jobless" />
-                </LinearLayout>
-
-                <LinearLayout
+                <TextView
+                    android:id="@+id/episode_rating"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="start"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/episode_rating"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="10dp"
-                        android:textColor="?attr/grayTextColor"
-                        tools:text="Rated: 8.8" />
-
-                    <TextView
-                        android:id="@+id/episode_runtime"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="10dp"
-                        android:textColor="?attr/grayTextColor"
-                        tools:text="80min" />
-
-                </LinearLayout>
+                    android:layout_marginStart="8dp"
+                    android:textColor="#FFD700"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/google_sans"
+                    tools:text="★ 7.8" />
 
                 <TextView
                     android:id="@+id/episode_date"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="?attr/grayTextColor"
-                    tools:text="15 Apr 2024" />
-
+                    android:layout_marginStart="8dp"
+                    android:textColor="#60E9EAEE"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/google_sans"
+                    tools:text="Jan 9, 2025" />
             </LinearLayout>
 
-            <com.lagradost.cloudstream3.ui.download.button.PieFetchButton
-                android:id="@+id/download_button"
-                android:layout_width="@dimen/download_size"
-                android:layout_height="@dimen/download_size"
-                android:layout_gravity="center_vertical|end"
-                android:layout_marginStart="-50dp"
-                android:background="?selectableItemBackgroundBorderless"
-                android:padding="10dp" />
+            <!-- Synopsis (2 Lines Max) -->
+            <TextView
+                android:id="@+id/episode_descript"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:lineSpacingExtra="2dp"
+                android:textColor="#90E9EAEE"
+                android:textSize="12sp"
+                android:fontFamily="@font/google_sans"
+                tools:text="While attempting to distract himself from the anniversary of his mentor's death, Dr. Robby in..." />
         </LinearLayout>
-
-        <TextView
-            android:id="@+id/episode_descript"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="4"
-            android:paddingTop="10dp"
-            android:paddingBottom="10dp"
-            android:textColor="?attr/grayTextColor"
-            tools:text="Jon and Daenerys arrive in Winterfell and are met with skepticism. Sam learns about the fate of his family. Cersei gives Euron the reward he aims for. Theon follows his heart. Jon and Daenerys arrive in Winterfell and are met with skepticism. Sam learns about the fate of his family. Cersei gives Euron the reward he aims for. Theon follows his heart." />
     </LinearLayout>
 </androidx.cardview.widget.CardView>

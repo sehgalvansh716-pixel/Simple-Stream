@@ -12,6 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+        <!-- NavHost takes 100% full screen width and height -->
         <androidx.fragment.app.FragmentContainerView
             android:id="@+id/nav_host_fragment"
             android:name="androidx.navigation.fragment.NavHostFragment"
@@ -24,53 +25,196 @@
             app:layout_constraintTop_toTopOf="parent"
             app:navGraph="@navigation/mobile_navigation" />
 
+        <!-- Floating Glassmorphic Top Bar (Overlay on top of Hero and pages) -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/tv_top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="44dp"
+            android:paddingEnd="44dp"
+            android:paddingTop="24dp"
+            android:paddingBottom="8dp"
+            android:elevation="30dp"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <!-- App Logo (Hidden here; anchored directly into cinematic carousel header) -->
+            <ImageView
+                android:id="@+id/tv_app_logo"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:contentDescription="@string/app_name"
+                android:src="@drawable/splash_logo_white"
+                android:scaleType="fitCenter"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+            <!-- Floating Glassmorphic Capsule Navbar at Top-Right -->
+            <LinearLayout
+                android:id="@+id/tv_navbar_pill"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_tv_navbar_glass"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <!-- Home Tab -->
+                <TextView
+                    android:id="@+id/tv_nav_home"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:background="@drawable/bg_tv_nav_active_pill"
+                    android:gravity="center"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:text="@string/title_home"
+                    android:textColor="#0B0C10"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/google_sans"
+                    android:focusable="true"
+                    android:clickable="true"
+                    app:drawableStartCompat="@drawable/home_icon_outline_24"
+                    app:drawableTint="#0B0C10"
+                    android:drawablePadding="6dp"
+                    android:nextFocusLeft="@id/home_change_api"
+                    android:nextFocusDown="@id/home_preview_play"
+                    android:nextFocusRight="@id/tv_nav_search" />
+
+                <!-- Search Tab -->
+                <TextView
+                    android:id="@+id/tv_nav_search"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:background="@drawable/bg_tv_nav_item_selector"
+                    android:gravity="center"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:text="@string/title_search"
+                    android:textColor="#B3FFFFFF"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/google_sans"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:nextFocusLeft="@id/tv_nav_home"
+                    android:nextFocusRight="@id/tv_nav_library"
+                    android:nextFocusDown="@id/home_preview_play" />
+
+                <!-- Library / Watchlist Tab -->
+                <TextView
+                    android:id="@+id/tv_nav_library"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:background="@drawable/bg_tv_nav_item_selector"
+                    android:gravity="center"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:text="@string/library"
+                    android:textColor="#B3FFFFFF"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/google_sans"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:nextFocusLeft="@id/tv_nav_search"
+                    android:nextFocusRight="@id/tv_nav_downloads"
+                    android:nextFocusDown="@id/home_preview_play" />
+
+                <!-- Downloads Tab -->
+                <TextView
+                    android:id="@+id/tv_nav_downloads"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:background="@drawable/bg_tv_nav_item_selector"
+                    android:gravity="center"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:text="@string/title_downloads"
+                    android:textColor="#B3FFFFFF"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/google_sans"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:nextFocusLeft="@id/tv_nav_library"
+                    android:nextFocusRight="@id/tv_nav_settings"
+                    android:nextFocusDown="@id/home_preview_play" />
+
+                <!-- Thin vertical divider -->
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="18dp"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="6dp"
+                    android:background="#33FFFFFF" />
+
+                <!-- Settings Tab -->
+                <ImageView
+                    android:id="@+id/tv_nav_settings"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:background="@drawable/bg_tv_nav_item_selector"
+                    android:padding="7dp"
+                    android:contentDescription="@string/title_settings"
+                    android:src="@drawable/settings_icon_outline"
+                    app:tint="#B3FFFFFF"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:nextFocusLeft="@id/tv_nav_downloads"
+                    android:nextFocusDown="@id/home_preview_play" />
+
+            </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- Hidden legacy NavigationRailView to preserve ViewBinding compatibility -->
         <com.google.android.material.navigationrail.NavigationRailView
             android:id="@+id/nav_rail_view"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:background="?attr/primaryGrayBackground"
-            android:descendantFocusability="afterDescendants"
-            android:maxWidth="@dimen/nav_rail_view_width"
-            android:minWidth="@dimen/nav_rail_view_width"
-            app:collapsedItemMinHeight="0dp"
-            app:expanded="false"
-            app:expandedItemMinHeight="0dp"
-            app:expandedMaxWidth="220dp"
-
-            app:headerLayout="@layout/rail_header"
-            app:itemActiveIndicatorStyle="@style/CustomIndicator"
-            app:itemIconSize="24dp"
-            app:itemIconTint="@color/item_select_color_tv"
-
-            app:itemMinHeight="0dp"
-            app:itemPaddingBottom="0dp"
-            app:itemPaddingTop="0dp"
-            app:itemSpacing="12dp"
-            app:itemTextColor="@color/item_select_color_tv"
-            app:labelVisibilityMode="unlabeled"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:menu="@menu/bottom_nav_menu"
-            app:menuGravity="center">
-
-            <include layout="@layout/rail_footer" />
-
-        </com.google.android.material.navigationrail.NavigationRailView>
-
-        <com.google.android.material.bottomnavigation.BottomNavigationView
-            android:id="@+id/nav_view"
             android:layout_width="0dp"
-            android:layout_height="@dimen/nav_view_height"
-            android:background="?attr/primaryGrayBackground"
+            android:layout_height="0dp"
             android:visibility="gone"
             app:itemIconTint="@color/item_select_color"
             app:itemTextColor="@color/item_select_color"
             app:labelVisibilityMode="unlabeled"
-
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
             app:menu="@menu/bottom_nav_menu" />
+
+        <!-- Hidden legacy BottomNavigationView & BlurView to preserve ViewBinding compatibility -->
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/nav_view"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone"
+            app:itemIconTint="@color/item_select_color"
+            app:itemTextColor="@color/item_select_color"
+            app:labelVisibilityMode="unlabeled"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:menu="@menu/bottom_nav_menu" />
+
+        <eightbitlab.com.blurview.BlurView
+            android:id="@+id/nav_blur_view"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <include
+                android:id="@+id/mobile_nav_layout"
+                layout="@layout/layout_mobile_navbar" />
+        </eightbitlab.com.blurview.BlurView>
+
 
         <LinearLayout
             android:id="@+id/cast_mini_controller_holder"
@@ -78,9 +222,9 @@
             android:layout_height="wrap_content"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/nav_rail_view"
+            app:layout_constraintStart_toStartOf="parent"
             tools:layout_height="100dp">
-            <!--com.google.android.gms.cast.framework.media.widget.MiniControllerFragment-->
+
             <fragment
                 android:id="@+id/cast_mini_controller"
                 class="com.lagradost.cloudstream3.ui.MyMiniControllerFragment"
@@ -93,19 +237,17 @@
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <!-- Focus Outline for TV DPAD Animated Focus -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
         <ImageView
             android:id="@+id/focus_outline"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            android:clickable="false"
-            android:focusable="false"
-            android:focusableInTouchMode="false"
-            android:importantForAccessibility="no"
-            android:src="@drawable/outline"
-            android:visibility="gone" />
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:src="@drawable/outline_drawable_forced"
+            android:visibility="gone"
+            tools:ignore="ContentDescription" />
     </FrameLayout>
 </FrameLayout>

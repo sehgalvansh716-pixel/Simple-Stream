@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Base Vertical Scrim:
+         Top status bar clarity -> vibrant hero artwork -> smooth deepening into dark cinematic vignette -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#3307090D"
+                android:centerColor="#1A07090D"
+                android:endColor="#E607090D"
+                android:centerY="0.45"
+                android:type="linear" />
+        </shape>
+    </item>
+
+    <!-- Deep Content Rails Vignette:
+         Restores rich dark obsidian background behind content cards so artwork colors pop -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#0007090D"
+                android:centerColor="#8007090D"
+                android:endColor="#F207090D"
+                android:centerY="0.52"
+                android:type="linear" />
+        </shape>
+    </item>
+</layer-list>

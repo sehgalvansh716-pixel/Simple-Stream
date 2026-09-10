@@ -5,11 +5,14 @@ import android.app.Dialog
 import android.text.Spanned
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.AbsListView
 import android.widget.ArrayAdapter
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.core.view.marginLeft
@@ -25,11 +28,28 @@ import com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR
 import com.lagradost.cloudstream3.ui.settings.Globals.PHONE
 import com.lagradost.cloudstream3.ui.settings.Globals.TV
 import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.os.Build
+import android.view.WindowManager
 import com.lagradost.cloudstream3.utils.ImageLoader.loadImage
 import com.lagradost.cloudstream3.utils.UIHelper.dismissSafe
 import com.lagradost.cloudstream3.utils.UIHelper.popupMenuNoIconsAndNoStringRes
+import com.lagradost.cloudstream3.utils.UIHelper.toPx
 
 object SingleSelectionHelper {
+    fun BottomSheetDialog.setupLiquidGlass(bindingRoot: View) {
+        bindingRoot.background = ContextCompat.getDrawable(context, R.drawable.bg_mobile_sheet_glass)
+        window?.apply {
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)?.setBackgroundColor(Color.TRANSPARENT)
+            setDimAmount(0.45f)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                attributes?.blurBehindRadius = 32
+            }
+        }
+    }
     fun Activity?.showOptionSelectStringRes(
         view: View?,
         poster: String?,
@@ -109,16 +129,71 @@ object SingleSelectionHelper {
     ) {
         if (this == null) return
 
-        val realShowApply = showApply || isMultiSelect
+        val isTv = isLayout(TV or EMULATOR)
+        val realShowApply = if (isTv && !isMultiSelect) false else (showApply || isMultiSelect)
         val listView = binding.listview1
         val textView = binding.text1
         val applyButton = binding.applyBtt
         val cancelButton = binding.cancelBtt
         val applyHolder = binding.applyBttHolder
 
-        if (isLayout(PHONE or EMULATOR) && dialog is BottomSheetDialog) {
+        if (!isTv && isLayout(PHONE or EMULATOR) && dialog is BottomSheetDialog) {
             binding.dragHandle.isVisible = true
             listView.isNestedScrollingEnabled = true
+            dialog.setupLiquidGlass(binding.root)
+        } else if (!isTv) {
+            binding.dragHandle.isVisible = false
+            binding.root.background = ContextCompat.getDrawable(this, R.drawable.bg_mobile_dialog_glass)
+            binding.root.setPadding(20.toPx, 18.toPx, 20.toPx, 18.toPx)
+            listView.divider = null
+            listView.dividerHeight = 0
+            listView.setPadding(0, 4.toPx, 0, 4.toPx)
+            listView.clipToPadding = false
+            textView.textSize = 18f
+            textView.setTextColor(0xFFF3F4F6.toInt())
+            textView.setPadding(4.toPx, 4.toPx, 4.toPx, 8.toPx)
+            (textView.layoutParams as? FrameLayout.LayoutParams)?.apply {
+                topMargin = 0
+            }
+            dialog.window?.apply {
+                setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                setDimAmount(0.45f)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                    attributes?.blurBehindRadius = 32
+                }
+            }
+        } else {
+            binding.dragHandle.isVisible = false
+        }
+
+        if (isTv) {
+            binding.root.background = ContextCompat.getDrawable(this, R.drawable.bg_tv_dialog_glass)
+            binding.root.setPadding(28.toPx, 24.toPx, 28.toPx, 24.toPx)
+            listView.divider = null
+            listView.dividerHeight = 0
+            listView.setPadding(0, 6.toPx, 0, 6.toPx)
+            listView.clipToPadding = false
+            listView.clipChildren = false
+            listView.itemsCanFocus = true
+            listView.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+            textView.textSize = 20f
+            textView.setTextColor(0xFFFFFFFF.toInt())
+            dialog.window?.apply {
+                setBackgroundDrawableResource(android.R.color.transparent)
+                setLayout(580.toPx, ViewGroup.LayoutParams.WRAP_CONTENT)
+            }
+            if (realShowApply) {
+                applyButton.background = ContextCompat.getDrawable(this, R.drawable.bg_tv_dialog_item_pill)
+                cancelButton.background = ContextCompat.getDrawable(this, R.drawable.bg_tv_dialog_item_pill)
+                applyButton.setTextColor(0xFFFFFFFF.toInt())
+                cancelButton.setTextColor(0xB3FFFFFF.toInt())
+            }
+        } else if (realShowApply) {
+            applyButton.background = ContextCompat.getDrawable(this, R.drawable.bg_mobile_dialog_item_pill)
+            cancelButton.background = ContextCompat.getDrawable(this, R.drawable.bg_mobile_dialog_item_pill)
+            applyButton.setTextColor(0xFFFFFFFF.toInt())
+            cancelButton.setTextColor(0xB3FFFFFF.toInt())
         }
 
         applyHolder.isVisible = realShowApply
@@ -131,7 +206,33 @@ object SingleSelectionHelper {
         textView.text = name
         textView.isGone = name.isBlank()
 
-        val arrayAdapter = ArrayAdapter<String>(this, itemLayout)
+        val resolvedItemLayout = if (isTv && itemLayout == R.layout.sort_bottom_single_choice) {
+            R.layout.sort_bottom_tv_choice
+        } else if (isTv && itemLayout == R.layout.sort_bottom_single_choice_no_checkmark) {
+            R.layout.sort_bottom_tv_choice_no_checkmark
+        } else {
+            itemLayout
+        }
+
+        val arrayAdapter = object : ArrayAdapter<String>(this, resolvedItemLayout) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val rowView = super.getView(position, convertView, parent)
+                if (isTv) {
+                    rowView.isFocusable = true
+                    rowView.setOnClickListener {
+                        if (realShowApply) {
+                            if (!isMultiSelect) {
+                                listView.setItemChecked(position, true)
+                            }
+                        } else {
+                            callback.invoke(listOf(position))
+                            dialog.dismissSafe(this@showDialog)
+                        }
+                    }
+                }
+                return rowView
+            }
+        }
         arrayAdapter.addAll(items)
 
         listView.adapter = arrayAdapter
@@ -149,14 +250,19 @@ object SingleSelectionHelper {
             listView.setSelection(it)
         }
 
-        //  var lastSelectedIndex = if(selectedIndex.isNotEmpty()) selectedIndex.first() else -1
+        listView.post {
+            if (isTv) {
+                val initialPos = selectedIndex.firstOrNull() ?: 0
+                val targetChild = listView.getChildAt(initialPos - listView.firstVisiblePosition)
+                targetChild?.requestFocus() ?: listView.requestFocus()
+            }
+        }
 
         dialog.setOnDismissListener {
             dismissCallback.invoke()
         }
 
         listView.setOnItemClickListener { _, _, which, _ ->
-            //  lastSelectedIndex = which
             if (realShowApply) {
                 if (!isMultiSelect) {
                     listView.setItemChecked(which, true)
@@ -235,8 +341,10 @@ object SingleSelectionHelper {
         val binding: BottomSelectionDialogBinding = BottomSelectionDialogBinding.inflate(
             LayoutInflater.from(this)
         )
+        val isTv = isLayout(TV or EMULATOR)
+        val themeRes = if (isTv) R.style.AlertDialogCustomTransparent else R.style.AlertDialogCustom
         val builder =
-            AlertDialog.Builder(this, R.style.AlertDialogCustom)
+            AlertDialog.Builder(this, themeRes)
                 .setView(binding.root)
 
         val dialog = builder.create()
@@ -250,7 +358,8 @@ object SingleSelectionHelper {
             showApply = true,
             isMultiSelect = true,
             callback,
-            dismissCallback
+            dismissCallback,
+            itemLayout = if (isTv) R.layout.sort_bottom_tv_choice else R.layout.sort_bottom_single_choice
         )
     }
 
@@ -267,8 +376,10 @@ object SingleSelectionHelper {
         val binding: BottomSelectionDialogBinding = BottomSelectionDialogBinding.inflate(
             LayoutInflater.from(this)
         )
+        val isTv = isLayout(TV or EMULATOR)
+        val themeRes = if (isTv) R.style.AlertDialogCustomTransparent else R.style.AlertDialogCustom
         val builder =
-            AlertDialog.Builder(this, R.style.AlertDialogCustom)
+            AlertDialog.Builder(this, themeRes)
                 .setView(binding.root)
 
         val dialog = builder.create()
@@ -284,7 +395,8 @@ object SingleSelectionHelper {
             showApply,
             false,
             { if (it.isNotEmpty()) callback.invoke(it.first()) },
-            dismissCallback
+            dismissCallback,
+            itemLayout = if (isTv) R.layout.sort_bottom_tv_choice else R.layout.sort_bottom_single_choice
         )
     }
 
@@ -303,21 +415,29 @@ object SingleSelectionHelper {
             LayoutInflater.from(this)
         )
 
-        val builder =
-            BottomSheetDialog(this)
-        builder.setContentView(binding.root)
+        val isTv = isLayout(TV or EMULATOR)
+        val dialog: Dialog = if (isTv) {
+            AlertDialog.Builder(this, R.style.AlertDialogCustomTransparent)
+                .setView(binding.root)
+                .create()
+        } else {
+            BottomSheetDialog(this).apply {
+                setContentView(binding.root)
+            }
+        }
 
-        builder.show()
+        dialog.show()
         showDialog(
             binding,
-            builder,
+            dialog,
             items,
             listOf(selectedIndex),
             name,
             showApply,
             false,
             { if (it.isNotEmpty()) callback.invoke(it.first()) },
-            dismissCallback
+            dismissCallback,
+            itemLayout = if (isTv) R.layout.sort_bottom_tv_choice else R.layout.sort_bottom_single_choice
         )
     }
 
@@ -326,20 +446,26 @@ object SingleSelectionHelper {
         name: String,
         dismissCallback: () -> Unit,
         callback: (Int) -> Unit,
-    ): BottomSheetDialog {
-        val builder =
-            BottomSheetDialog(this)
-
+    ): Dialog {
         val binding: BottomSelectionDialogBinding = BottomSelectionDialogBinding.inflate(
             LayoutInflater.from(this)
         )
 
-        //builder.setContentView(R.layout.bottom_selection_dialog_direct)
-        builder.setContentView(binding.root)
-        builder.show()
+        val isTv = isLayout(TV or EMULATOR)
+        val dialog: Dialog = if (isTv) {
+            AlertDialog.Builder(this, R.style.AlertDialogCustomTransparent)
+                .setView(binding.root)
+                .create()
+        } else {
+            BottomSheetDialog(this).apply {
+                setContentView(binding.root)
+            }
+        }
+
+        dialog.show()
         showDialog(
             binding,
-            builder,
+            dialog,
             items,
             emptyList(),
             name,
@@ -347,9 +473,9 @@ object SingleSelectionHelper {
             isMultiSelect = false,
             callback = { if (it.isNotEmpty()) callback.invoke(it.first()) },
             dismissCallback = dismissCallback,
-            itemLayout = R.layout.sort_bottom_single_choice_no_checkmark
+            itemLayout = if (isTv) R.layout.sort_bottom_tv_choice_no_checkmark else R.layout.sort_bottom_single_choice_no_checkmark
         )
-        return builder
+        return dialog
     }
 
     fun Activity.showNginxTextInputDialog(
@@ -359,13 +485,13 @@ object SingleSelectionHelper {
         dismissCallback: () -> Unit,
         callback: (String) -> Unit,
     ) {
-        val builder = BottomSheetDialog(this)
-
         val binding: BottomInputDialogBinding = BottomInputDialogBinding.inflate(
             LayoutInflater.from(this)
         )
-
-        builder.setContentView(binding.root)
+        val builder = BottomSheetDialog(this).apply {
+            setContentView(binding.root)
+            setupLiquidGlass(binding.root)
+        }
 
         builder.show()
         showInputDialog(
@@ -385,9 +511,10 @@ object SingleSelectionHelper {
         dismissCallback: () -> Unit
     ) {
         val binding = BottomTextDialogBinding.inflate(layoutInflater)
-        val dialog = BottomSheetDialog(this)
-
-        dialog.setContentView(binding.root)
+        val dialog = BottomSheetDialog(this).apply {
+            setContentView(binding.root)
+            setupLiquidGlass(binding.root)
+        }
 
         binding.dialogTitle.text = title
         binding.dialogText.text = text

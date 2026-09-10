@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Circular Frosted Glass Background for Mobile Scroll-To-Top FAB -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#33FFFFFF">
+    <item>
+        <layer-list>
+            <!-- Dark Obsidian Absorption Base -->
+            <item>
+                <shape android:shape="oval">
+                    <solid android:color="#E60A0D14" />
+                </shape>
+            </item>
+
+            <!-- Specular Light Reflection Gradient with Refractive Rim -->
+            <item>
+                <shape android:shape="oval">
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#26FFFFFF"
+                        android:endColor="#06FFFFFF"
+                        android:type="linear" />
+                    <stroke
+                        android:width="1.2dp"
+                        android:color="#38FFFFFF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</ripple>

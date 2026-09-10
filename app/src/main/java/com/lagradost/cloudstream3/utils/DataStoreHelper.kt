@@ -91,6 +91,16 @@ object DataStoreHelper {
         R.drawable.profile_bg_purple,
         R.drawable.profile_bg_red,
         R.drawable.profile_bg_teal,
+        R.drawable.profile_bg_cyberpunk,
+        R.drawable.profile_bg_astronaut,
+        R.drawable.profile_bg_kitsune,
+        R.drawable.profile_bg_emerald,
+        R.drawable.profile_bg_sunset,
+        R.drawable.profile_bg_midnight,
+        R.drawable.monke_party,
+        R.drawable.monke_burrito,
+        R.drawable.monke_cookie,
+        R.drawable.monke_funny,
     )
 
     private var searchPreferenceProvidersStrings: List<String> by UserPreferenceDelegate(

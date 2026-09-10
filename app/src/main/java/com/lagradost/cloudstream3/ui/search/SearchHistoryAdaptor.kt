@@ -1,12 +1,16 @@
 package com.lagradost.cloudstream3.ui.search
 
+import android.view.KeyEvent
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isGone
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.TvType
 import com.lagradost.cloudstream3.databinding.SearchHistoryFooterBinding
+import com.lagradost.cloudstream3.databinding.SearchHistoryFooterTvBinding
 import com.lagradost.cloudstream3.databinding.SearchHistoryItemBinding
+import com.lagradost.cloudstream3.databinding.SearchHistoryItemTvBinding
 import com.lagradost.cloudstream3.ui.BaseDiffCallback
 import com.lagradost.cloudstream3.ui.NoStateAdapter
 import com.lagradost.cloudstream3.ui.ViewHolderState
@@ -51,9 +55,13 @@ class SearchHistoryAdaptor(
     }
     
     override fun onCreateContent(parent: ViewGroup): ViewHolderState<Any> {
-        return ViewHolderState(
-            SearchHistoryItemBinding.inflate(LayoutInflater.from(parent.context), parent, false),
-        )
+        val inflater = LayoutInflater.from(parent.context)
+        val binding = if (isLayout(TV or EMULATOR)) {
+            SearchHistoryItemTvBinding.inflate(inflater, parent, false)
+        } else {
+            SearchHistoryItemBinding.inflate(inflater, parent, false)
+        }
+        return ViewHolderState(binding)
     }
 
     override fun onBindContent(
@@ -61,29 +69,56 @@ class SearchHistoryAdaptor(
         item: SearchHistoryItem,
         position: Int
     ) {
-        val binding = holder.view as? SearchHistoryItemBinding ?: return
-        binding.apply {
-            homeHistoryTitle.text = item.searchText
-
-            homeHistoryRemove.setOnClickListener {
-                clickCallback.invoke(SearchHistoryCallback(item, SEARCH_HISTORY_REMOVE))
+        when (val binding = holder.view) {
+            is SearchHistoryItemTvBinding -> {
+                binding.homeHistoryTitle.text = item.searchText
+                binding.homeHistoryRemove.setOnClickListener {
+                    clickCallback.invoke(SearchHistoryCallback(item, SEARCH_HISTORY_REMOVE))
+                }
+                binding.homeHistoryTab.setOnClickListener {
+                    clickCallback.invoke(SearchHistoryCallback(item, SEARCH_HISTORY_OPEN))
+                }
+                binding.homeHistoryTab.setOnKeyListener { _, keyCode, event ->
+                    if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                        val searchInput = binding.root.rootView?.findViewById<View>(androidx.appcompat.R.id.search_src_text)
+                        if (searchInput != null) {
+                            searchInput.requestFocus()
+                            return@setOnKeyListener true
+                        }
+                    }
+                    false
+                }
             }
-            homeHistoryTab.setOnClickListener {
-                clickCallback.invoke(SearchHistoryCallback(item, SEARCH_HISTORY_OPEN))
+            is SearchHistoryItemBinding -> {
+                binding.homeHistoryTitle.text = item.searchText
+                binding.homeHistoryRemove.setOnClickListener {
+                    clickCallback.invoke(SearchHistoryCallback(item, SEARCH_HISTORY_REMOVE))
+                }
+                binding.homeHistoryTab.setOnClickListener {
+                    clickCallback.invoke(SearchHistoryCallback(item, SEARCH_HISTORY_OPEN))
+                }
             }
         }
     }
     
     override fun onCreateFooter(parent: ViewGroup): ViewHolderState<Any> {
-        return ViewHolderState(
-            SearchHistoryFooterBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        )
+        val inflater = LayoutInflater.from(parent.context)
+        val binding = if (isLayout(TV or EMULATOR)) {
+            SearchHistoryFooterTvBinding.inflate(inflater, parent, false)
+        } else {
+            SearchHistoryFooterBinding.inflate(inflater, parent, false)
+        }
+        return ViewHolderState(binding)
     }
     
     override fun onBindFooter(holder: ViewHolderState<Any>) {
-        val binding = holder.view as? SearchHistoryFooterBinding ?: return
-        // Hide footer when list is empty
-        binding.searchClearCallHistory.apply {
+        val button = when (val binding = holder.view) {
+            is SearchHistoryFooterTvBinding -> binding.searchClearCallHistory
+            is SearchHistoryFooterBinding -> binding.searchClearCallHistory
+            else -> null
+        } ?: return
+
+        button.apply {
             isGone = immutableCurrentList.isEmpty()
             if (isLayout(TV or EMULATOR)) {
                 isFocusable = true

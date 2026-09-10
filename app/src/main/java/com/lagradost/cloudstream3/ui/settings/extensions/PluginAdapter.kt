@@ -20,6 +20,7 @@ import com.lagradost.cloudstream3.ui.BaseDiffCallback
 import com.lagradost.cloudstream3.ui.NoStateAdapter
 import com.lagradost.cloudstream3.ui.ViewHolderState
 import com.lagradost.cloudstream3.ui.newSharedPool
+import com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR
 import com.lagradost.cloudstream3.ui.settings.Globals.TV
 import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
 import com.lagradost.cloudstream3.utils.AppContextUtils.html
@@ -50,7 +51,7 @@ class PluginAdapter(
     a.pluginWrapper.plugin.internalName == b.pluginWrapper.plugin.internalName && a.pluginWrapper.repositoryData.url == b.pluginWrapper.repositoryData.url
 })) {
     override fun onCreateContent(parent: ViewGroup): ViewHolderState<Any> {
-        val layout = if (isLayout(TV)) R.layout.repository_item_tv else R.layout.repository_item
+        val layout = if (isLayout(TV or EMULATOR)) R.layout.repository_item_tv else R.layout.repository_item
         val inflated = LayoutInflater.from(parent.context).inflate(layout, parent, false)
 
         return RepositoryViewHolderState(

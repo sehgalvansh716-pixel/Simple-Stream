@@ -1,236 +1,543 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/library_root"
-    android:background="?attr/primaryGrayBackground"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#07090D"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    tools:context=".ui.library.LibraryFragment">
 
-    <TextView
-        android:id="@+id/empty_list_textview"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_margin="30dp"
-        android:gravity="center"
-        android:visibility="gone"
-        tools:visibility="visible" />
+    <!-- ======================================================== -->
+    <!-- 1. 60FPS AMBIENT VIDEO LOOP & ATMOSPHERIC SCRIM           -->
+    <!-- ======================================================== -->
+    <TextureView
+        android:id="@+id/tv_library_video"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
+    <View
+        android:id="@+id/tv_library_video_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_tv_search_video_overlay" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80070A0F" />
+
+    <!-- Pinned AppBarLayout for ViewBinding compatibility (placed before main_search to prevent SearchView internal ID collision) -->
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/search_bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?attr/primaryGrayBackground">
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            app:layout_scrollFlags="scroll|enterAlways">
-
-            <ImageView
-                android:id="@+id/provider_selector"
-                android:layout_width="25dp"
-                android:layout_height="25dp"
-                android:layout_gravity="end|center_vertical"
-                android:layout_marginStart="10dp"
-                android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="@string/change_providers_img_des"
-                android:focusable="true"
-                android:nextFocusLeft="@id/navigation_library"
-                android:nextFocusRight="@id/library_sort"
-                android:padding="2dp"
-                android:src="@drawable/ic_baseline_extension_24"
-                android:tag="@string/tv_no_focus_tag"
-                app:tint="?attr/textColor" />
-
-            <ImageView
-                android:id="@+id/library_sort"
-                android:layout_width="25dp"
-                android:layout_height="25dp"
-                android:layout_gravity="end|center_vertical"
-                android:layout_marginStart="10dp"
-                android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="@string/change_providers_img_des"
-                android:focusable="true"
-                android:nextFocusLeft="@id/provider_selector"
-                android:nextFocusRight="@id/list_selector"
-                android:src="@drawable/ic_baseline_sort_24"
-                android:tag="@string/tv_no_focus_tag"
-                app:tint="?attr/textColor" />
-
-            <ImageView
-                android:id="@+id/list_selector"
-                android:layout_width="25dp"
-                android:layout_height="25dp"
-                android:layout_gravity="end|center_vertical"
-                android:layout_marginStart="10dp"
-                android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="@string/change_providers_img_des"
-                android:focusable="true"
-                android:nextFocusLeft="@id/library_sort"
-                android:nextFocusRight="@id/main_search"
-                android:padding="1dp"
-                android:src="@drawable/ic_baseline_filter_list_24"
-                android:tag="@string/tv_no_focus_tag"
-                app:tint="?attr/textColor" />
-
-            <FrameLayout
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_margin="10dp"
-                android:layout_weight="1"
-                android:background="@drawable/search_background"
-                android:visibility="visible"
-                app:layout_scrollFlags="scroll|enterAlways">
-
-                <androidx.appcompat.widget.SearchView
-                    android:id="@+id/main_search"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="end"
-
-                    android:focusable="true"
-                    android:iconifiedByDefault="false"
-                    android:imeOptions="actionSearch"
-                    android:inputType="text"
-                    android:nextFocusLeft="@id/list_selector"
-                    android:nextFocusDown="@id/search_result_root"
-                    android:paddingStart="-10dp"
-                    android:tag="tv_no_focus_tag"
-                    app:closeIcon="@drawable/ic_baseline_close_24"
-                    app:iconifiedByDefault="false"
-                    app:queryBackground="@color/transparent"
-                    app:queryHint="@string/search_hint"
-                    app:searchIcon="@drawable/search_icon"
-                    tools:ignore="RtlSymmetry">
-
-                </androidx.appcompat.widget.SearchView>
-            </FrameLayout>
-
-            <ImageView
-                android:id="@+id/library_random_button_tv"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_gravity="end|center_vertical"
-                android:layout_marginEnd="10dp"
-                android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="@string/home_random"
-                android:focusable="true"
-                android:nextFocusLeft="@id/main_search"
-                android:nextFocusDown="@id/search_result_root"
-                android:padding="8dp"
-                android:src="@drawable/ic_baseline_play_arrow_24"
-                android:tag="@string/tv_no_focus_tag"
-                android:visibility="gone"
-                app:tint="?attr/textColor" />
-        </LinearLayout>
-
-        <com.google.android.material.tabs.TabLayout
-            android:id="@+id/library_tab_layout"
-            style="@style/Theme.Widget.Tabs"
-            android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:layout_gravity="top"
-            android:background="?attr/primaryGrayBackground"
-            android:focusable="true"
-            android:nextFocusDown="@id/search_result_root"
-            android:paddingHorizontal="5dp"
-            app:tabGravity="center"
-            app:tabIndicator="@drawable/indicator_background"
-            app:tabIndicatorColor="?attr/white"
-            app:tabIndicatorGravity="center"
-            app:tabIndicatorHeight="30dp"
-            app:tabMode="scrollable"
-            app:tabRippleColor="?attr/textColor"
-            app:tabSelectedTextColor="?attr/primaryBlackBackground"
-            app:tabTextAppearance="@style/TabNoCaps"
-            app:tabTextColor="?attr/textColor" />
-    </com.google.android.material.appbar.AppBarLayout>
-
-    <FrameLayout
+    <!-- ======================================================== -->
+    <!-- 2. MAIN HORIZONTAL SPLIT: LEFT SIDEBAR + RIGHT CONTENT   -->
+    <!-- ======================================================== -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="?attr/primaryBlackBackground"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:orientation="horizontal"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:paddingStart="44dp"
+        android:paddingEnd="44dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="16dp">
 
-        <androidx.viewpager2.widget.ViewPager2
-            android:id="@+id/viewpager"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:focusable="true"
-            android:paddingBottom="40dp"
-            android:tag="@string/tv_no_focus_tag"
-            tools:listitem="@layout/library_viewpager_page" />
-
+        <!-- ==================================================== -->
+        <!-- LEFT COLUMN: BRAND + VERTICAL OPTIONS GLASS PANEL    -->
+        <!-- Width: 230dp                                         -->
+        <!-- ==================================================== -->
         <LinearLayout
-            android:id="@+id/library_loading_overlay"
-            android:layout_width="match_parent"
+            android:layout_width="230dp"
             android:layout_height="match_parent"
-            android:background="?attr/primaryBlackBackground"
-            android:focusable="false"
-            android:tag="@string/tv_no_focus_tag"
-            android:visibility="gone"
-            tools:visibility="visible">
+            android:orientation="vertical"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
-            <com.facebook.shimmer.ShimmerFrameLayout
-                android:id="@+id/library_loading_shimmer"
+            <!-- Pinned Top Brand Row -->
+            <LinearLayout
+                android:id="@+id/library_tv_top_bar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <!-- Circular Glass Back Button (38x38dp) -->
+                <ImageView
+                    android:id="@+id/library_tv_back"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_tv_circular_glass_btn"
+                    android:clickable="true"
+                    android:contentDescription="@string/go_back"
+                    android:defaultFocusHighlightEnabled="false"
+                    android:focusable="true"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_baseline_arrow_back_24"
+                    android:nextFocusRight="@id/library_tab_layout"
+                    android:nextFocusDown="@id/tv_library_search_capsule"
+                    app:tint="#FFFFFF" />
+
+                <!-- App Logo Emblem (38x38dp) -->
+                <ImageView
+                    android:id="@+id/library_tv_logo"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:layout_marginStart="12dp"
+                    android:contentDescription="@string/app_name"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/splash_logo_white" />
+
+                <!-- Page Title -->
+                <TextView
+                    android:id="@+id/library_tv_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:fontFamily="@font/google_sans"
+                    android:text="@string/library"
+                    android:textColor="#FFFFFF"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Vertical True-Liquid-Glass Options Card -->
+            <LinearLayout
+                android:id="@+id/tv_options_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_tv_info_card_glass"
+                android:orientation="vertical"
+                android:padding="14dp"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <!-- In-Library Search Input Field -->
+                <LinearLayout
+                    android:id="@+id/tv_library_search_capsule"
+                    android:layout_width="match_parent"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_tv_search_pill"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="6dp"
+                    android:layout_marginBottom="12dp"
+                    android:nextFocusUp="@id/library_tv_back"
+                    android:nextFocusDown="@id/tv_provider_pill"
+                    android:nextFocusRight="@id/library_tab_layout">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/search_icon"
+                        app:tint="#80FFFFFF"
+                        tools:ignore="ContentDescription" />
+
+                    <androidx.appcompat.widget.SearchView
+                        android:id="@+id/main_search"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:focusable="false"
+                        android:iconifiedByDefault="false"
+                        android:imeOptions="actionSearch"
+                        android:inputType="text"
+                        app:closeIcon="@drawable/ic_baseline_close_24"
+                        app:queryBackground="@color/transparent"
+                        app:queryHint="@string/search_hint"
+                        app:searchIcon="@null" />
+                </LinearLayout>
+
+                <!-- Section Label: OPTIONS -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/google_sans"
+                    android:text="OPTIONS"
+                    android:textColor="#80FFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginBottom="8dp" />
+
+                <!-- Vertical Option Item 1: Sync Provider -->
+                <LinearLayout
+                    android:id="@+id/tv_provider_pill"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_tv_filter_pill"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="10dp"
+                    android:nextFocusUp="@id/tv_library_search_capsule"
+                    android:nextFocusDown="@id/tv_sort_pill"
+                    android:nextFocusRight="@id/library_tab_layout">
+
+                    <ImageView
+                        android:id="@+id/list_selector"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:src="@drawable/baseline_sync_24"
+                        app:tint="#FFFFFF"
+                        android:contentDescription="@string/select_library" />
+
+                    <TextView
+                        android:id="@+id/tv_provider_name"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:fontFamily="@font/google_sans"
+                        android:text="Local"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:singleLine="true"
+                        android:ellipsize="end" />
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_baseline_keyboard_arrow_down_24"
+                        app:tint="#B3FFFFFF"
+                        tools:ignore="ContentDescription" />
+                </LinearLayout>
+
+                <!-- Vertical Option Item 2: Sort Order -->
+                <LinearLayout
+                    android:id="@+id/tv_sort_pill"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_tv_filter_pill"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="10dp"
+                    android:nextFocusUp="@id/tv_provider_pill"
+                    android:nextFocusDown="@id/tv_open_with_pill"
+                    android:nextFocusRight="@id/library_tab_layout">
+
+                    <ImageView
+                        android:id="@+id/library_sort"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:src="@drawable/ic_baseline_sort_24"
+                        app:tint="#FFFFFF"
+                        android:contentDescription="@string/sort" />
+
+                    <TextView
+                        android:id="@+id/tv_sort_text"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:fontFamily="@font/google_sans"
+                        android:text="@string/sort"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:singleLine="true"
+                        android:ellipsize="end" />
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_baseline_keyboard_arrow_down_24"
+                        app:tint="#B3FFFFFF"
+                        tools:ignore="ContentDescription" />
+                </LinearLayout>
+
+                <!-- Vertical Option Item 3: Open With Resolver -->
+                <LinearLayout
+                    android:id="@+id/tv_open_with_pill"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_tv_filter_pill"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="10dp"
+                    android:nextFocusUp="@id/tv_sort_pill"
+                    android:nextFocusDown="@id/library_random_button_tv"
+                    android:nextFocusRight="@id/library_tab_layout">
+
+                    <ImageView
+                        android:id="@+id/provider_selector"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:src="@drawable/ic_baseline_extension_24"
+                        app:tint="#FFFFFF"
+                        android:contentDescription="@string/change_providers_img_des" />
+
+                    <TextView
+                        android:id="@+id/tv_open_with_text"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:fontFamily="@font/google_sans"
+                        android:text="@string/open_with"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:singleLine="true"
+                        android:ellipsize="end" />
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_baseline_keyboard_arrow_down_24"
+                        app:tint="#B3FFFFFF"
+                        tools:ignore="ContentDescription" />
+                </LinearLayout>
+
+                <!-- Vertical Option Item 4: Random Pick -->
+                <LinearLayout
+                    android:id="@+id/tv_random_row"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_tv_filter_pill"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="10dp"
+                    android:nextFocusUp="@id/tv_open_with_pill"
+                    android:nextFocusRight="@id/library_tab_layout">
+
+                    <ImageView
+                        android:id="@+id/library_random_button_tv"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:src="@drawable/ic_baseline_play_arrow_24"
+                        app:tint="#FFFFFF"
+                        android:contentDescription="@string/home_random" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:fontFamily="@font/google_sans"
+                        android:text="Random Pick"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ==================================================== -->
+        <!-- RIGHT COLUMN: CATEGORY TABS + CONTENT GRID / EMPTY   -->
+        <!-- Width: 0dp, Weight: 1                                -->
+        <!-- ==================================================== -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="24dp"
+            android:orientation="vertical"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <!-- Category / Status Chips (Watching, Completed, On Hold, Dropped, Plan to Watch, Favorites) -->
+            <!-- Positioned cleanly below the top-right floating navbar (Y = 60dp) -->
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/library_tab_layout"
+                android:layout_width="match_parent"
+                android:layout_height="42dp"
+                android:layout_marginTop="52dp"
+                android:layout_marginBottom="12dp"
+                android:background="@android:color/transparent"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                app:tabContentStart="0dp"
+                app:tabPaddingStart="0dp"
+                app:tabPaddingEnd="0dp"
+                app:tabGravity="start"
+                app:tabIndicator="@null"
+                app:tabIndicatorHeight="0dp"
+                app:tabMode="scrollable"
+                app:tabRippleColor="@null"
+                app:tabTextColor="#B3FFFFFF"
+                app:tabSelectedTextColor="#0B0E14"
+                app:tabTextAppearance="@style/TabNoCapsBold" />
+
+            <!-- Main Content Container: ViewPager & Empty State Card -->
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_gravity="center"
-                android:layout_margin="2dp"
-                android:focusable="false"
-                android:tag="@string/tv_no_focus_tag"
-                app:shimmer_auto_start="true"
-                app:shimmer_base_alpha="0.2"
-                app:shimmer_duration="@integer/loading_time"
-                app:shimmer_highlight_alpha="0.3">
+                android:clipChildren="false"
+                android:clipToPadding="false">
 
-                <GridView
-                    android:id="@+id/gridview"
+                <!-- Content Card ViewPager -->
+                <androidx.viewpager2.widget.ViewPager2
+                    android:id="@+id/viewpager"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    android:clipChildren="false"
                     android:clipToPadding="false"
                     android:focusable="false"
-                    android:gravity="center"
-                    android:horizontalSpacing="10dp"
-                    android:numColumns="3"
-                    android:paddingBottom="120dp"
                     android:tag="@string/tv_no_focus_tag"
-                    android:verticalSpacing="10dp"
-                    tools:listitem="@layout/loading_poster_dynamic" />
-            </com.facebook.shimmer.ShimmerFrameLayout>
+                    tools:listitem="@layout/library_viewpager_page" />
+
+                <!-- True-Liquid-Glass Empty State Card -->
+                <LinearLayout
+                    android:id="@+id/tv_empty_library_card"
+                    android:layout_width="440dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:background="@drawable/bg_tv_info_card_glass"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
+                    android:elevation="6dp"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingStart="36dp"
+                    android:paddingEnd="36dp"
+                    android:paddingTop="32dp"
+                    android:paddingBottom="32dp"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <ImageView
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        android:src="@drawable/ic_baseline_bookmark_border_24"
+                        app:tint="#99FFFFFF"
+                        tools:ignore="ContentDescription" />
+
+                    <TextView
+                        android:id="@+id/tv_empty_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:fontFamily="@font/google_sans"
+                        android:text="Your Library is Empty"
+                        android:textColor="#FFFFFF"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/empty_list_textview"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="@font/google_sans"
+                        android:gravity="center"
+                        android:lineSpacingExtra="3dp"
+                        android:textColor="#B3FFFFFF"
+                        android:textSize="14sp"
+                        tools:text="Log in with Trakt, Simkl, or MAL to sync your library, or bookmark titles while browsing." />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/tv_empty_action_btn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="42dp"
+                        android:layout_marginTop="20dp"
+                        android:backgroundTint="#FFFFFFFF"
+                        android:fontFamily="@font/google_sans"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:paddingStart="22dp"
+                        android:paddingEnd="22dp"
+                        android:text="Explore Trending Movies &amp; Shows"
+                        android:textAllCaps="false"
+                        android:textColor="#0B0E14"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="21dp"
+                        app:icon="@drawable/home_icon_outline_24"
+                        app:iconSize="18dp"
+                        app:iconTint="#0B0E14" />
+                </LinearLayout>
+
+                <!-- Loading Overlay (Preserved for ViewBinding compatibility) -->
+                <LinearLayout
+                    android:id="@+id/library_loading_overlay"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@android:color/transparent"
+                    android:focusable="false"
+                    android:tag="@string/tv_no_focus_tag"
+                    android:visibility="gone"
+                    tools:visibility="gone">
+
+                    <com.facebook.shimmer.ShimmerFrameLayout
+                        android:id="@+id/library_loading_shimmer"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center"
+                        android:layout_margin="2dp"
+                        android:focusable="false"
+                        android:tag="@string/tv_no_focus_tag"
+                        app:shimmer_auto_start="true"
+                        app:shimmer_base_alpha="0.2"
+                        app:shimmer_duration="@integer/loading_time"
+                        app:shimmer_highlight_alpha="0.3">
+
+                        <GridView
+                            android:id="@+id/gridview"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:clipToPadding="false"
+                            android:focusable="false"
+                            android:gravity="center"
+                            android:horizontalSpacing="10dp"
+                            android:numColumns="4"
+                            android:paddingBottom="120dp"
+                            android:tag="@string/tv_no_focus_tag"
+                            android:verticalSpacing="10dp"
+                            tools:listitem="@layout/loading_poster_dynamic" />
+                    </com.facebook.shimmer.ShimmerFrameLayout>
+                </LinearLayout>
+            </FrameLayout>
         </LinearLayout>
-    </FrameLayout>
+    </LinearLayout>
 
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginBottom="40dp">
+    <!-- Hidden FABs for 100% ViewBinding compatibility -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/library_random"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
 
-        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-            android:id="@+id/library_random"
-            style="@style/ExtendedFloatingActionButton"
-            android:layout_gravity="bottom|start"
-            android:text="@string/home_random"
-            android:textColor="?attr/textColor"
-            android:visibility="gone"
-            app:icon="@drawable/ic_baseline_play_arrow_24"
-            tools:ignore="ContentDescription"
-            tools:visibility="visible" />
-
-        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-            android:id="@+id/sort_fab"
-            style="@style/ExtendedFloatingActionButton"
-            android:text="@string/sort"
-            android:textColor="?attr/textColor"
-            android:visibility="gone"
-            app:icon="@drawable/ic_baseline_sort_24"
-            tools:ignore="ContentDescription"
-            tools:visibility="visible" />
-    </FrameLayout>
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/sort_fab"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

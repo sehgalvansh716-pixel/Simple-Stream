@@ -83,10 +83,11 @@ class EpisodeAdapter(
 })) {
     var currentPlayingIndex: Int? = null
         set(value) {
-            val changed = field != value
+            val oldIndex = field
             field = value
-            if (changed) {
-                notifyDataSetChanged()
+            if (oldIndex != value) {
+                oldIndex?.let { notifyItemChanged(it) }
+                value?.let { notifyItemChanged(it) }
             }
         }
 
@@ -154,10 +155,14 @@ class EpisodeAdapter(
         val itemView = holder.itemView
         when (val binding = holder.view) {
             is ResultEpisodeLargeBinding -> {
-                val setWidth = ViewGroup.LayoutParams.MATCH_PARENT
+                val isHorizontal = isLayout(PHONE or EMULATOR)
+                val setWidth = if (isHorizontal) {
+                    (260 * itemView.context.resources.displayMetrics.density).toInt()
+                } else {
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                }
 
                 binding.apply {
-                    episodeLinHolder.layoutParams.width = setWidth
                     episodeHolderLarge.layoutParams.width = setWidth
                     episodeHolder.layoutParams.width = setWidth
 
@@ -391,8 +396,13 @@ class EpisodeAdapter(
 
             is ResultEpisodeBinding -> {
                 binding.episodeHolder.layoutParams.apply {
-                    width =
-                        if (isLayout(TV or EMULATOR)) TV_EP_SIZE.toPx else ViewGroup.LayoutParams.MATCH_PARENT
+                    width = if (isLayout(TV)) {
+                        TV_EP_SIZE.toPx
+                    } else if (isLayout(PHONE or EMULATOR)) {
+                        (220 * itemView.context.resources.displayMetrics.density).toInt()
+                    } else {
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    }
                 }
 
                 binding.apply {

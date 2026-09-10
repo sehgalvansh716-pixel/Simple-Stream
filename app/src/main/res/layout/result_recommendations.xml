@@ -1,37 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#080B10">
 
     <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="76dp"
+        android:paddingBottom="100dp">
 
         <com.google.android.material.button.MaterialButton
-                style="@style/BlackButton"
-                android:layout_gravity="center_vertical|end"
-                android:text="GogoAnime"
-                android:id="@+id/result_recommendations_filter_button"
-                android:layout_width="match_parent"
-                android:layout_marginTop="10dp"
-                android:layout_marginBottom="10dp"
-                android:layout_marginStart="0dp"
-                android:layout_marginEnd="0dp"
-                app:layout_constraintBottom_toTopOf="@id/result_recommendations_list" />
+            android:id="@+id/result_recommendations_filter_button"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/bg_tv_filter_pill"
+            app:backgroundTint="@null"
+            app:strokeWidth="0dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:cornerRadius="20dp"
+            android:fontFamily="@font/google_sans"
+            android:textColor="#E9EAEE"
+            android:textSize="13.5sp"
+            android:textAllCaps="false"
+            android:drawableEnd="@drawable/ic_baseline_keyboard_arrow_down_24"
+            app:drawableTint="#80FFFFFF"
+            android:drawablePadding="6dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="14dp"
+            android:stateListAnimator="@null"
+            android:text="GogoAnime" />
 
         <com.lagradost.cloudstream3.ui.AutofitRecyclerView
-                android:descendantFocusability="afterDescendants"
-
-                android:background="?attr/primaryBlackBackground"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:clipToPadding="false"
-                app:spanCount="3"
-                android:id="@+id/result_recommendations_list"
-                tools:listitem="@layout/search_result_grid"
-                android:orientation="vertical" />
+            android:id="@+id/result_recommendations_list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:clipToPadding="false"
+            android:descendantFocusability="afterDescendants"
+            android:orientation="vertical"
+            android:paddingBottom="100dp"
+            app:spanCount="3"
+            tools:listitem="@layout/search_result_grid" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

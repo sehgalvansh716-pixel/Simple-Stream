@@ -1,12 +1,18 @@
 package com.lagradost.cloudstream3.ui.home
 
 import android.content.Context
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.widget.ImageView
+import android.widget.Toast
+import androidx.core.view.children
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
@@ -22,7 +28,10 @@ import com.google.android.material.chip.ChipGroup
 import com.google.android.material.navigation.NavigationBarItemView
 import com.lagradost.cloudstream3.CloudStreamApp.Companion.getActivity
 import com.lagradost.cloudstream3.CommonActivity.activity
+import com.lagradost.cloudstream3.CommonActivity.showToast
 import com.lagradost.cloudstream3.HomePageList
+import com.lagradost.cloudstream3.ui.APIRepository.Companion.noneApi
+import com.lagradost.cloudstream3.ui.home.HomeFragment.Companion.selectHomepage
 import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.MainActivity
 import com.lagradost.cloudstream3.R
@@ -58,6 +67,7 @@ import com.lagradost.cloudstream3.utils.SingleSelectionHelper.showBottomDialog
 import com.lagradost.cloudstream3.utils.SingleSelectionHelper.showOptionSelectStringRes
 import com.lagradost.cloudstream3.utils.UIHelper.fixPaddingStatusbarMargin
 import com.lagradost.cloudstream3.utils.UIHelper.fixPaddingStatusbarView
+import com.lagradost.cloudstream3.utils.UIHelper.navigate
 import com.lagradost.cloudstream3.utils.UIHelper.populateChips
 import androidx.core.graphics.toColorInt
 import com.lagradost.cloudstream3.ui.setRecycledViewPool
@@ -75,6 +85,14 @@ class HomeParentItemAdapterPreview(
         viewModel.expand(it)
     }) {
     override val headers = 1
+    private var currentHeaderHolder: HeaderViewHolder? = null
+    var onPluginSearchClick: (() -> Unit)? = null
+    var onCarouselItemChanged: ((LoadResponse) -> Unit)? = null
+
+    fun updateApiName(apiName: String?) {
+        currentHeaderHolder?.updateApiName(apiName)
+    }
+
     override fun onCreateHeader(parent: ViewGroup): ViewHolderState<Bundle> {
         val inflater = LayoutInflater.from(parent.context)
         val binding = if (isLayout(TV or EMULATOR)) FragmentHomeHeadTvBinding.inflate(
@@ -82,6 +100,15 @@ class HomeParentItemAdapterPreview(
             parent,
             false
         ) else FragmentHomeHeadBinding.inflate(inflater, parent, false)
+
+        if (binding is FragmentHomeHeadBinding) {
+            val displayMetrics = parent.context.resources.displayMetrics
+            val screenHeight = displayMetrics.heightPixels
+            val density = displayMetrics.density
+            val bottomReservedPx = (118 * density).toInt()
+            val targetHeight = (screenHeight - bottomReservedPx).coerceAtLeast((650 * density).toInt())
+            binding.homeHeroContainer.layoutParams.height = targetHeight
+        }
 
         if (binding is FragmentHomeHeadTvBinding && isLayout(EMULATOR)) {
             binding.homeBookmarkParentItemMoreInfo.isVisible = true
@@ -104,10 +131,19 @@ class HomeParentItemAdapterPreview(
             )
         }
 
-        return HeaderViewHolder(binding, viewModel, accountViewModel)
+        val holder = HeaderViewHolder(
+            binding,
+            viewModel,
+            accountViewModel,
+            onPluginSearchClick = { onPluginSearchClick?.invoke() },
+            onCarouselItemChanged = { item -> onCarouselItemChanged?.invoke(item) }
+        )
+        currentHeaderHolder = holder
+        return holder
     }
 
     override fun onBindHeader(holder: ViewHolderState<Bundle>) {
+        currentHeaderHolder = holder as? HeaderViewHolder
         (holder as? HeaderViewHolder)?.bind()
     }
 
@@ -131,6 +167,8 @@ class HomeParentItemAdapterPreview(
         val binding: ViewBinding,
         val viewModel: HomeViewModel,
         accountViewModel: AccountViewModel,
+        val onPluginSearchClick: (() -> Unit)? = null,
+        val onCarouselItemChanged: ((LoadResponse) -> Unit)? = null,
     ) :
         ViewHolderState<Bundle>(binding) {
 
@@ -337,41 +375,119 @@ class HomeParentItemAdapterPreview(
 
         private val homeNonePadding: View = itemView.findViewById(R.id.home_none_padding)
 
+        private val autoLoopHandler = android.os.Handler(android.os.Looper.getMainLooper())
+        private val autoLoopRunnable = object : Runnable {
+            override fun run() {
+                val count = previewAdapter.itemCount
+                if (count > 1 && previewViewpager.isAttachedToWindow) {
+                    val nextPos = (previewViewpager.currentItem + 1) % count
+                    previewViewpager.setCurrentItem(nextPos, true)
+                }
+                autoLoopHandler.postDelayed(this, 10000L)
+            }
+        }
+
+        fun startAutoLoop() {
+            stopAutoLoop()
+            autoLoopHandler.postDelayed(autoLoopRunnable, 10000L)
+        }
+
+        fun stopAutoLoop() {
+            autoLoopHandler.removeCallbacks(autoLoopRunnable)
+        }
+
+        fun resetAutoLoop() {
+            stopAutoLoop()
+            startAutoLoop()
+        }
+
+        private fun updateCarouselIndicator(currentPos: Int, totalCount: Int) {
+            if (binding is FragmentHomeHeadBinding) {
+                binding.homeCarouselIndicator.isVisible = false
+                return
+            }
+            val container = (binding as? FragmentHomeHeadTvBinding)?.homeCarouselIndicator
+                ?: return
+
+            val displayCount = totalCount.coerceAtMost(10)
+            if (displayCount <= 1) {
+                container.removeAllViews()
+                container.isVisible = false
+                return
+            }
+            container.isVisible = true
+
+            val context = container.context
+            val density = context.resources.displayMetrics.density
+            val dotSize = (6 * density).toInt()
+            val activeWidth = (20 * density).toInt()
+            val margin = (4 * density).toInt()
+
+            val activeIndex = currentPos % displayCount
+            if (container.childCount != displayCount) {
+                container.removeAllViews()
+                for (i in 0 until displayCount) {
+                    val view = View(context)
+                    val params = android.widget.LinearLayout.LayoutParams(
+                        if (i == activeIndex) activeWidth else dotSize,
+                        dotSize
+                    )
+                    params.setMargins(margin, 0, margin, 0)
+                    view.layoutParams = params
+                    view.setBackgroundResource(
+                        if (i == activeIndex) R.drawable.bg_carousel_dot_active
+                        else R.drawable.bg_carousel_dot_inactive
+                    )
+                    container.addView(view)
+                }
+            } else {
+                for (i in 0 until container.childCount) {
+                    val child = container.getChildAt(i)
+                    val isActive = i == activeIndex
+                    val targetWidth = if (isActive) activeWidth else dotSize
+                    if (child.layoutParams.width != targetWidth) {
+                        child.layoutParams.width = targetWidth
+                        child.requestLayout()
+                    }
+                    child.setBackgroundResource(
+                        if (isActive) R.drawable.bg_carousel_dot_active
+                        else R.drawable.bg_carousel_dot_inactive
+                    )
+                }
+            }
+        }
+
         fun onSelect(item: LoadResponse, position: Int) {
+            onCarouselItemChanged?.invoke(item)
             (binding as? FragmentHomeHeadTvBinding)?.apply {
                 homePreviewDescription.isGone = item.plot.isNullOrBlank()
                 homePreviewDescription.text = item.plot?.html() ?: ""
 
                 val scoreText = item.score?.toStringNull(0.1, 10, 1, false)
-
-                scoreText?.let { score ->
-                    homePreviewScore.text =
-                        homePreviewScore.context.getString(R.string.extension_rating, score)
-
-                    // while it should never fail, we do this just in case
-                    val rating = score.toDoubleOrNull() ?: item.score?.toDouble() ?: 0.0
-
-                    val color = when {
-                        rating < 5.0 -> "#eb2f2f".toColorInt() // Red
-                        rating < 8.0 -> "#eda009".toColorInt() // Yellow
-                        else -> "#3bb33b".toColorInt() // Green
-                    }
-                    homePreviewScore.backgroundTintList =
-                        android.content.res.ColorStateList.valueOf(color)
+                if (scoreText != null) {
+                    val cleanScore = scoreText.replace("★", "").trim()
+                    homePreviewScore.text = "$cleanScore/10"
+                    homePreviewScore.isVisible = true
+                } else {
+                    homePreviewScore.isVisible = false
                 }
-                homePreviewScore.isGone = scoreText == null
 
                 item.year?.let { year ->
                     homePreviewYear.text = year.toString()
                 }
-                homePreviewYear.isGone = item.year == null
+                homePreviewYear.isVisible = item.year != null
 
-                val duration = item.duration
-                duration?.let { min ->
-                    homePreviewDuration.text =
-                        homePreviewDuration.context.getString(R.string.duration_format, min)
+                val itemTags = item.tags
+                val genreText = if (!itemTags.isNullOrEmpty()) {
+                    itemTags.take(3).joinToString(", ")
+                } else item.duration?.let { min ->
+                    homePreviewDuration.context.getString(R.string.duration_format, min)
                 }
-                homePreviewDuration.isGone = duration == null || duration <= 0
+                homePreviewDuration.text = genreText
+                homePreviewDuration.isVisible = !genreText.isNullOrBlank()
+
+                homeMetaDot1.isVisible = homePreviewScore.isVisible && (homePreviewYear.isVisible || homePreviewDuration.isVisible)
+                homeMetaDot2.isVisible = homePreviewYear.isVisible && homePreviewDuration.isVisible
 
                 val castText = item.actors?.take(3)?.joinToString(", ") { it.actor.name }
                 if (!castText.isNullOrBlank()) {
@@ -383,13 +499,6 @@ class HomeParentItemAdapterPreview(
                 }
 
                 homePreviewText.text = item.name.html()
-                populateChips(
-                    homePreviewTags,
-                    item.tags?.take(6) ?: emptyList(),
-                    R.style.ChipFilledSemiTransparent,
-                    null
-                )
-
 
                 bindLogo(
                     url = item.logoUrl,
@@ -398,17 +507,121 @@ class HomeParentItemAdapterPreview(
                     logoView = homeBackgroundPosterWatermarkBadgeHolder
                 )
 
-                homePreviewTags.isGone =
-                    item.tags.isNullOrEmpty()
+                homePreviewTags.isGone = true
+
+                // Primary Action: Solid white pill [ ▶ Play ]
+                homePreviewPlay.setOnClickListener { view ->
+                    viewModel.click(
+                        LoadClickCallback(
+                            START_ACTION_RESUME_LATEST,
+                            view,
+                            position,
+                            item
+                        )
+                    )
+                }
+
+                // Secondary Action: Frosted glass split pill [ + ] Watchlist toggle / dialog
+                val id = item.getId()
+                val watchState = DataStoreHelper.getResultWatchState(id)
+                homePreviewBookmark.setImageResource(
+                    if (watchState != WatchType.NONE) R.drawable.ic_baseline_check_24
+                    else R.drawable.ic_baseline_add_24
+                )
+
+                homePreviewBookmark.setOnClickListener { fab ->
+                    fab.context.getActivity()?.showBottomDialog(
+                        WatchType.entries
+                            .map { fab.context.getString(it.stringRes) }
+                            .toList(),
+                        DataStoreHelper.getResultWatchState(id).ordinal,
+                        fab.context.getString(R.string.action_add_to_bookmarks),
+                        showApply = false,
+                        {}) { selectedIndex ->
+                        val newValue = WatchType.entries[selectedIndex]
+                        ResultViewModel2().updateWatchStatus(
+                            newValue,
+                            fab.context,
+                            item
+                        ) { statusChanged: Boolean ->
+                            if (!statusChanged) return@updateWatchStatus
+                            homePreviewBookmark.setImageResource(
+                                if (newValue != WatchType.NONE) R.drawable.ic_baseline_check_24
+                                else R.drawable.ic_baseline_add_24
+                            )
+                        }
+                    }
+                }
+
+                // Secondary Action: Frosted glass split pill [ ⓘ ] Info / Details
+                homePreviewInfo.setOnClickListener { view ->
+                    viewModel.click(
+                        LoadClickCallback(0, view, position, item)
+                    )
+                }
 
                 homePreviewInfoBtt.setOnClickListener { view ->
                     viewModel.click(
                         LoadClickCallback(0, view, position, item)
                     )
                 }
+
+                updateCarouselIndicator(position, previewAdapter.itemCount)
             }
             (binding as? FragmentHomeHeadBinding)?.apply {
-                //homePreviewImage.setImage(item.posterUrl, item.posterHeaders)
+                homePreviewDescription.isGone = item.plot.isNullOrBlank()
+                homePreviewDescription.text = item.plot?.html() ?: ""
+
+                val scoreText = item.score?.toStringNull(0.1, 10, 1, false)
+                if (scoreText != null) {
+                    val cleanScore = scoreText.replace("★", "").trim()
+                    homePreviewScore.text = "$cleanScore/10"
+                    homePreviewScore.isVisible = true
+                } else {
+                    homePreviewScore.isVisible = false
+                }
+
+                item.year?.let { year ->
+                    homePreviewYear.text = year.toString()
+                }
+                homePreviewYear.isVisible = item.year != null
+
+                val itemTags = item.tags
+                val genreText = if (!itemTags.isNullOrEmpty()) {
+                    itemTags.take(3).joinToString(", ")
+                } else item.duration?.let { min ->
+                    homePreviewDuration.context.getString(R.string.duration_format, min)
+                }
+                homePreviewDuration.text = genreText
+                homePreviewDuration.isVisible = !genreText.isNullOrBlank()
+
+                homeMetaDot1.isVisible = homePreviewScore.isVisible && (homePreviewYear.isVisible || homePreviewDuration.isVisible)
+                homeMetaDot2.isVisible = homePreviewYear.isVisible && homePreviewDuration.isVisible
+
+                homePreviewText.text = item.name.html()
+
+                bindLogo(
+                    url = item.logoUrl,
+                    headers = item.posterHeaders,
+                    titleView = homePreviewText,
+                    logoView = homeBackgroundPosterWatermarkBadgeHolder
+                )
+
+                try {
+                    val decorView = itemView.rootView as? ViewGroup ?: itemView as ViewGroup
+                    val blurAlgorithm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        eightbitlab.com.blurview.RenderEffectBlur()
+                    } else {
+                        eightbitlab.com.blurview.RenderScriptBlur(itemView.context)
+                    }
+                    homePreviewActionPillBlur.setupWith(decorView, blurAlgorithm)
+                        .setBlurRadius(16f)
+                        .setOverlayColor(Color.TRANSPARENT)
+                    homePreviewActionPillBlur.outlineProvider = ViewOutlineProvider.BACKGROUND
+                    homePreviewActionPillBlur.clipToOutline = true
+                } catch (e: Throwable) {
+                    logError(e)
+                }
 
                 homePreviewPlay.setOnClickListener { view ->
                     viewModel.click(
@@ -427,19 +640,11 @@ class HomeParentItemAdapterPreview(
                     )
                 }
 
-                // very ugly code, but I don't care
                 val id = item.getId()
-                val watchType =
-                    DataStoreHelper.getResultWatchState(id)
-                homePreviewBookmark.setText(watchType.stringRes)
-                homePreviewBookmark.setCompoundDrawablesWithIntrinsicBounds(
-                    null,
-                    ContextCompat.getDrawable(
-                        homePreviewBookmark.context,
-                        watchType.iconRes
-                    ),
-                    null,
-                    null
+                val watchState = DataStoreHelper.getResultWatchState(id)
+                homePreviewBookmark.setImageResource(
+                    if (watchState != WatchType.NONE) R.drawable.ic_baseline_check_24
+                    else R.drawable.ic_baseline_add_24
                 )
 
                 homePreviewBookmark.setOnClickListener { fab ->
@@ -450,29 +655,23 @@ class HomeParentItemAdapterPreview(
                         DataStoreHelper.getResultWatchState(id).ordinal,
                         fab.context.getString(R.string.action_add_to_bookmarks),
                         showApply = false,
-                        {}) {
-                        val newValue = WatchType.entries[it]
-
+                        {}) { selectedIndex ->
+                        val newValue = WatchType.entries[selectedIndex]
                         ResultViewModel2().updateWatchStatus(
                             newValue,
                             fab.context,
                             item
                         ) { statusChanged: Boolean ->
                             if (!statusChanged) return@updateWatchStatus
-
-                            homePreviewBookmark.setCompoundDrawablesWithIntrinsicBounds(
-                                null,
-                                ContextCompat.getDrawable(
-                                    homePreviewBookmark.context,
-                                    newValue.iconRes
-                                ),
-                                null,
-                                null
+                            homePreviewBookmark.setImageResource(
+                                if (newValue != WatchType.NONE) R.drawable.ic_baseline_check_24
+                                else R.drawable.ic_baseline_add_24
                             )
-                            homePreviewBookmark.setText(newValue.stringRes)
                         }
                     }
                 }
+
+                updateCarouselIndicator(position, previewAdapter.itemCount)
             }
         }
 
@@ -487,11 +686,19 @@ class HomeParentItemAdapterPreview(
                     }
                     val item = previewAdapter.getItemOrNull(position) ?: return
                     onSelect(item, position)
+                    resetAutoLoop()
+                }
+
+                override fun onPageScrollStateChanged(state: Int) {
+                    if (state == ViewPager2.SCROLL_STATE_DRAGGING) {
+                        resetAutoLoop()
+                    }
                 }
             }
 
         fun onViewDetachedFromWindow() {
             previewViewpager.unregisterOnPageChangeCallback(previewCallback)
+            stopAutoLoop()
         }
 
         private val toggleList = listOf<Pair<Chip, WatchType>>(
@@ -504,10 +711,34 @@ class HomeParentItemAdapterPreview(
 
         private val toggleListHolder: ChipGroup? = itemView.findViewById(R.id.home_type_holder)
 
-        fun bind() = Unit
+        fun updateApiName(apiName: String?) {
+            val display = itemView.context?.let { ctx ->
+                HomeFragment.Companion.run { ctx.getDisplayName(apiName) }
+            } ?: apiName ?: "Provider"
+            (binding as? FragmentHomeHeadTvBinding)?.homeChangeApi?.text = "$display ▾"
+            (binding as? FragmentHomeHeadBinding)?.homeChangeApi?.text = "$display ▾"
+        }
+
+        fun bind() {
+            updateApiName(viewModel.apiName.value)
+        }
 
         init {
+            if (binding is FragmentHomeHeadBinding) {
+                val displayMetrics = itemView.context.resources.displayMetrics
+                val screenHeight = displayMetrics.heightPixels
+                val density = displayMetrics.density
+                val bottomReservedPx = (118 * density).toInt()
+                val targetHeight = (screenHeight - bottomReservedPx).coerceAtLeast((650 * density).toInt())
+                if (binding.homeHeroContainer.layoutParams.height != targetHeight) {
+                    binding.homeHeroContainer.layoutParams.height = targetHeight
+                    binding.homeHeroContainer.requestLayout()
+                }
+                binding.homeCarouselIndicator.isVisible = false
+            }
+
             previewViewpager.setPageTransformer(HomeScrollTransformer())
+            previewViewpager.offscreenPageLimit = 2
 
             previewViewpager.adapter = previewAdapter
             resumeRecyclerView.adapter = resumeAdapter
@@ -582,61 +813,221 @@ class HomeParentItemAdapterPreview(
             }
 
             (binding as? FragmentHomeHeadTvBinding)?.apply {
-                /*homePreviewChangeApi.setOnClickListener { view ->
-                    view.context.selectHomepage(viewModel.repo?.name) { api ->
+                updateApiName(viewModel.apiName.value)
+
+                homeChangeApi.setOnClickListener { view ->
+                    view.context.selectHomepage(viewModel.apiName.value) { api ->
+                        updateApiName(api)
                         viewModel.loadAndCancel(api, forceReload = true, fromUI = true)
                     }
                 }
-                homePreviewReloadProvider.setOnClickListener {
-                    viewModel.loadAndCancel(
-                        viewModel.apiName.value ?: noneApi.name,
-                        forceReload = true,
-                        fromUI = true
-                    )
-                    showToast(R.string.action_reload, Toast.LENGTH_SHORT)
-                    true
-                }
-                homePreviewSearchButton.setOnClickListener { _ ->
-                    // Open blank screen.
-                    viewModel.queryTextSubmit("")
-                }*/
 
-                // A workaround to the focus problem of always centering the view on focus
-                // as that causes higher android versions to stretch the ui when switching between shows
-                var lastFocusTimeoutMs = 0L
-                homePreviewInfoBtt.setOnFocusChangeListener { view, hasFocus ->
-                    val lastFocusMs = lastFocusTimeoutMs
-                    // Always reset timer, as we only want to update
-                    // it if we have not interacted in half a second
-                    lastFocusTimeoutMs = System.currentTimeMillis()
-                    if (!hasFocus) return@setOnFocusChangeListener
-                    if (lastFocusMs + 500L < System.currentTimeMillis()) {
-                        MainActivity.centerView(view)
+                fun scrollToHeaderTop() {
+                    val master = itemView.parent as? RecyclerView
+                        ?: itemView.rootView?.findViewById(R.id.home_master_recycler)
+                    (master?.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager)
+                        ?.scrollToPositionWithOffset(0, 0)
+                }
+
+                homeChangeApi.setOnFocusChangeListener { v, hasFocus ->
+                    val scale = if (hasFocus) 1.06f else 1.0f
+                    v.animate().scaleX(scale).scaleY(scale).translationZ(if (hasFocus) 8f else 0f).setDuration(150).start()
+                    if (hasFocus) scrollToHeaderTop()
+                }
+
+                homePreviewPlay.setOnFocusChangeListener { v, hasFocus ->
+                    val scale = if (hasFocus) 1.08f else 1.0f
+                    v.animate().scaleX(scale).scaleY(scale).translationZ(if (hasFocus) 8f else 0f).setDuration(150).start()
+                    if (hasFocus) scrollToHeaderTop()
+                }
+
+                homePreviewBookmark.setOnFocusChangeListener { v, hasFocus ->
+                    val scale = if (hasFocus) 1.08f else 1.0f
+                    v.animate().scaleX(scale).scaleY(scale).translationZ(if (hasFocus) 8f else 0f).setDuration(150).start()
+                    if (hasFocus) scrollToHeaderTop()
+                }
+
+                homePreviewInfo.setOnFocusChangeListener { v, hasFocus ->
+                    val scale = if (hasFocus) 1.08f else 1.0f
+                    v.animate().scaleX(scale).scaleY(scale).translationZ(if (hasFocus) 8f else 0f).setDuration(150).start()
+                    if (hasFocus) scrollToHeaderTop()
+                }
+
+                homeChangeApi.setOnKeyListener { _, keyCode, event ->
+                    if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            homePreviewPlay.requestFocus()
+                            true
+                        }
+                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                            homePluginSearchBtn.requestFocus()
+                            true
+                        }
+                        else -> false
                     }
                 }
 
-                homePreviewHiddenNextFocus.setOnFocusChangeListener { _, hasFocus ->
-                    if (!hasFocus) return@setOnFocusChangeListener
-                    previewViewpager.setCurrentItem(previewViewpager.currentItem + 1, true)
-                    homePreviewInfoBtt.requestFocus()
+                homePluginSearchBtn.setOnFocusChangeListener { v, hasFocus ->
+                    val scale = if (hasFocus) 1.08f else 1.0f
+                    v.animate().scaleX(scale).scaleY(scale).translationZ(if (hasFocus) 8f else 0f).setDuration(150).start()
+                    if (hasFocus) scrollToHeaderTop()
                 }
 
-                homePreviewHiddenPrevFocus.setOnFocusChangeListener { _, hasFocus ->
-                    if (!hasFocus) return@setOnFocusChangeListener
-                    if (previewViewpager.currentItem <= 0) {
-                        //Focus the Home item as the default focus will be the header item
-                        (activity as? MainActivity)?.binding?.navRailView?.findViewById<NavigationBarItemView>(
-                            R.id.navigation_home
-                        )?.requestFocus()
-                    } else {
-                        previewViewpager.setCurrentItem(previewViewpager.currentItem - 1, true)
-                        binding.homePreviewInfoBtt.requestFocus()
-                        //binding.homePreviewPlayBtt.requestFocus()
+                homePluginSearchBtn.setOnClickListener {
+                    onPluginSearchClick?.invoke()
+                }
+
+                homePluginSearchBtn.setOnKeyListener { _, keyCode, event ->
+                    if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_LEFT -> {
+                            homeChangeApi.requestFocus()
+                            true
+                        }
+                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            homePreviewPlay.requestFocus()
+                            true
+                        }
+                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                            val nav = activity?.findViewById<View>(R.id.tv_nav_home)
+                            if (nav != null) {
+                                nav.requestFocus()
+                                true
+                            } else false
+                        }
+                        else -> false
+                    }
+                }
+
+                fun handleDpadDown(): Boolean {
+                    if (resumeHolder.isVisible && (resumeRecyclerView.adapter?.itemCount ?: 0) > 0) {
+                        return resumeRecyclerView.requestFocus()
+                    }
+                    if (bookmarkHolder.isVisible && (bookmarkRecyclerView.adapter?.itemCount ?: 0) > 0) {
+                        return (toggleListHolder?.children?.firstOrNull { it.isVisible && it.isFocusable }
+                            ?: bookmarkRecyclerView).requestFocus()
+                    }
+                    val master = itemView.parent as? RecyclerView
+                        ?: itemView.rootView?.findViewById(R.id.home_master_recycler)
+                    if (master != null) {
+                        val firstRowHolder = master.findViewHolderForAdapterPosition(1)
+                        val childRecycler = firstRowHolder?.itemView?.findViewById<RecyclerView>(R.id.home_child_recyclerview)
+                        val firstCard = childRecycler?.getChildAt(0)
+                        if (firstCard != null && firstCard.isFocusable && firstCard.requestFocus()) {
+                            return true
+                        }
+
+                        // Row 1 is not yet in viewport or laid out; scroll master down to row 1
+                        master.smoothScrollToPosition(1)
+
+                        fun tryFocusChild(): Boolean {
+                            val vh = master.findViewHolderForAdapterPosition(1)
+                            val cr = vh?.itemView?.findViewById<RecyclerView>(R.id.home_child_recyclerview)
+                            val card = cr?.getChildAt(0)
+                            return if (card != null && card.isFocusable) {
+                                card.requestFocus()
+                            } else if (cr != null && cr.isFocusable) {
+                                cr.requestFocus()
+                            } else false
+                        }
+
+                        master.post {
+                            if (!tryFocusChild()) {
+                                master.postDelayed({
+                                    if (!tryFocusChild()) {
+                                        master.postDelayed({
+                                            tryFocusChild()
+                                        }, 100)
+                                    }
+                                }, 60)
+                            }
+                        }
+                        return true
+                    }
+                    return false
+                }
+
+                fun handleDpadUp(): Boolean {
+                    val master = itemView.parent as? RecyclerView
+                        ?: itemView.rootView?.findViewById(R.id.home_master_recycler)
+                    (master?.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager)
+                        ?.scrollToPositionWithOffset(0, 0)
+                    homeChangeApi.post {
+                        homeChangeApi.requestFocus()
+                    }
+                    return true
+                }
+
+                homePreviewPlay.setOnKeyListener { _, keyCode, event ->
+                    if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_LEFT -> {
+                            val totalItems = previewAdapter.itemCount
+                            if (totalItems > 1) {
+                                val prevPos = if (previewViewpager.currentItem > 0) previewViewpager.currentItem - 1 else totalItems - 1
+                                previewViewpager.setCurrentItem(prevPos, true)
+                                resetAutoLoop()
+                                true
+                            } else false
+                        }
+                        KeyEvent.KEYCODE_DPAD_UP -> handleDpadUp()
+                        KeyEvent.KEYCODE_DPAD_DOWN -> handleDpadDown()
+                        else -> false
+                    }
+                }
+
+                homePreviewBookmark.setOnKeyListener { _, keyCode, event ->
+                    if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_UP -> handleDpadUp()
+                        KeyEvent.KEYCODE_DPAD_DOWN -> handleDpadDown()
+                        else -> false
+                    }
+                }
+
+                homePreviewInfo.setOnKeyListener { _, keyCode, event ->
+                    if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                            val totalItems = previewAdapter.itemCount
+                            if (totalItems > 1) {
+                                val nextPos = (previewViewpager.currentItem + 1) % totalItems
+                                previewViewpager.setCurrentItem(nextPos, true)
+                                resetAutoLoop()
+                                true
+                            } else false
+                        }
+                        KeyEvent.KEYCODE_DPAD_UP -> handleDpadUp()
+                        KeyEvent.KEYCODE_DPAD_DOWN -> handleDpadDown()
+                        else -> false
+                    }
+                }
+
+                homePreviewInfoBtt.setOnKeyListener { _, keyCode, event ->
+                    if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_UP -> handleDpadUp()
+                        KeyEvent.KEYCODE_DPAD_DOWN -> handleDpadDown()
+                        else -> false
                     }
                 }
             }
 
             (binding as? FragmentHomeHeadBinding)?.apply {
+                updateApiName(viewModel.apiName.value)
+
+                homeChangeApi.setOnClickListener { view ->
+                    view.context.selectHomepage(viewModel.apiName.value) { api ->
+                        updateApiName(api)
+                        viewModel.loadAndCancel(api, forceReload = true, fromUI = true)
+                    }
+                }
+
+                homePluginSearchBtn.setOnClickListener {
+                    onPluginSearchClick?.invoke()
+                }
+
                 homeSearch.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
                     override fun onQueryTextSubmit(query: String): Boolean {
                         viewModel.queryTextSubmit(query)
@@ -652,16 +1043,17 @@ class HomeParentItemAdapterPreview(
         }
 
         private fun updatePreview(preview: Resource<Pair<Boolean, List<LoadResponse>>>) {
-            if (preview is Resource.Success) {
-                homeNonePadding.apply {
-                    val params = layoutParams
-                    params.height = 0
-                    layoutParams = params
-                }
-            } else fixPaddingStatusbarView(homeNonePadding)
+            homeNonePadding.apply {
+                val params = layoutParams
+                params.height = 0
+                layoutParams = params
+            }
 
             when (preview) {
                 is Resource.Success -> {
+                    preview.value.second.forEach { loadResp ->
+                        com.lagradost.cloudstream3.utils.CardMetadataManager.cacheFromLoadResponse(loadResp)
+                    }
                     previewAdapter.submitList(preview.value.second)
                     previewAdapter.hasMoreItems = preview.value.first
                     /*if (!.setItems(
@@ -691,6 +1083,8 @@ class HomeParentItemAdapterPreview(
                     if (item != null) {
                         onSelect(item, currentPos)
                     }
+                    updateCarouselIndicator(currentPos, preview.value.second.size)
+                    resetAutoLoop()
                 }
 
                 else -> {
@@ -698,10 +1092,11 @@ class HomeParentItemAdapterPreview(
                     previewViewpager.setCurrentItem(0, false)
                     previewViewpager.isVisible = false
                     previewViewpagerText.isVisible = false
-                    alternativeAccountPadding?.isVisible = true
+                    alternativeAccountPadding?.isVisible = false
                     (binding as? FragmentHomeHeadTvBinding)?.apply {
                         homePreviewInfoBtt.isVisible = false
                     }
+                    stopAutoLoop()
                     //previewHeader.isVisible = false
                 }
             }
@@ -709,11 +1104,15 @@ class HomeParentItemAdapterPreview(
 
         private fun updatePreviewNextFocusDown() {
             (binding as? FragmentHomeHeadTvBinding)?.apply {
-                homePreviewInfoBtt.nextFocusDownId = when {
+                val targetId = when {
                     resumeHolder.isVisible -> R.id.home_watch_child_recyclerview
-                    bookmarkHolder.isVisible -> R.id.home_type_holder
+                    bookmarkHolder.isVisible -> R.id.home_bookmarked_child_recyclerview
                     else -> View.NO_ID
                 }
+                homePreviewPlay.nextFocusDownId = targetId
+                homePreviewBookmark.nextFocusDownId = targetId
+                homePreviewInfo.nextFocusDownId = targetId
+                homePreviewInfoBtt.nextFocusDownId = targetId
             }
         }
 
@@ -784,17 +1183,12 @@ class HomeParentItemAdapterPreview(
 
         fun onViewAttachedToWindow() {
             previewViewpager.registerOnPageChangeCallback(previewCallback)
+            startAutoLoop()
 
             previewViewpager.apply {
                 observe(viewModel.preview) {
                     updatePreview(it)
                 }
-                /*if (binding is FragmentHomeHeadTvBinding) {
-                    observe(viewModel.apiName) { name ->
-                        binding.homePreviewChangeApi.text = name
-                        binding.homePreviewReloadProvider.isGone = (name == noneApi.name)
-                    }
-                }*/
                 observe(viewModel.resumeWatching) {
                     updateResume(it)
                 }

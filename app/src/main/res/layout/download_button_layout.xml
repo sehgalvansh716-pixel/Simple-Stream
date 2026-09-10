@@ -1,57 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_width="wrap_content"
+    android:layout_height="48dp"
+    android:background="@drawable/bg_tv_filter_pill"
     android:layout_gravity="center"
-    android:gravity="center"
-    android:orientation="horizontal">
+    android:gravity="center">
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/download_movie_button"
-        style="@style/BlackButton"
         android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:layout_marginStart="0dp"
         android:layout_marginEnd="0dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        app:backgroundTint="@null"
+        app:strokeWidth="0dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        app:cornerRadius="24dp"
+        android:stateListAnimator="@null"
         android:visibility="visible" />
 
     <LinearLayout
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center">
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:gravity="center_vertical"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:orientation="horizontal">
 
         <include
             layout="@layout/download_button_view"
-            android:layout_width="30dp"
-            android:layout_height="30dp" />
+            android:layout_width="22dp"
+            android:layout_height="22dp" />
 
         <TextView
             android:id="@+id/result_movie_download_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginStart="10dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="6dp"
             android:gravity="center"
-            android:letterSpacing="0.09"
             android:textAllCaps="false"
-            android:textColor="?attr/textColor"
-            android:textSize="15sp"
+            android:textColor="#E9EAEE"
+            android:textSize="13sp"
             android:textStyle="bold"
-            tools:text="Downloading" />
+            android:fontFamily="@font/google_sans"
+            tools:text="Download" />
 
         <TextView
             android:id="@+id/result_movie_download_text_precentage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
+            android:layout_gravity="center_vertical"
             android:gravity="center"
-            android:letterSpacing="0.09"
-            android:paddingStart="5dp"
-            android:paddingEnd="5dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="2dp"
             android:textAllCaps="false"
-            android:textColor="?attr/textColor"
-            android:textSize="15sp"
-            android:textStyle="bold"
+            android:textColor="#80E9EAEE"
+            android:textSize="12sp"
+            android:fontFamily="@font/google_sans"
             android:visibility="gone"
             tools:text="68%"
             tools:visibility="visible" />

@@ -1,10 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" >
-    <stroke android:width="2dp"
-            android:color="?attr/white"/>
-    <corners
-            android:bottomLeftRadius="@dimen/rounded_image_radius"
-            android:bottomRightRadius="@dimen/rounded_image_radius"
-            android:topLeftRadius="@dimen/rounded_image_radius"
-            android:topRightRadius="@dimen/rounded_image_radius" />
-</shape>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Outer subtle Electric Indigo glow halo (2.5dp glow) -->
+    <item
+        android:left="0.5dp"
+        android:top="0.5dp"
+        android:right="0.5dp"
+        android:bottom="0.5dp">
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="2.5dp"
+                android:color="#4D818CF8" />
+            <solid android:color="@android:color/transparent" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+    <!-- Inner crisp specular highlight border (1.8dp ice-luminescent border) -->
+    <item
+        android:left="1dp"
+        android:top="1dp"
+        android:right="1dp"
+        android:bottom="1dp">
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="1.8dp"
+                android:color="#F2EEF2FF" />
+            <solid android:color="@android:color/transparent" />
+            <corners android:radius="11dp" />
+        </shape>
+    </item>
+</layer-list>

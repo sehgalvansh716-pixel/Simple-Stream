@@ -3,11 +3,14 @@ package com.lagradost.cloudstream3.ui.search
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Color
+import android.os.Build
 import android.view.View
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.cardview.widget.CardView
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.palette.graphics.Palette
 import androidx.preference.PreferenceManager
@@ -17,8 +20,12 @@ import com.lagradost.cloudstream3.LiveSearchResponse
 import com.lagradost.cloudstream3.R
 import com.lagradost.cloudstream3.SearchQuality
 import com.lagradost.cloudstream3.SearchResponse
+import com.lagradost.cloudstream3.MovieSearchResponse
+import com.lagradost.cloudstream3.TvSeriesSearchResponse
 import com.lagradost.cloudstream3.isMovieType
 import com.lagradost.cloudstream3.syncproviders.SyncAPI
+import android.view.KeyEvent
+import com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR
 import com.lagradost.cloudstream3.ui.settings.Globals.TV
 import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
 import com.lagradost.cloudstream3.utils.AppContextUtils.getNameFull
@@ -28,7 +35,11 @@ import com.lagradost.cloudstream3.utils.DataStoreHelper.fixVisual
 import com.lagradost.cloudstream3.utils.ImageLoader.loadImage
 import com.lagradost.cloudstream3.utils.SubtitleHelper
 import com.lagradost.cloudstream3.utils.UIHelper.colorFromAttribute
+import com.lagradost.cloudstream3.utils.UIHelper.toPx
 import com.lagradost.cloudstream3.utils.getImageFromDrawable
+import com.lagradost.cloudstream3.utils.CardMetadataManager
+import android.view.animation.DecelerateInterpolator
+import androidx.recyclerview.widget.RecyclerView
 
 object SearchResultBuilder {
     private val showCache: MutableMap<String, Boolean> = mutableMapOf()
@@ -54,6 +65,8 @@ object SearchResultBuilder {
     ) {
         val cardView: ImageView = itemView.findViewById(R.id.imageView)
         val cardText: TextView? = itemView.findViewById(R.id.imageText)
+        val cardSubText: TextView? = itemView.findViewById(R.id.imageSubText)
+        val isTv = isLayout(TV or EMULATOR)
 
         val textIsDub: TextView? = itemView.findViewById(R.id.text_is_dub)
         val textIsSub: TextView? = itemView.findViewById(R.id.text_is_sub)
@@ -129,31 +142,29 @@ object SearchResultBuilder {
             textQuality?.isVisible = false
         }
 
-        cardText?.text = card.name
+        val cleanName = CardMetadataManager.cleanTitle(card.name)
+        cardText?.text = if (cleanName.isNotBlank()) cleanName else card.name
         cardText?.isVisible = showTitle
+
+        if (!isTv && cardSubText != null) {
+            val meta = CardMetadataManager.resolveFromCard(card)
+            val sub = CardMetadataManager.formatSubtitle(meta.year, meta.score)
+            cardSubText.text = sub
+            cardSubText.isVisible = sub != null
+
+            if (meta.year == null || meta.score == null) {
+                CardMetadataManager.fetchMetadataAsync(card) { updated ->
+                    val updatedSub = CardMetadataManager.formatSubtitle(updated.year, updated.score)
+                    cardSubText.text = updatedSub
+                    cardSubText.isVisible = updatedSub != null
+                }
+            }
+        }
+
         cardView.isVisible = true
         if (!card.posterUrl.isNullOrEmpty()) {
             val url = card.posterUrl!!
             cardView.loadImage(url, card.posterHeaders) {
-                listener(
-                    onSuccess = { _, result ->
-                        val w = result.image.width
-                        val h = result.image.height
-                        if (w > 0 && h > 0) {
-                            val isLandscape = (w.toFloat() / h.toFloat()) > 1.15f
-                            val prev = com.lagradost.cloudstream3.ui.home.HomeChildItemAdapter.orientationCache.put(url, isLandscape)
-                            if (prev != isLandscape) {
-                                val targetW = if (isLandscape) com.lagradost.cloudstream3.ui.home.HomeChildItemAdapter.maxPosterSize else com.lagradost.cloudstream3.ui.home.HomeChildItemAdapter.minPosterSize
-                                val targetH = if (isLandscape) com.lagradost.cloudstream3.ui.home.HomeChildItemAdapter.minPosterSize else com.lagradost.cloudstream3.ui.home.HomeChildItemAdapter.maxPosterSize
-                                if (targetW > 0 && targetH > 0) {
-                                    bg.post {
-                                        com.lagradost.cloudstream3.ui.home.HomeChildItemAdapter.updateLayoutParms(bg, targetW, targetH)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                )
                 error { getImageFromDrawable(itemView.context, R.drawable.default_cover) }
             }
         } else cardView.loadImage(R.drawable.default_cover)
@@ -195,7 +206,11 @@ object SearchResultBuilder {
 
         bg.isFocusable = false
         bg.isFocusableInTouchMode = false
-        if (!isLayout(TV)) {
+        if (!isLayout(TV or EMULATOR)) {
+            bg.foreground = null
+            itemView.findViewById<View>(R.id.card_focus_dimmer)?.isVisible = false
+            itemView.findViewById<View>(R.id.card_focus_info)?.isVisible = false
+            itemView.findViewById<View>(R.id.card_play_icon)?.isVisible = false
             bg.setOnClickListener {
                 click(it)
             }
@@ -213,6 +228,22 @@ object SearchResultBuilder {
         }
         if (nextFocusUp != null) {
             itemView.nextFocusUpId = nextFocusUp
+            if (isLayout(TV or EMULATOR)) {
+                itemView.setOnKeyListener { v, keyCode, event ->
+                    if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                        val target = v.rootView?.findViewById<View>(nextFocusUp)
+                        if (target != null) {
+                            val master = v.rootView?.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.home_master_recycler)
+                            (master?.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager)?.scrollToPositionWithOffset(0, 0)
+                            target.post {
+                                target.requestFocus()
+                            }
+                            return@setOnKeyListener true
+                        }
+                    }
+                    false
+                }
+            }
         }
 
         if (nextFocusDown != null) {
@@ -238,7 +269,7 @@ object SearchResultBuilder {
 
         */
 
-        if (isLayout(TV)) {
+        if (isLayout(TV or EMULATOR)) {
             // bg.isFocusable = true
             // bg.isFocusableInTouchMode = true
             // bg.touchscreenBlocksFocus = false
@@ -257,8 +288,214 @@ object SearchResultBuilder {
             focus(view, b)
         }*/
 
-        itemView.setOnFocusChangeListener { view, b ->
-            focus(view, b)
+        val focusDimmer: View? = itemView.findViewById(R.id.card_focus_dimmer)
+        val focusInfo: View? = itemView.findViewById(R.id.card_focus_info)
+        val focusTitle: TextView? = itemView.findViewById(R.id.card_focus_title)
+        val focusSubtitle: TextView? = itemView.findViewById(R.id.card_focus_subtitle)
+        val badgeContainer: View? = (rating?.parent as? View) ?: (textQuality?.parent as? View)
+        val hasQuality = card.quality != null
+
+        CardMetadataManager.registerCard(card)
+
+        if (isTv && focusInfo != null) {
+            val meta = CardMetadataManager.resolveFromCard(card)
+            val cleanCardName = CardMetadataManager.cleanTitle(card.name)
+            val displayTitle = if (meta.title.isNotBlank()) meta.title else cleanCardName
+            if (displayTitle.isNotBlank()) {
+                cardText?.text = displayTitle
+                focusTitle?.text = displayTitle
+            }
+            val sub = CardMetadataManager.formatSubtitle(meta.year, meta.score)
+            focusSubtitle?.text = sub
+            focusSubtitle?.isVisible = (sub != null)
+        }
+
+        // Always reset to unfocused state on bind — the setOnFocusChangeListener handles the
+        // focused visual at runtime. This prevents recycled views carrying over scale / dimmer
+        // state from a previously focused card (which made cards look wrong when focus moved
+        // back to the search bar).
+        bg.foreground = null
+        if (isTv) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                itemView.outlineAmbientShadowColor = Color.argb(16, 0, 0, 0)
+                itemView.outlineSpotShadowColor = Color.argb(24, 0, 0, 0)
+            }
+            // Cancel any in-flight animators before resetting values
+            itemView.animate().cancel()
+            focusDimmer?.animate()?.cancel()
+            focusInfo?.animate()?.cancel()
+            cardText?.animate()?.cancel()
+            shadow?.animate()?.cancel()
+            badgeContainer?.animate()?.cancel()
+            textQuality?.animate()?.cancel()
+
+            itemView.scaleX = 1.0f
+            itemView.scaleY = 1.0f
+            itemView.translationZ = 0f
+            itemView.alpha = 1.0f
+            focusDimmer?.isVisible = false
+            focusDimmer?.alpha = 0f
+            focusInfo?.isVisible = false
+            focusInfo?.alpha = 0f
+            focusInfo?.translationY = 0f
+            cardText?.visibility = if (showTitle) View.VISIBLE else View.GONE
+            cardText?.alpha = 1.0f
+            shadow?.visibility = if (showTitle) View.VISIBLE else View.GONE
+            shadow?.alpha = 1.0f
+            badgeContainer?.visibility = View.VISIBLE
+            badgeContainer?.alpha = 1.0f
+            textQuality?.visibility = if (showHd && hasQuality) View.VISIBLE else View.GONE
+            textQuality?.alpha = 1.0f
+        }
+
+        itemView.setOnFocusChangeListener { view, hasFocus ->
+            bg.foreground = if (hasFocus) ContextCompat.getDrawable(view.context, R.drawable.outline) else null
+            if (isTv) {
+                // Cancel running animations on this card and its animated children to avoid race conditions during rapid D-pad remote traversal
+                view.animate().cancel()
+                focusDimmer?.animate()?.cancel()
+                focusInfo?.animate()?.cancel()
+                cardText?.animate()?.cancel()
+                shadow?.animate()?.cancel()
+                badgeContainer?.animate()?.cancel()
+                textQuality?.animate()?.cancel()
+
+                val duration = 200L
+                val interpolator = DecelerateInterpolator()
+                val targetScale = if (hasFocus) 1.10f else 1.0f
+                val targetZ = if (hasFocus) 12f else 0f
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    view.outlineAmbientShadowColor = if (hasFocus) Color.argb(40, 0, 0, 0) else Color.argb(16, 0, 0, 0)
+                    view.outlineSpotShadowColor = if (hasFocus) Color.argb(60, 0, 0, 0) else Color.argb(24, 0, 0, 0)
+                }
+
+                if (hasFocus) {
+                    CardMetadataManager.onCardFocused(card)
+                    val meta = CardMetadataManager.resolveFromCard(card)
+                    val cleanCardName = CardMetadataManager.cleanTitle(card.name)
+                    val displayTitle = if (meta.title.isNotBlank()) meta.title else cleanCardName
+                    if (displayTitle.isNotBlank()) {
+                        focusTitle?.text = displayTitle
+                        cardText?.text = displayTitle
+                    }
+                    val sub = CardMetadataManager.formatSubtitle(meta.year, meta.score)
+                    focusSubtitle?.text = sub
+                    focusSubtitle?.isVisible = (sub != null)
+
+                    if (displayTitle.isBlank() || meta.year == null || meta.score == null) {
+                        CardMetadataManager.fetchMetadataAsync(card) { updated ->
+                            if (itemView.isFocused) {
+                                val updatedTitle = if (updated.title.isNotBlank()) updated.title else CardMetadataManager.cleanTitle(card.name)
+                                if (updatedTitle.isNotBlank()) {
+                                    focusTitle?.text = updatedTitle
+                                    cardText?.text = updatedTitle
+                                }
+                                val updatedSub = CardMetadataManager.formatSubtitle(updated.year, updated.score)
+                                focusSubtitle?.text = updatedSub
+                                focusSubtitle?.isVisible = (updatedSub != null)
+                            }
+                        }
+                    }
+
+                    // Bring this card to front in z-order
+                    view.translationZ = 12f
+                    view.animate()
+                        .scaleX(targetScale)
+                        .scaleY(targetScale)
+                        .translationZ(targetZ)
+                        .alpha(1.0f)
+                        .setDuration(duration)
+                        .setInterpolator(interpolator)
+                        .start()
+
+                    // Dimmer overlay fade in
+                    focusDimmer?.let { dimmer ->
+                        dimmer.visibility = View.VISIBLE
+                        dimmer.alpha = 0f
+                        dimmer.animate()
+                            .alpha(1.0f)
+                            .setDuration(duration)
+                            .setInterpolator(interpolator)
+                            .start()
+                    }
+
+                    // Focus info container fade in and slide up
+                    focusInfo?.let { info ->
+                        info.visibility = View.VISIBLE
+                        info.alpha = 0f
+                        info.translationY = 14.toPx.toFloat()
+                        info.animate()
+                            .alpha(1.0f)
+                            .translationY(0f)
+                            .setDuration(duration)
+                            .setInterpolator(interpolator)
+                            .start()
+                    }
+
+                    // Fade out unfocused elements
+                    cardText?.animate()?.alpha(0f)?.setDuration(160)?.withEndAction { cardText.visibility = View.GONE }?.start()
+                    shadow?.animate()?.alpha(0f)?.setDuration(160)?.withEndAction { shadow.visibility = View.GONE }?.start()
+                    badgeContainer?.animate()?.alpha(0f)?.setDuration(160)?.withEndAction { badgeContainer.visibility = View.INVISIBLE }?.start()
+                    textQuality?.animate()?.alpha(0f)?.setDuration(160)?.withEndAction { textQuality.visibility = View.INVISIBLE }?.start()
+                } else {
+                    // Outgoing card unfocusing
+                    view.alpha = 1.0f
+                    view.animate()
+                        .scaleX(targetScale)
+                        .scaleY(targetScale)
+                        .translationZ(targetZ)
+                        .alpha(1.0f)
+                        .setDuration(duration)
+                        .setInterpolator(interpolator)
+                        .withEndAction {
+                            if (!view.isFocused) {
+                                view.translationZ = 0f
+                            }
+                        }
+                        .start()
+
+                    focusDimmer?.let { dimmer ->
+                        dimmer.animate()
+                            .alpha(0f)
+                            .setDuration(160)
+                            .setInterpolator(interpolator)
+                            .withEndAction { dimmer.visibility = View.GONE }
+                            .start()
+                    }
+
+                    focusInfo?.let { info ->
+                        info.animate()
+                            .alpha(0f)
+                            .translationY(10.toPx.toFloat())
+                            .setDuration(160)
+                            .setInterpolator(interpolator)
+                            .withEndAction { info.visibility = View.GONE }
+                            .start()
+                    }
+
+                    // Restore unfocused elements
+                    if (showTitle) {
+                        cardText?.visibility = View.VISIBLE
+                        cardText?.alpha = 0f
+                        cardText?.animate()?.alpha(1.0f)?.setDuration(duration)?.setInterpolator(interpolator)?.start()
+
+                        shadow?.visibility = View.VISIBLE
+                        shadow?.alpha = 0f
+                        shadow?.animate()?.alpha(1.0f)?.setDuration(duration)?.setInterpolator(interpolator)?.start()
+                    }
+                    badgeContainer?.visibility = View.VISIBLE
+                    badgeContainer?.alpha = 0f
+                    badgeContainer?.animate()?.alpha(1.0f)?.setDuration(duration)?.setInterpolator(interpolator)?.start()
+
+                    if (showHd && hasQuality) {
+                        textQuality?.visibility = View.VISIBLE
+                        textQuality?.alpha = 0f
+                        textQuality?.animate()?.alpha(1.0f)?.setDuration(duration)?.setInterpolator(interpolator)?.start()
+                    }
+                }
+            }
+            focus(view, hasFocus)
         }
 
         when (card) {

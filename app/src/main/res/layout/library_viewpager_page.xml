@@ -4,8 +4,8 @@
     android:id="@+id/page_recyclerview"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:clipChildren="false"
     android:clipToPadding="false"
     android:focusable="false"
     android:tag="tv_no_focus_tag"
-    tools:listitem="@layout/home_result_grid_expanded" />
-
+    tools:listitem="@layout/search_result_grid" />

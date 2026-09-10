@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:orientation="vertical"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:orientation="vertical">
 
     <TextView
         android:id="@+id/home_child_more_info"
@@ -12,22 +14,32 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginEnd="0dp"
-        android:padding="12dp"
-        tools:text="@string/continue_watching"
-        app:drawableRightCompat="@drawable/ic_baseline_arrow_forward_24"
-        app:drawableTint="?attr/white"
         android:background="?android:attr/selectableItemBackground"
-        android:contentDescription="@string/home_more_info"/>
+        android:contentDescription="@string/home_more_info"
+        android:fontFamily="@font/google_sans"
+        android:paddingStart="16dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="2dp"
+        android:textColor="#F3F4F6"
+        android:textSize="17sp"
+        android:textStyle="bold"
+        app:drawableRightCompat="@drawable/ic_baseline_arrow_forward_24"
+        app:drawableTint="#8A99AD"
+        tools:text="@string/continue_watching" />
 
     <androidx.recyclerview.widget.RecyclerView
-            android:nextFocusUp="@id/home_child_more_info"
-            android:paddingHorizontal="5dp"
-            android:clipToPadding="false"
-            android:descendantFocusability="afterDescendants"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-            android:id="@+id/home_child_recyclerview"
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            tools:listitem="@layout/home_result_grid" />
+        android:id="@+id/home_child_recyclerview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:descendantFocusability="afterDescendants"
+        android:nextFocusUp="@id/home_child_more_info"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="10dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        tools:listitem="@layout/home_result_grid" />
 </LinearLayout>

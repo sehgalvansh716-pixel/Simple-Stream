@@ -227,8 +227,10 @@ object UIHelper {
 
     fun View?.setAppBarNoScrollFlagsOnTV() {
         if (isLayout(TV or EMULATOR)) {
-            this?.updateLayoutParams<AppBarLayout.LayoutParams> {
-                scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_NO_SCROLL
+            com.lagradost.cloudstream3.mvvm.safe {
+                this?.updateLayoutParams<AppBarLayout.LayoutParams> {
+                    scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_NO_SCROLL
+                }
             }
         }
     }

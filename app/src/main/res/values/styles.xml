@@ -157,7 +157,10 @@
     </style>-->
 
     <style name="RatingButton" parent="@style/SearchBox">
-        <item name="android:minWidth">40dp</item>
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minWidth">36dp</item>
+        <item name="android:drawablePadding">3dp</item>
         <item name="drawableTint">?attr/textColor</item>
         <item name="drawableSize">10sp</item>
 
@@ -169,70 +172,224 @@
         <item name="android:text">@string/quality_hd</item>
     </style>
 
-    <style name="LightMode">
-        <item name="primaryGrayBackground">@color/lightPrimaryGrayBackground</item>
-        <item name="primaryBlackBackground">@color/lightBitDarkerGrayBackground</item>
-        <item name="iconGrayBackground">@color/lightGrayBackground</item>
-        <item name="boxItemBackground">@color/lightItemBackground</item>
-        <item name="textColor">@color/lightTextColor</item>
-        <item name="grayTextColor">@color/lightGrayTextColor</item>
-        <item name="white">@color/black</item>
-        <item name="black">@color/white</item>
-        <item name="colorOnPrimary">@color/blackText</item>
-        <item name="isLightTheme">true</item>
-        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
+    <!-- 7 Custom Themes -->
+    <style name="MidnightMonochromeMode">
+        <item name="primaryBlackBackground">@color/theme_midnight_primary_black</item>
+        <item name="primaryGrayBackground">@color/theme_midnight_primary_gray</item>
+        <item name="iconGrayBackground">@color/theme_midnight_icon_gray</item>
+        <item name="boxItemBackground">@color/theme_midnight_box_item</item>
+        <item name="textColor">@color/theme_midnight_text</item>
+        <item name="grayTextColor">@color/theme_midnight_gray_text</item>
+        <item name="white">@color/white</item>
+        <item name="black">@color/black</item>
+        <item name="colorAccent">@color/theme_midnight_accent</item>
+        <item name="colorPrimary">@color/theme_midnight_accent</item>
+        <item name="colorOnPrimary">@color/theme_midnight_primary_black</item>
+        <item name="colorSecondary">@color/theme_midnight_accent</item>
+        <item name="colorOnSecondary">@color/theme_midnight_primary_black</item>
+        <item name="colorSecondaryContainer">@color/theme_midnight_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/theme_midnight_text</item>
+        <item name="colorSurface">@color/theme_midnight_primary_gray</item>
+        <item name="colorOnSurface">@color/theme_midnight_text</item>
+        <item name="colorSurfaceVariant">@color/theme_midnight_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/theme_midnight_gray_text</item>
+        <item name="android:textColor">@color/theme_midnight_text</item>
+        <item name="android:textColorPrimary">@color/theme_midnight_text</item>
+        <item name="android:textColorSecondary">@color/theme_midnight_gray_text</item>
+        <item name="android:textColorHint">@color/theme_midnight_gray_text</item>
+        <item name="android:colorBackground">@color/theme_midnight_primary_black</item>
+        <item name="colorOutline">@color/theme_midnight_outline</item>
+        <item name="colorOutlineVariant">@color/theme_midnight_outline_variant</item>
+        <item name="isLightTheme">false</item>
     </style>
 
-    <style name="DraculaMode">
-        <item name="primaryGrayBackground">@color/DraculaPrimaryGrayBackground</item>
-        <item name="primaryBlackBackground">@color/DraculaBitDarkerGrayBackground</item>
-        <item name="iconGrayBackground">@color/DraculaGrayBackground</item>
-        <item name="boxItemBackground">@color/DraculaItemBackground</item>
-        <item name="textColor">@color/DraculaTextColor</item>
-        <item name="iconColor">@color/DraculaIconColor</item>
-        <item name="white">@color/DraculaTextColor</item>
-        <item name="black">@color/DraculaPrimaryGrayBackground</item>
-        <item name="colorOnPrimary">@color/DraculaTextColor</item>
+    <style name="WarmMinimalMode">
+        <item name="primaryBlackBackground">@color/theme_warm_primary_black</item>
+        <item name="primaryGrayBackground">@color/theme_warm_primary_gray</item>
+        <item name="iconGrayBackground">@color/theme_warm_icon_gray</item>
+        <item name="boxItemBackground">@color/theme_warm_box_item</item>
+        <item name="textColor">@color/theme_warm_text</item>
+        <item name="grayTextColor">@color/theme_warm_gray_text</item>
+        <item name="white">@color/white</item>
+        <item name="black">@color/black</item>
+        <item name="colorAccent">@color/theme_warm_accent</item>
+        <item name="colorPrimary">@color/theme_warm_accent</item>
+        <item name="colorOnPrimary">@color/theme_warm_primary_black</item>
+        <item name="colorSecondary">@color/theme_warm_accent</item>
+        <item name="colorOnSecondary">@color/theme_warm_primary_black</item>
+        <item name="colorSecondaryContainer">@color/theme_warm_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/theme_warm_text</item>
+        <item name="colorSurface">@color/theme_warm_primary_gray</item>
+        <item name="colorOnSurface">@color/theme_warm_text</item>
+        <item name="colorSurfaceVariant">@color/theme_warm_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/theme_warm_gray_text</item>
+        <item name="android:textColor">@color/theme_warm_text</item>
+        <item name="android:textColorPrimary">@color/theme_warm_text</item>
+        <item name="android:textColorSecondary">@color/theme_warm_gray_text</item>
+        <item name="android:textColorHint">@color/theme_warm_gray_text</item>
+        <item name="android:colorBackground">@color/theme_warm_primary_black</item>
+        <item name="colorOutline">@color/theme_warm_outline</item>
+        <item name="colorOutlineVariant">@color/theme_warm_outline_variant</item>
+        <item name="isLightTheme">false</item>
     </style>
 
-
-    <style name="SilentBlueMode">
-        <item name="primaryGrayBackground">@color/SilentBluePrimaryGrayBackground</item>
-        <item name="primaryBlackBackground">@color/SilentBlueBitDarkerGrayBackground</item>
-        <item name="iconGrayBackground">@color/SilentBlueGrayBackground</item>
-        <item name="boxItemBackground">@color/SilentBlueItemBackground</item>
-        <item name="textColor">@color/SilentBlueTextColor</item>
-        <item name="iconColor">@color/SilentBlueIconColor</item>
-        <item name="white">@color/SilentBlueTextColor</item>
-        <item name="black">@color/SilentBluePrimaryGrayBackground</item>
-        <item name="colorOnPrimary">@color/SilentBlueTextColor</item>
+    <style name="SageCreamMode">
+        <item name="primaryBlackBackground">@color/theme_sage_primary_black</item>
+        <item name="primaryGrayBackground">@color/theme_sage_primary_gray</item>
+        <item name="iconGrayBackground">@color/theme_sage_icon_gray</item>
+        <item name="boxItemBackground">@color/theme_sage_box_item</item>
+        <item name="textColor">@color/theme_sage_text</item>
+        <item name="grayTextColor">@color/theme_sage_gray_text</item>
+        <item name="white">@color/white</item>
+        <item name="black">@color/black</item>
+        <item name="colorAccent">@color/theme_sage_accent</item>
+        <item name="colorPrimary">@color/theme_sage_accent</item>
+        <item name="colorOnPrimary">@color/theme_sage_primary_black</item>
+        <item name="colorSecondary">@color/theme_sage_accent</item>
+        <item name="colorOnSecondary">@color/theme_sage_primary_black</item>
+        <item name="colorSecondaryContainer">@color/theme_sage_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/theme_sage_text</item>
+        <item name="colorSurface">@color/theme_sage_primary_gray</item>
+        <item name="colorOnSurface">@color/theme_sage_text</item>
+        <item name="colorSurfaceVariant">@color/theme_sage_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/theme_sage_gray_text</item>
+        <item name="android:textColor">@color/theme_sage_text</item>
+        <item name="android:textColorPrimary">@color/theme_sage_text</item>
+        <item name="android:textColorSecondary">@color/theme_sage_gray_text</item>
+        <item name="android:textColorHint">@color/theme_sage_gray_text</item>
+        <item name="android:colorBackground">@color/theme_sage_primary_black</item>
+        <item name="colorOutline">@color/theme_sage_outline</item>
+        <item name="colorOutlineVariant">@color/theme_sage_outline_variant</item>
+        <item name="isLightTheme">false</item>
     </style>
 
-    <style name="LavenderMode">
-        <item name="primaryGrayBackground">@color/LavenderPrimaryGrayBackground</item>
-        <item name="primaryBlackBackground">@color/LavenderBitDarkerGrayBackground</item>
-        <item name="iconGrayBackground">@color/LavenderGrayBackground</item>
-        <item name="boxItemBackground">@color/LavenderItemBackground</item>
-        <item name="textColor">@color/LavenderTextColor</item>
-        <item name="iconColor">@color/LavenderIconColor</item>
-        <item name="white">@color/LavenderTextColor</item>
-        <item name="black">@color/LavenderPrimaryGrayBackground</item>
-        <item name="colorOnPrimary">@color/LavenderTextColor</item>
-        <item name="isLightTheme">true</item>
-        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
+    <style name="ArcticGlassMode">
+        <item name="primaryBlackBackground">@color/theme_arctic_primary_black</item>
+        <item name="primaryGrayBackground">@color/theme_arctic_primary_gray</item>
+        <item name="iconGrayBackground">@color/theme_arctic_icon_gray</item>
+        <item name="boxItemBackground">@color/theme_arctic_box_item</item>
+        <item name="textColor">@color/theme_arctic_text</item>
+        <item name="grayTextColor">@color/theme_arctic_gray_text</item>
+        <item name="white">@color/white</item>
+        <item name="black">@color/black</item>
+        <item name="colorAccent">@color/theme_arctic_accent</item>
+        <item name="colorPrimary">@color/theme_arctic_accent</item>
+        <item name="colorOnPrimary">@color/theme_arctic_primary_black</item>
+        <item name="colorSecondary">@color/theme_arctic_accent</item>
+        <item name="colorOnSecondary">@color/theme_arctic_primary_black</item>
+        <item name="colorSecondaryContainer">@color/theme_arctic_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/theme_arctic_text</item>
+        <item name="colorSurface">@color/theme_arctic_primary_gray</item>
+        <item name="colorOnSurface">@color/theme_arctic_text</item>
+        <item name="colorSurfaceVariant">@color/theme_arctic_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/theme_arctic_gray_text</item>
+        <item name="android:textColor">@color/theme_arctic_text</item>
+        <item name="android:textColorPrimary">@color/theme_arctic_text</item>
+        <item name="android:textColorSecondary">@color/theme_arctic_gray_text</item>
+        <item name="android:textColorHint">@color/theme_arctic_gray_text</item>
+        <item name="android:colorBackground">@color/theme_arctic_primary_black</item>
+        <item name="colorOutline">@color/theme_arctic_outline</item>
+        <item name="colorOutlineVariant">@color/theme_arctic_outline_variant</item>
+        <item name="isLightTheme">false</item>
     </style>
 
-    <style name="MonetMode">
-        <item name="primaryGrayBackground">@color/material_dynamic_neutral20</item>
-        <item name="primaryBlackBackground">@color/material_dynamic_neutral10</item>
-        <item name="iconGrayBackground">@color/material_dynamic_neutral20</item>
-        <item name="boxItemBackground">@color/material_dynamic_neutral20</item>
-        <item name="textColor">@color/material_dynamic_neutral90</item>
-        <item name="grayTextColor">@color/material_dynamic_neutral60</item>
-        <item name="white">@color/material_dynamic_neutral90</item>
-        <item name="black">@color/material_dynamic_neutral10</item>
-        <item name="colorOnPrimary">@color/material_on_primary_emphasis_medium</item>
+    <style name="SoftLavenderMode">
+        <item name="primaryBlackBackground">@color/theme_lavender_primary_black</item>
+        <item name="primaryGrayBackground">@color/theme_lavender_primary_gray</item>
+        <item name="iconGrayBackground">@color/theme_lavender_icon_gray</item>
+        <item name="boxItemBackground">@color/theme_lavender_box_item</item>
+        <item name="textColor">@color/theme_lavender_text</item>
+        <item name="grayTextColor">@color/theme_lavender_gray_text</item>
+        <item name="white">@color/white</item>
+        <item name="black">@color/black</item>
+        <item name="colorAccent">@color/theme_lavender_accent</item>
+        <item name="colorPrimary">@color/theme_lavender_accent</item>
+        <item name="colorOnPrimary">@color/theme_lavender_primary_black</item>
+        <item name="colorSecondary">@color/theme_lavender_accent</item>
+        <item name="colorOnSecondary">@color/theme_lavender_primary_black</item>
+        <item name="colorSecondaryContainer">@color/theme_lavender_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/theme_lavender_text</item>
+        <item name="colorSurface">@color/theme_lavender_primary_gray</item>
+        <item name="colorOnSurface">@color/theme_lavender_text</item>
+        <item name="colorSurfaceVariant">@color/theme_lavender_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/theme_lavender_gray_text</item>
+        <item name="android:textColor">@color/theme_lavender_text</item>
+        <item name="android:textColorPrimary">@color/theme_lavender_text</item>
+        <item name="android:textColorSecondary">@color/theme_lavender_gray_text</item>
+        <item name="android:textColorHint">@color/theme_lavender_gray_text</item>
+        <item name="android:colorBackground">@color/theme_lavender_primary_black</item>
+        <item name="colorOutline">@color/theme_lavender_outline</item>
+        <item name="colorOutlineVariant">@color/theme_lavender_outline_variant</item>
+        <item name="isLightTheme">false</item>
     </style>
+
+    <style name="ObsidianElectricMode">
+        <item name="primaryBlackBackground">@color/theme_obsidian_primary_black</item>
+        <item name="primaryGrayBackground">@color/theme_obsidian_primary_gray</item>
+        <item name="iconGrayBackground">@color/theme_obsidian_icon_gray</item>
+        <item name="boxItemBackground">@color/theme_obsidian_box_item</item>
+        <item name="textColor">@color/theme_obsidian_text</item>
+        <item name="grayTextColor">@color/theme_obsidian_gray_text</item>
+        <item name="white">@color/white</item>
+        <item name="black">@color/black</item>
+        <item name="colorAccent">@color/theme_obsidian_accent</item>
+        <item name="colorPrimary">@color/theme_obsidian_accent</item>
+        <item name="colorOnPrimary">@color/theme_obsidian_primary_black</item>
+        <item name="colorSecondary">@color/theme_obsidian_accent</item>
+        <item name="colorOnSecondary">@color/theme_obsidian_primary_black</item>
+        <item name="colorSecondaryContainer">@color/theme_obsidian_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/theme_obsidian_accent</item>
+        <item name="colorSurface">@color/theme_obsidian_primary_gray</item>
+        <item name="colorOnSurface">@color/theme_obsidian_text</item>
+        <item name="colorSurfaceVariant">@color/theme_obsidian_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/theme_obsidian_gray_text</item>
+        <item name="android:textColor">@color/theme_obsidian_text</item>
+        <item name="android:textColorPrimary">@color/theme_obsidian_text</item>
+        <item name="android:textColorSecondary">@color/theme_obsidian_gray_text</item>
+        <item name="android:textColorHint">@color/theme_obsidian_gray_text</item>
+        <item name="android:colorBackground">@color/theme_obsidian_primary_black</item>
+        <item name="colorOutline">@color/theme_obsidian_outline</item>
+        <item name="colorOutlineVariant">@color/theme_obsidian_outline_variant</item>
+        <item name="isLightTheme">false</item>
+    </style>
+
+    <style name="PureMonoMode">
+        <item name="primaryBlackBackground">@color/theme_puremono_primary_black</item>
+        <item name="primaryGrayBackground">@color/theme_puremono_primary_gray</item>
+        <item name="iconGrayBackground">@color/theme_puremono_icon_gray</item>
+        <item name="boxItemBackground">@color/theme_puremono_box_item</item>
+        <item name="textColor">@color/theme_puremono_text</item>
+        <item name="grayTextColor">@color/theme_puremono_gray_text</item>
+        <item name="white">@color/white</item>
+        <item name="black">@color/black</item>
+        <item name="colorAccent">@color/theme_puremono_accent</item>
+        <item name="colorPrimary">@color/theme_puremono_accent</item>
+        <item name="colorOnPrimary">@color/theme_puremono_primary_black</item>
+        <item name="colorSecondary">@color/theme_puremono_accent</item>
+        <item name="colorOnSecondary">@color/theme_puremono_primary_black</item>
+        <item name="colorSecondaryContainer">@color/theme_puremono_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/theme_puremono_text</item>
+        <item name="colorSurface">@color/theme_puremono_primary_gray</item>
+        <item name="colorOnSurface">@color/theme_puremono_text</item>
+        <item name="colorSurfaceVariant">@color/theme_puremono_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/theme_puremono_gray_text</item>
+        <item name="android:textColor">@color/theme_puremono_text</item>
+        <item name="android:textColorPrimary">@color/theme_puremono_text</item>
+        <item name="android:textColorSecondary">@color/theme_puremono_gray_text</item>
+        <item name="android:textColorHint">@color/theme_puremono_gray_text</item>
+        <item name="android:colorBackground">@color/theme_puremono_primary_black</item>
+        <item name="colorOutline">@color/theme_puremono_outline</item>
+        <item name="colorOutlineVariant">@color/theme_puremono_outline_variant</item>
+        <item name="isLightTheme">false</item>
+    </style>
+
+    <!-- Legacy Compatibility Aliases -->
+    <style name="LightMode" parent="PureMonoMode" />
+    <style name="DraculaMode" parent="MidnightMonochromeMode" />
+    <style name="SilentBlueMode" parent="ArcticGlassMode" />
+    <style name="LavenderMode" parent="SoftLavenderMode" />
+    <style name="MonetMode" parent="MidnightMonochromeMode" />
+
 
     <style name="OverlayPrimaryColorNormal">
         <item name="colorPrimary">@color/colorPrimary</item>
@@ -512,6 +669,13 @@
         <item name="fontFamily">@font/google_sans</item>
     </style>
 
+    <style name="TabNoCapsBold" parent="TextAppearance.Design.Tab">
+        <item name="textAllCaps">false</item>
+        <item name="fontFamily">@font/google_sans</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
     <style name="AppTextViewStyle" parent="android:Widget.TextView">
         <item name="android:fontFamily">@font/google_sans</item>
     </style>
@@ -627,15 +791,16 @@
         <item name="preferenceStyle">@style/CustomPreferenceStyle</item>
         <item name="switchPreferenceStyle">@style/CustomSwitchPreferenceStyle</item>
         <item name="seekBarPreferenceStyle">@style/CustomSeekBarPreferenceStyle</item>
+        <item name="preferenceCategoryStyle">@style/CustomPreferenceCategoryStyle</item>
     </style>
 
-    <!--
     <style name="CustomPreferenceCategoryStyle" parent="@style/Preference.Category.Material">
         <item name="android:layout">@layout/custom_preference_category_material</item>
-    </style>-->
+    </style>
 
     <style name="CustomSwitchPreferenceStyle" parent="@style/Preference.SwitchPreference.Material">
         <item name="android:layout">@layout/custom_preference_material</item>
+        <item name="android:widgetLayout">@layout/custom_preference_widget_switch</item>
     </style>
 
     <style name="CustomSeekBarPreferenceStyle" parent="@style/Preference.SeekBarPreference.Material">
@@ -1127,5 +1292,9 @@
         <item name="android:layout_width">@dimen/download_header_progress_size</item>
         <item name="android:layout_height">@dimen/download_header_progress_size</item>
         <item name="android:background">@color/playIconBackground</item>
+    </style>
+
+    <style name="ShapeAppearance.MobileNav.ActiveIndicator" parent="ShapeAppearance.Material3.Corner.Full">
+        <item name="cornerSize">19dp</item>
     </style>
 </resources>

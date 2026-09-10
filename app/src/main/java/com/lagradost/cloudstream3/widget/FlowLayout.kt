@@ -3,6 +3,7 @@ package com.lagradost.cloudstream3.widget
 import android.annotation.SuppressLint
 import android.content.Context
 import android.util.AttributeSet
+import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.withStyledAttributes
 import androidx.core.view.isVisible
@@ -27,10 +28,27 @@ class FlowLayout : ViewGroup {
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val realWidth = MeasureSpec.getSize(widthMeasureSpec)
-        var currentHeight = 0
         var currentWidth = 0
-        var currentChildHookPointx = 0
-        var currentChildHookPointy = 0
+        var currentY = 0
+        var currentX = 0
+
+        val rowChildren = mutableListOf<View>()
+        var rowMaxHeight = 0
+
+        fun finalizeRow() {
+            if (rowChildren.isEmpty()) return
+            for (child in rowChildren) {
+                val lp = child.layoutParams as LayoutParams
+                val childHeight = child.measuredHeight
+                lp.y = currentY + (rowMaxHeight - childHeight) / 2
+            }
+            currentWidth = max(currentWidth, currentX - if (currentX > 0) itemSpacing else 0)
+            currentY += rowMaxHeight + itemSpacing
+            rowChildren.clear()
+            rowMaxHeight = 0
+            currentX = 0
+        }
+
         val childCount = this.childCount
         for (i in 0 until childCount) {
             val child = getChildAt(i)
@@ -41,31 +59,24 @@ class FlowLayout : ViewGroup {
             val childWidth = child.measuredWidth
             val childHeight = child.measuredHeight
 
-            //check if child can be placed in the current row, else go to next line
-            if (currentChildHookPointx + childWidth - child.marginEnd - child.paddingEnd > realWidth) {
-                //new line
-                currentWidth = max(currentWidth, currentChildHookPointx)
-
-                //reset for new line
-                currentChildHookPointx = 0
-                currentChildHookPointy += childHeight + itemSpacing
+            // check if child can be placed in current row, else wrap to new line
+            if (currentX > 0 && currentX + childWidth - child.marginEnd - child.paddingEnd > realWidth) {
+                finalizeRow()
             }
 
-            currentHeight = max(currentHeight, currentChildHookPointy + childHeight)
-            val nextChildHookPointx =
-                currentChildHookPointx + childWidth + if (childWidth == 0) 0 else itemSpacing
-
-            val nextChildHookPointy = currentChildHookPointy
             val lp = child.layoutParams as LayoutParams
-            lp.x = currentChildHookPointx
-            lp.y = currentChildHookPointy
-            currentChildHookPointx = nextChildHookPointx
-            currentChildHookPointy = nextChildHookPointy
+            lp.x = currentX
+            rowChildren.add(child)
+            rowMaxHeight = max(rowMaxHeight, childHeight)
+            currentX += childWidth + itemSpacing
         }
-        currentWidth = max(currentChildHookPointx, currentWidth)
+        finalizeRow()
+
+        val finalHeight = if (currentY > 0) currentY - itemSpacing else 0
+
         setMeasuredDimension(
             resolveSize(currentWidth, widthMeasureSpec),
-            resolveSize(currentHeight, heightMeasureSpec)
+            resolveSize(finalHeight, heightMeasureSpec)
         )
     }
 

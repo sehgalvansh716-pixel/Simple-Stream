@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Pressed state -->
+    <item android:state_pressed="true">
+        <shape android:shape="oval">
+            <solid android:color="#4DFFFFFF" />
+            <stroke
+                android:width="1.2dp"
+                android:color="#80FFFFFF" />
+        </shape>
+    </item>
+
+    <!-- Focused state -->
+    <item android:state_focused="true">
+        <shape android:shape="oval">
+            <solid android:color="#40FFFFFF" />
+            <stroke
+                android:width="1.2dp"
+                android:color="#80FFFFFF" />
+        </shape>
+    </item>
+
+    <!-- Default state: Translucent Frosted Liquid Glass oval -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#261A2433" />
+            <stroke
+                android:width="1.2dp"
+                android:color="#50FFFFFF" />
+        </shape>
+    </item>
+</selector>

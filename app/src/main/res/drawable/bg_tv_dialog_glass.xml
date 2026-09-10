@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Deep atmospheric underlay for high contrast over moving background video -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="20dp" />
+            <solid android:color="#F2090C12" />
+        </shape>
+    </item>
+    <!-- Specular glass gradient with refractive light-catching border -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="20dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#26FFFFFF"
+                android:centerColor="#10FFFFFF"
+                android:endColor="#08FFFFFF" />
+            <stroke
+                android:width="1.5dp"
+                android:color="#38FFFFFF" />
+        </shape>
+    </item>
+</layer-list>

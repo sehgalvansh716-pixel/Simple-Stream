@@ -122,4 +122,96 @@
     <color name="colorTestFail">#ea596e</color>
     <color name="colorTestWarning">#FF9800</color>
     <color name="playIconBackground">#B3000000</color>
+
+    <!-- 7 Custom Themes Palettes -->
+    <!-- Midnight Monochrome -->
+    <color name="theme_midnight_primary_black">#0B0B0D</color>
+    <color name="theme_midnight_primary_gray">#151518</color>
+    <color name="theme_midnight_icon_gray">#151518</color>
+    <color name="theme_midnight_box_item">#151518</color>
+    <color name="theme_midnight_text">#F5F5F5</color>
+    <color name="theme_midnight_gray_text">#8A8A92</color>
+    <color name="theme_midnight_accent">#FFFFFF</color>
+    <color name="theme_midnight_surface_variant">#1E1E24</color>
+    <color name="theme_midnight_secondary_container">#222228</color>
+    <color name="theme_midnight_outline">#2A2A32</color>
+    <color name="theme_midnight_outline_variant">#1A1A20</color>
+
+    <!-- Warm Minimal -->
+    <color name="theme_warm_primary_black">#0E0C0A</color>
+    <color name="theme_warm_primary_gray">#181512</color>
+    <color name="theme_warm_icon_gray">#181512</color>
+    <color name="theme_warm_box_item">#181512</color>
+    <color name="theme_warm_text">#FAF5EC</color>
+    <color name="theme_warm_gray_text">#ABA294</color>
+    <color name="theme_warm_accent">#D4A373</color>
+    <color name="theme_warm_surface_variant">#221E1A</color>
+    <color name="theme_warm_secondary_container">#26211C</color>
+    <color name="theme_warm_outline">#332B24</color>
+    <color name="theme_warm_outline_variant">#1F1A16</color>
+
+    <!-- Sage Cream -->
+    <color name="theme_sage_primary_black">#0B0E0C</color>
+    <color name="theme_sage_primary_gray">#131814</color>
+    <color name="theme_sage_icon_gray">#131814</color>
+    <color name="theme_sage_box_item">#131814</color>
+    <color name="theme_sage_text">#F4F6EE</color>
+    <color name="theme_sage_gray_text">#9EA89E</color>
+    <color name="theme_sage_accent">#87B887</color>
+    <color name="theme_sage_surface_variant">#1C241E</color>
+    <color name="theme_sage_secondary_container">#1E2820</color>
+    <color name="theme_sage_outline">#27352B</color>
+    <color name="theme_sage_outline_variant">#18221B</color>
+
+    <!-- Arctic Glass -->
+    <color name="theme_arctic_primary_black">#080B10</color>
+    <color name="theme_arctic_primary_gray">#101520</color>
+    <color name="theme_arctic_icon_gray">#101520</color>
+    <color name="theme_arctic_box_item">#101520</color>
+    <color name="theme_arctic_text">#F0F5FF</color>
+    <color name="theme_arctic_gray_text">#8EA2BA</color>
+    <color name="theme_arctic_accent">#7C9FFF</color>
+    <color name="theme_arctic_surface_variant">#182030</color>
+    <color name="theme_arctic_secondary_container">#1A2438</color>
+    <color name="theme_arctic_outline">#24324D</color>
+    <color name="theme_arctic_outline_variant">#141C2B</color>
+
+    <!-- Soft Lavender -->
+    <color name="theme_lavender_primary_black">#0C0A12</color>
+    <color name="theme_lavender_primary_gray">#15121D</color>
+    <color name="theme_lavender_icon_gray">#15121D</color>
+    <color name="theme_lavender_box_item">#15121D</color>
+    <color name="theme_lavender_text">#F5F0FB</color>
+    <color name="theme_lavender_gray_text">#9E92B0</color>
+    <color name="theme_lavender_accent">#BCA6E8</color>
+    <color name="theme_lavender_surface_variant">#1F1A2A</color>
+    <color name="theme_lavender_secondary_container">#231C32</color>
+    <color name="theme_lavender_outline">#302642</color>
+    <color name="theme_lavender_outline_variant">#1B1526</color>
+
+    <!-- Obsidian Electric -->
+    <color name="theme_obsidian_primary_black">#090A0C</color>
+    <color name="theme_obsidian_primary_gray">#111318</color>
+    <color name="theme_obsidian_icon_gray">#111318</color>
+    <color name="theme_obsidian_box_item">#111318</color>
+    <color name="theme_obsidian_text">#F2F3F5</color>
+    <color name="theme_obsidian_gray_text">#777C87</color>
+    <color name="theme_obsidian_accent">#7CFFB2</color>
+    <color name="theme_obsidian_surface_variant">#1A1D24</color>
+    <color name="theme_obsidian_secondary_container">#1A2420</color>
+    <color name="theme_obsidian_outline">#262B35</color>
+    <color name="theme_obsidian_outline_variant">#161920</color>
+
+    <!-- Pure Mono -->
+    <color name="theme_puremono_primary_black">#000000</color>
+    <color name="theme_puremono_primary_gray">#121212</color>
+    <color name="theme_puremono_icon_gray">#121212</color>
+    <color name="theme_puremono_box_item">#121212</color>
+    <color name="theme_puremono_text">#FFFFFF</color>
+    <color name="theme_puremono_gray_text">#A0A0A0</color>
+    <color name="theme_puremono_accent">#FFFFFF</color>
+    <color name="theme_puremono_surface_variant">#1C1C1C</color>
+    <color name="theme_puremono_secondary_container">#242424</color>
+    <color name="theme_puremono_outline">#303030</color>
+    <color name="theme_puremono_outline_variant">#1A1A1A</color>
 </resources>

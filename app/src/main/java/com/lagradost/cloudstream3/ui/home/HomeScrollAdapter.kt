@@ -12,6 +12,7 @@ import com.lagradost.cloudstream3.ui.NoStateAdapter
 import com.lagradost.cloudstream3.ui.ViewHolderState
 import com.lagradost.cloudstream3.ui.result.ResultFragment.bindLogo
 import com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR
+import com.lagradost.cloudstream3.ui.settings.Globals.PHONE
 import com.lagradost.cloudstream3.ui.settings.Globals.TV
 import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
 import com.lagradost.cloudstream3.utils.AppContextUtils.html
@@ -54,28 +55,25 @@ class HomeScrollAdapter(
     ) {
         val binding = holder.view
 
-        val posterUrl = item.backgroundPosterUrl ?: item.posterUrl
+        val posterUrl = if (isLayout(PHONE)) {
+            item.posterUrl ?: item.backgroundPosterUrl
+        } else {
+            item.backgroundPosterUrl ?: item.posterUrl
+        }
 
         when (binding) {
             is HomeScrollViewBinding -> {
-                binding.homeScrollPreview.loadImage(posterUrl, item.posterHeaders)
-                binding.homeScrollPreviewTags.apply {
-                    text = item.tags?.joinToString(" • ") ?: ""
-                    isGone = item.tags.isNullOrEmpty()
-                    maxLines = 2
+                binding.homeScrollPreview.isFocusable = false
+                binding.homeScrollPreview.enableBottomFade = true
+                binding.homeScrollPreview.setOnClickListener { view ->
+                    callback.invoke(view ?: return@setOnClickListener, position, item)
                 }
-                binding.homeScrollPreviewTitle.text = item.name.html()
-
-                bindLogo(
-                    url = item.logoUrl,
-                    headers = item.posterHeaders,
-                    titleView = binding.homeScrollPreviewTitle,
-                    logoView = binding.homePreviewLogo
-                )
+                binding.homeScrollPreview.loadImage(posterUrl, item.posterHeaders)
             }
 
             is HomeScrollViewTvBinding -> {
                 binding.homeScrollPreview.isFocusable = false
+                binding.homeScrollPreview.enableBottomFade = true
                 binding.homeScrollPreview.setOnClickListener { view ->
                     callback.invoke(view ?: return@setOnClickListener, position, item)
                 }

@@ -6,7 +6,7 @@
     style="@style/DarkFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/primaryBlackBackground"
+    android:background="@android:color/transparent"
     android:clickable="true"
     android:focusable="true">
 
@@ -136,7 +136,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="?attr/primaryBlackBackground"
+                android:background="@android:color/transparent"
                 android:orientation="vertical">
 
                 <!--
@@ -269,12 +269,12 @@
                 <FrameLayout
                     android:id="@+id/result_top_holder"
                     android:layout_width="match_parent"
-                    android:layout_height="250dp">
+                    android:layout_height="480dp">
 
                     <FrameLayout
                         android:id="@+id/result_smallscreen_holder"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
                         android:descendantFocusability="blocksDescendants">
 
                         <include
@@ -287,31 +287,70 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent">
 
-                        <ImageView
+                        <com.lagradost.cloudstream3.utils.PercentageCropImageView
                             android:id="@+id/result_poster_background"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:scaleType="centerCrop" />
+                            android:scaleType="matrix"
+                            app:cropYCenterOffsetPct="0.20"
+                            app:enableBottomFade="true" />
 
+                        <!-- Ambient Looping Trailer Hardware-Accelerated TextureView -->
+                        <TextureView
+                            android:id="@+id/result_trailer_video_view"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:alpha="0.0" />
+
+                        <!-- Atmospheric multi-stop bottom gradient dissolve into obsidian canvas #080B10 -->
                         <View
                             android:layout_width="match_parent"
-                            android:layout_height="100dp"
-                            android:layout_gravity="bottom"
-                            android:background="@drawable/background_shadow" />
+                            android:layout_height="match_parent"
+                            android:background="@drawable/bg_tv_result_gradient" />
 
                         <ImageView
                             android:id="@+id/background_poster_watermark_badge"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:maxWidth="220dp"
-                            android:maxHeight="64dp"
+                            android:maxWidth="260dp"
+                            android:maxHeight="76dp"
                             android:layout_gravity="bottom|start"
                             android:layout_marginStart="@dimen/result_padding"
-                            android:layout_marginBottom="12dp"
+                            android:layout_marginBottom="16dp"
                             android:paddingBottom="4dp"
                             android:adjustViewBounds="true"
                             android:scaleType="fitStart"
                             android:contentDescription="@null" />
+
+                        <!-- Floating Frosted Glass Toggle Button to switch between Trailer and Poster -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/result_trailer_toggle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_gravity="bottom|end"
+                            android:layout_marginEnd="@dimen/result_padding"
+                            android:layout_marginBottom="16dp"
+                            android:background="@drawable/bg_tv_filter_pill"
+                            app:backgroundTint="@null"
+                            app:strokeWidth="0dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            app:cornerRadius="18dp"
+                            android:stateListAnimator="@null"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:text="Poster"
+                            android:textColor="#E9EAEE"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:fontFamily="@font/google_sans"
+                            android:textAllCaps="false"
+                            app:icon="@drawable/ic_baseline_image_24"
+                            app:iconTint="#E9EAEE"
+                            app:iconSize="16dp"
+                            app:iconGravity="textStart"
+                            android:visibility="gone"
+                            tools:visibility="visible" />
 
                     </FrameLayout>
                 </FrameLayout>
@@ -328,8 +367,8 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:layout_marginBottom="15dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="12dp"
                         android:orientation="horizontal"
                         android:visibility="visible">
 
@@ -361,86 +400,145 @@
                                 android:id="@+id/result_title"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginBottom="5dp"
+                                android:layout_marginBottom="8dp"
                                 android:maxLines="2"
-                                android:textColor="?attr/textColor"
-                                android:textSize="20sp"
+                                android:textColor="#FFFFFF"
+                                android:textSize="24sp"
                                 android:textStyle="bold"
+                                android:fontFamily="@font/google_sans"
+                                android:letterSpacing="0.01"
+                                android:shadowColor="#99000000"
+                                android:shadowDx="0"
+                                android:shadowDy="2"
+                                android:shadowRadius="6"
                                 tools:text="The Perfect Run The Perfect Run" />
 
                             <com.lagradost.cloudstream3.widget.FlowLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                app:itemSpacing="10dp">
+                                app:itemSpacing="12dp"
+                                app:lineSpacing="6dp">
 
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/result_meta_site"
-                                    style="@style/SmallBlackButton"
+                                <TextView
+                                    android:id="@+id/result_meta_rating"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
                                     android:layout_gravity="center_vertical"
-                                    tools:text="Gogoanime" />
+                                    android:gravity="center_vertical"
+                                    android:textColor="#FFD700"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold"
+                                    android:fontFamily="@font/google_sans"
+                                    app:drawableStartCompat="@drawable/ic_baseline_star_24"
+                                    app:drawableTint="#FFD700"
+                                    android:drawablePadding="3dp"
+                                    tools:text="8.5" />
 
-                                <com.google.android.material.button.MaterialButton
+                                <TextView
+                                    android:id="@+id/result_meta_year"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center_vertical"
+                                    android:gravity="center_vertical"
+                                    android:textColor="#E0E0E0"
+                                    android:textSize="13sp"
+                                    android:fontFamily="@font/google_sans"
+                                    app:drawableStartCompat="@drawable/ic_baseline_calendar_today_24"
+                                    app:drawableTint="#B3FFFFFF"
+                                    android:drawablePadding="4dp"
+                                    tools:text="2022" />
+
+                                <TextView
                                     android:id="@+id/result_meta_content_rating"
-                                    style="@style/SmallBlackButton"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@drawable/bg_content_rating_badge"
+                                    android:textColor="#E0E0E0"
+                                    android:textSize="11.5sp"
+                                    android:textStyle="bold"
+                                    android:fontFamily="@font/google_sans"
+                                    android:includeFontPadding="false"
+                                    android:paddingStart="7dp"
+                                    android:paddingEnd="7dp"
+                                    android:paddingTop="2dp"
+                                    android:paddingBottom="2dp"
+                                    android:gravity="center"
                                     android:layout_gravity="center_vertical"
                                     tools:text="PG-13" />
 
                                 <TextView
                                     android:id="@+id/result_meta_type"
-                                    style="@style/ResultInfoText"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center_vertical"
+                                    android:gravity="center_vertical"
+                                    android:textColor="#D1D5DB"
+                                    android:textSize="13sp"
+                                    android:fontFamily="@font/google_sans"
                                     tools:text="Movie" />
 
                                 <TextView
-                                    android:id="@+id/result_meta_year"
-                                    style="@style/ResultInfoText"
-                                    tools:text="2022" />
-
-                                <TextView
-                                    android:id="@+id/result_meta_rating"
-                                    style="@style/ResultInfoText"
-                                    tools:text="Rated: 8.5/10.0" />
-
-                                <TextView
                                     android:id="@+id/result_meta_status"
-                                    style="@style/ResultInfoText"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center_vertical"
+                                    android:gravity="center_vertical"
+                                    android:textColor="#D1D5DB"
+                                    android:textSize="13sp"
+                                    android:fontFamily="@font/google_sans"
                                     tools:text="Ongoing" />
 
                                 <TextView
                                     android:id="@+id/result_meta_duration"
-                                    style="@style/ResultInfoText"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center_vertical"
+                                    android:gravity="center_vertical"
+                                    android:textColor="#D1D5DB"
+                                    android:textSize="13sp"
+                                    android:fontFamily="@font/google_sans"
                                     tools:text="121min" />
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/result_meta_site"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@android:color/transparent"
+                                    app:backgroundTint="@null"
+                                    android:textColor="#818CF8"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold"
+                                    android:fontFamily="@font/google_sans"
+                                    android:paddingStart="0dp"
+                                    android:paddingEnd="0dp"
+                                    android:paddingTop="0dp"
+                                    android:paddingBottom="0dp"
+                                    android:insetTop="0dp"
+                                    android:insetBottom="0dp"
+                                    android:insetLeft="0dp"
+                                    android:insetRight="0dp"
+                                    android:minWidth="0dp"
+                                    android:minHeight="0dp"
+                                    app:strokeWidth="0dp"
+                                    android:layout_gravity="center_vertical"
+                                    tools:text="Gogoanime" />
                             </com.lagradost.cloudstream3.widget.FlowLayout>
 
-                            <!--
-                            This has half margin and half padding to make TV focus on description look better.
-                            The focus outline now settles between the poster and text.
-                            -->
-                            <FrameLayout
+                            <TextView
+                                android:id="@+id/result_description"
                                 android:layout_width="match_parent"
-                                android:layout_height="match_parent">
-
-                                <TextView
-                                    android:id="@+id/result_description"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:ellipsize="end"
-                                    android:foreground="@drawable/outline_drawable"
-                                    android:maxLines="10"
-                                    android:nextFocusUp="@id/result_back"
-                                    android:nextFocusDown="@id/result_bookmark_Button"
-                                    android:paddingTop="5dp"
-                                    android:textColor="?attr/textColor"
-                                    android:textSize="15sp"
-                                    tools:text="Ryan Quicksave Romano is an eccentric adventurer with a strange power: he can create a save-point in time and redo his life whenever he dies. Arriving in New Rome, the glitzy capital of sin of a rebuilding Europe, he finds the city torn between mega-corporations, sponsored heroes, superpowered criminals, and true monsters. It's a time of chaos, where potions can grant the power to rule the world and dangers lurk everywhere. " />
-
-                                <ImageView
-                                    android:layout_width="match_parent"
-                                    android:layout_height="30dp"
-                                    android:layout_gravity="bottom"
-                                    android:src="@drawable/background_shadow"
-                                    android:visibility="gone"
-                                    tools:ignore="ContentDescription" />
-                            </FrameLayout>
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:maxLines="4"
+                                android:nextFocusUp="@id/result_back"
+                                android:nextFocusDown="@id/result_bookmark_Button"
+                                android:paddingTop="8dp"
+                                android:paddingBottom="8dp"
+                                android:textColor="#B3E9EAEE"
+                                android:textSize="13.5sp"
+                                android:lineSpacingExtra="3dp"
+                                android:fontFamily="@font/google_sans"
+                                tools:text="Ryan Quicksave Romano is an eccentric adventurer with a strange power: he can create a save-point in time and redo his life whenever he dies. Arriving in New Rome, the glitzy capital of sin of a rebuilding Europe, he finds the city torn between mega-corporations, sponsored heroes, superpowered criminals, and true monsters. It's a time of chaos, where potions can grant the power to rule the world and dangers lurk everywhere. " />
                         </LinearLayout>
                     </LinearLayout>
 
@@ -473,11 +571,12 @@
                         android:id="@+id/result_cast_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="5dp"
+                        android:layout_marginBottom="6dp"
                         android:ellipsize="end"
                         android:maxLines="2"
-                        android:textColor="?attr/grayTextColor"
-                        android:textSize="15sp"
+                        android:fontFamily="@font/google_sans"
+                        android:textColor="#B3E9EAEE"
+                        android:textSize="13.5sp"
                         tools:text="Cast: Joe Ligma" />
 
                     <androidx.recyclerview.widget.RecyclerView
@@ -573,310 +672,424 @@
                             android:layout_width="match_parent"
                             android:layout_gravity="center_vertical"
                             android:layout_marginStart="0dp"
-
                             android:layout_marginBottom="10dp"
                             android:text="@string/add_sync"
                             android:visibility="gone"
                             app:icon="@drawable/ic_baseline_add_24" />
 
-                        <FrameLayout
-                            android:id="@+id/result_resume_progress_holder"
+                        <!-- Action Buttons Row: [ ▶ Play / Resume ]  [ 🔖 Save ]  [ ⤓ Download ] -->
+                        <LinearLayout
+                            android:id="@+id/result_actions_row"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:paddingVertical="5dp"
-                            android:visibility="gone"
-                            tools:visibility="visible">
+                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="14dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
 
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/result_resume_series_button"
-                                style="@style/WhiteButton"
-                                android:layout_width="match_parent"
-                                android:layout_margin="0dp"
-                                android:visibility="visible" />
+                            <!-- Primary Action Button: Play / Resume (Takes remaining width) -->
+                            <FrameLayout
+                                android:id="@+id/result_play_container"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1">
 
-                            <LinearLayout
-                                android:id="@+id/progress_group"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:gravity="center"
-                                android:orientation="horizontal">
-
+                                <!-- Series Resume with Progress -->
                                 <FrameLayout
-                                    android:id="@+id/watch_progress_container"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_gravity="center">
+                                    android:id="@+id/result_resume_progress_holder"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="48dp"
+                                    android:visibility="gone"
+                                    tools:visibility="visible">
 
-                                    <ImageView
-                                        android:id="@+id/episode_play_icon"
-                                        style="@style/ContinueWatchingPlayUnderlayProgress"
-                                        app:tint="?attr/black" />
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/result_resume_series_button"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="48dp"
+                                        android:layout_margin="0dp"
+                                        android:background="@drawable/bg_pill_white"
+                                        app:backgroundTint="@null"
+                                        android:foreground="@null"
+                                        android:insetTop="0dp"
+                                        android:insetBottom="0dp"
+                                        android:stateListAnimator="@null"
+                                        app:cornerRadius="24dp"
+                                        android:visibility="visible" />
 
-                                    <com.google.android.material.progressindicator.CircularProgressIndicator
-                                        android:id="@+id/result_resume_series_progress"
-                                        style="@style/ContinueWatchingCircularProgress"
-                                        app:indicatorColor="?attr/iconGrayBackground"
-                                        app:trackColor="@color/skipOpTransparent"
-                                        tools:progress="50" />
+                                    <LinearLayout
+                                        android:id="@+id/progress_group"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="48dp"
+                                        android:gravity="center_vertical"
+                                        android:paddingStart="6dp"
+                                        android:paddingEnd="12dp"
+                                        android:orientation="horizontal">
+
+                                        <!-- Episode Thumbnail Card -->
+                                        <androidx.cardview.widget.CardView
+                                            android:id="@+id/result_resume_thumbnail_card"
+                                            android:layout_width="48dp"
+                                            android:layout_height="36dp"
+                                            app:cardCornerRadius="8dp"
+                                            app:cardElevation="0dp"
+                                            android:layout_gravity="center_vertical"
+                                            android:visibility="gone"
+                                            tools:visibility="visible">
+
+                                            <ImageView
+                                                android:id="@+id/result_resume_thumbnail"
+                                                android:layout_width="match_parent"
+                                                android:layout_height="match_parent"
+                                                android:scaleType="centerCrop"
+                                                android:contentDescription="@null"
+                                                tools:src="@drawable/example_poster" />
+
+                                            <View
+                                                android:layout_width="match_parent"
+                                                android:layout_height="match_parent"
+                                                android:background="#26000000" />
+                                        </androidx.cardview.widget.CardView>
+
+                                        <FrameLayout
+                                            android:id="@+id/watch_progress_container"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:layout_gravity="center_vertical"
+                                            android:layout_marginStart="4dp">
+
+                                            <ImageView
+                                                android:id="@+id/episode_play_icon"
+                                                style="@style/ContinueWatchingPlayUnderlayProgress"
+                                                app:tint="#0B0C10" />
+
+                                            <com.google.android.material.progressindicator.CircularProgressIndicator
+                                                android:id="@+id/result_resume_series_progress"
+                                                style="@style/ContinueWatchingCircularProgress"
+                                                app:indicatorColor="#0B0C10"
+                                                app:trackColor="#26000000"
+                                                tools:progress="50" />
+                                        </FrameLayout>
+
+                                        <LinearLayout
+                                            android:layout_width="0dp"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            android:orientation="vertical"
+                                            android:layout_marginStart="8dp"
+                                            android:gravity="center_vertical">
+
+                                            <TextView
+                                                android:id="@+id/result_resume_series_title"
+                                                android:layout_width="wrap_content"
+                                                android:layout_height="wrap_content"
+                                                android:clickable="false"
+                                                android:ellipsize="end"
+                                                android:focusable="false"
+                                                android:maxLines="1"
+                                                android:textColor="#0B0C10"
+                                                android:textSize="13.5sp"
+                                                android:textStyle="bold"
+                                                android:fontFamily="@font/google_sans"
+                                                android:visibility="visible"
+                                                tools:text="S1E1 Episode 1" />
+
+                                            <TextView
+                                                android:id="@+id/result_resume_series_progress_text"
+                                                android:layout_width="wrap_content"
+                                                android:layout_height="wrap_content"
+                                                android:clickable="false"
+                                                android:ellipsize="end"
+                                                android:focusable="false"
+                                                android:maxLines="1"
+                                                android:textColor="#800B0C10"
+                                                android:textSize="11sp"
+                                                android:fontFamily="@font/google_sans"
+                                                android:visibility="gone"
+                                                tools:text="69m remaining"
+                                                tools:visibility="visible" />
+                                        </LinearLayout>
+                                    </LinearLayout>
                                 </FrameLayout>
 
-                                <TextView
-                                    android:id="@+id/result_resume_series_title"
-                                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                                    android:layout_width="wrap_content"
+                                <!-- Series Next Button -->
+                                <LinearLayout
+                                    android:id="@+id/result_resume_parent"
+                                    android:layout_width="match_parent"
                                     android:layout_height="match_parent"
-                                    android:clickable="false"
-                                    android:ellipsize="end"
-                                    android:focusable="false"
-                                    android:gravity="center_vertical"
-                                    android:maxLines="1"
-                                    android:paddingStart="5dp"
-                                    android:textAllCaps="false"
-                                    android:textColor="?attr/iconGrayBackground"
-                                    android:textSize="15sp"
-                                    android:textStyle="bold"
-                                    android:visibility="visible"
-                                    tools:ignore="RtlSymmetry"
-                                    tools:text="S1E1 Episode 1"
-                                    tools:visibility="visible" />
-
-                                <TextView
-                                    android:id="@+id/result_resume_series_progress_text"
-                                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="match_parent"
-                                    android:clickable="false"
-                                    android:focusable="false"
-                                    android:gravity="center"
-                                    android:maxLines="1"
-                                    android:paddingStart="5dp"
-                                    android:textAllCaps="false"
-                                    android:textColor="?attr/iconGrayBackground"
-                                    android:textSize="15sp"
-                                    android:textStyle="bold"
+                                    android:orientation="vertical"
                                     android:visibility="gone"
-                                    tools:ignore="RtlSymmetry"
-                                    tools:text="69m remaining"
-                                    tools:visibility="visible" />
-                            </LinearLayout>
-                        </FrameLayout>
+                                    tools:visibility="visible">
 
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/result_next_series_button"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="48dp"
+                                        android:background="@drawable/bg_pill_white"
+                                        app:backgroundTint="@null"
+                                        android:foreground="@null"
+                                        android:insetTop="0dp"
+                                        android:insetBottom="0dp"
+                                        android:stateListAnimator="@null"
+                                        app:cornerRadius="24dp"
+                                        android:textColor="#0B0C10"
+                                        android:textSize="14sp"
+                                        android:textStyle="bold"
+                                        android:fontFamily="@font/google_sans"
+                                        app:icon="@drawable/ic_baseline_play_arrow_24"
+                                        app:iconTint="#0B0C10"
+                                        app:iconGravity="textStart"
+                                        app:iconSize="22dp"
+                                        android:ellipsize="end"
+                                        android:maxLines="1"
+                                        android:text="Play"
+                                        android:visibility="gone"
+                                        tools:visibility="visible" />
+                                </LinearLayout>
+
+                                <!-- Movie Play Button -->
+                                <LinearLayout
+                                    android:id="@+id/result_play_parent"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:orientation="horizontal">
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/result_play_movie"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="48dp"
+                                        android:background="@drawable/bg_pill_white"
+                                        app:backgroundTint="@null"
+                                        android:foreground="@null"
+                                        android:insetTop="0dp"
+                                        android:insetBottom="0dp"
+                                        android:stateListAnimator="@null"
+                                        app:cornerRadius="24dp"
+                                        android:textColor="#0B0C10"
+                                        android:textSize="14sp"
+                                        android:textStyle="bold"
+                                        android:fontFamily="@font/google_sans"
+                                        app:icon="@drawable/ic_baseline_play_arrow_24"
+                                        app:iconTint="#0B0C10"
+                                        app:iconGravity="textStart"
+                                        app:iconSize="22dp"
+                                        android:text="Play"
+                                        android:visibility="visible" />
+                                </LinearLayout>
+                            </FrameLayout>
+
+                            <!-- Save / Bookmark Button (Frosted Glass Pill) -->
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/result_bookmark_button"
+                                android:layout_width="wrap_content"
+                                android:layout_height="48dp"
+                                android:layout_marginStart="8dp"
+                                android:background="@drawable/bg_tv_filter_pill"
+                                app:backgroundTint="@null"
+                                app:strokeWidth="0dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                app:cornerRadius="24dp"
+                                android:stateListAnimator="@null"
+                                android:paddingStart="12dp"
+                                android:paddingEnd="12dp"
+                                android:textColor="#E9EAEE"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                android:fontFamily="@font/google_sans"
+                                android:textAllCaps="false"
+                                app:icon="@drawable/ic_baseline_bookmark_24"
+                                app:iconTint="#E9EAEE"
+                                app:iconGravity="textStart"
+                                app:iconSize="18dp"
+                                android:text="Save"
+                                android:visibility="visible" />
+
+                            <!-- Movie Download Button (Frosted Glass Pill) -->
+                            <LinearLayout
+                                android:id="@+id/result_movie_parent"
+                                android:layout_width="wrap_content"
+                                android:layout_height="48dp"
+                                android:layout_marginStart="8dp"
+                                android:orientation="horizontal"
+                                tools:visibility="visible">
+
+                                <com.lagradost.cloudstream3.ui.download.button.DownloadButton
+                                    android:id="@+id/download_button"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="48dp"
+                                    app:download_layout="@layout/download_button_layout" />
+                            </LinearLayout>
+
+                        </LinearLayout>
+
+                        <!-- Redesigned Episodes Section Header: Left "Episodes" text | Right Season Selector -->
                         <LinearLayout
-                            android:id="@+id/result_resume_parent"
+                            android:id="@+id/result_episodes_header_row"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:visibility="gone"
-                            tools:visibility="visible">
+                            android:layout_marginTop="12dp"
+                            android:layout_marginBottom="8dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
 
+                            <!-- Left: Simple, clean text "Episodes" -->
+                            <TextView
+                                android:id="@+id/result_episodes_title"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="@font/google_sans"
+                                android:text="Episodes"
+                                android:textColor="#FFFFFF"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/result_episodes_text"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:fontFamily="@font/google_sans"
+                                android:textColor="#80E9EAEE"
+                                android:textSize="13sp"
+                                tools:text="8 Episodes" />
+
+                            <!-- Spacer pushes Season Selector to the right -->
+                            <View
+                                android:layout_width="0dp"
+                                android:layout_height="1dp"
+                                android:layout_weight="1" />
+
+                            <!-- Right: Season Selector -->
                             <com.google.android.material.button.MaterialButton
-                                android:id="@+id/result_next_series_button"
-                                style="@style/WhiteButton"
-                                android:layout_width="match_parent"
-                                android:layout_gravity="center_vertical"
-                                android:layout_marginVertical="5dp"
-                                android:layout_marginStart="0dp"
-                                android:layout_marginEnd="0dp"
-                                android:ellipsize="end"
-                                android:maxLines="1"
-                                android:nextFocusUp="@id/result_bookmark_Button"
-                                android:nextFocusDown="@id/result_download_movie"
-                                android:text="S1E2 Episode 2"
+                                android:id="@+id/result_season_button"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:background="@drawable/bg_tv_filter_pill"
+                                app:backgroundTint="@null"
+                                app:strokeWidth="0dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                app:cornerRadius="18dp"
+                                android:fontFamily="@font/google_sans"
+                                android:textColor="#E9EAEE"
+                                android:textSize="12.5sp"
+                                android:textStyle="bold"
+                                android:textAllCaps="false"
+                                android:drawableEnd="@drawable/ic_baseline_keyboard_arrow_down_24"
+                                app:drawableTint="#80FFFFFF"
+                                android:drawablePadding="4dp"
+                                android:paddingStart="12dp"
+                                android:paddingEnd="10dp"
+                                android:stateListAnimator="@null"
                                 android:visibility="gone"
-                                app:icon="@drawable/cast_ic_mini_controller_skip_next"
+                                tools:text="Season 1"
                                 tools:visibility="visible" />
                         </LinearLayout>
 
-                        <LinearLayout
-                            android:id="@+id/result_movie_parent"
+                        <!-- Sub-controls: Range, Dub, Sort, Batch Download in horizontal scroll to prevent overflow -->
+                        <HorizontalScrollView
+                            android:id="@+id/result_episodes_controls_scroll"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            tools:visibility="visible">
+                            android:layout_marginBottom="8dp"
+                            android:scrollbars="none"
+                            android:clipToPadding="false">
 
                             <LinearLayout
-                                android:id="@+id/result_play_parent"
-                                android:layout_width="match_parent"
+                                android:id="@+id/result_episodes_controls"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginVertical="5dp">
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/result_play_movie"
-                                    style="@style/WhiteButton"
-                                    android:layout_width="match_parent"
-                                    android:layout_gravity="center_vertical"
-                                    android:layout_marginStart="0dp"
-                                    android:layout_marginEnd="0dp"
-                                    android:nextFocusUp="@id/result_bookmark_Button"
-                                    android:nextFocusDown="@id/result_download_movie"
-                                    android:text="@string/play_movie_button"
-                                    android:visibility="visible"
-                                    app:icon="@drawable/ic_baseline_play_arrow_24">
-
-                                    <requestFocus />
-
-                                </com.google.android.material.button.MaterialButton>
-                            </LinearLayout>
-                            <!--<com.google.android.material.button.MaterialButton
-                                    android:nextFocusUp="@id/result_play_movie"
-                                    android:nextFocusDown="@id/result_season_button"
-                                    android:layout_marginBottom="10dp"
-
-                                    android:id="@+id/result_download_movie"
-                                    style="@style/BlackButton"
-                                    android:layout_marginStart="0dp"
-                                    android:layout_marginEnd="0dp"
-                                    android:visibility="visible"
-                                    android:layout_gravity="center_vertical"
-                                    tools:text="Downloading"
-                                    tools:icon="@drawable/netflix_download"
-
-                                    android:clickable="true"
-                                    android:focusable="true"
-                                    android:layout_width="match_parent" />-->
-
-                            <com.lagradost.cloudstream3.ui.download.button.DownloadButton
-                                android:id="@+id/download_button"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="5dp"
-                                app:download_layout="@layout/download_button_layout" />
-
-                            <!--<androidx.core.widget.ContentLoadingProgressBar
-                                    android:layout_width="match_parent"
-                                    android:layout_height="20dp"
-                                    tools:progress="50"
-                                    android:id="@+id/result_movie_progress_downloaded"
-                                    android:indeterminate="false"
-                                    style="?android:attr/progressBarStyleHorizontal"
-                                    android:progressBackgroundTint="?attr/colorPrimary"
-                                    android:max="100"
-                                    android:layout_gravity="end|center_vertical"
-                                    android:progress="0"
-                                    android:visibility="gone"
-                                    tools:visibility="visible" />
-    -->
-                            <!--  <TextView
-                                      android:id="@+id/result_movie_text_progress"
-                                      android:layout_gravity="center_vertical"
-                                      android:gravity="center_vertical"
-                                      tools:text="128MB / 237MB"
-                                      android:textColor="?attr/grayTextColor"
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="match_parent" />-->
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical">
-
-                            <com.lagradost.cloudstream3.widget.FlowLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginBottom="10dp"
                                 android:gravity="center_vertical"
-                                android:orientation="horizontal"
-                                app:itemSpacing="10dp">
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/result_season_button"
-                                    style="@style/MultiSelectButton"
-                                    android:layout_gravity="center_vertical"
-                                    android:layout_marginTop="10dp"
-                                    android:layout_marginBottom="10dp"
-                                    android:drawableEnd="@drawable/ic_baseline_keyboard_arrow_down_24"
-                                    android:nextFocusLeft="@id/result_episode_select"
-                                    android:nextFocusRight="@id/result_episode_select"
-                                    android:nextFocusUp="@id/result_description"
-                                    android:nextFocusDown="@id/result_episodes"
-                                    android:paddingStart="10dp"
-                                    android:paddingEnd="5dp"
-                                    android:visibility="gone"
-                                    tools:text="Season 1"
-                                    tools:visibility="visible" />
+                                android:orientation="horizontal">
 
                                 <com.google.android.material.button.MaterialButton
                                     android:id="@+id/result_episode_select"
-                                    style="@style/MultiSelectButton"
-                                    android:layout_gravity="center_vertical"
-                                    android:layout_marginTop="10dp"
-                                    android:layout_marginBottom="10dp"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="32dp"
+                                    android:background="@drawable/bg_tv_filter_pill"
+                                    app:backgroundTint="@null"
+                                    app:strokeWidth="0dp"
+                                    android:insetTop="0dp"
+                                    android:insetBottom="0dp"
+                                    app:cornerRadius="16dp"
+                                    android:fontFamily="@font/google_sans"
+                                    android:textColor="#E9EAEE"
+                                    android:textSize="12sp"
+                                    android:textAllCaps="false"
                                     android:drawableEnd="@drawable/ic_baseline_keyboard_arrow_down_24"
-                                    android:nextFocusLeft="@id/result_season_button"
-                                    android:nextFocusRight="@id/result_season_button"
-                                    android:nextFocusUp="@id/result_description"
-                                    android:nextFocusDown="@id/result_episodes"
+                                    app:drawableTint="#80FFFFFF"
+                                    android:drawablePadding="4dp"
                                     android:paddingStart="10dp"
-                                    android:paddingEnd="5dp"
+                                    android:paddingEnd="8dp"
+                                    android:stateListAnimator="@null"
                                     android:visibility="gone"
-                                    tools:text="50-100"
+                                    tools:text="1-50"
                                     tools:visibility="visible" />
 
                                 <com.google.android.material.button.MaterialButton
                                     android:id="@+id/result_dub_select"
-                                    style="@style/MultiSelectButton"
-                                    android:layout_gravity="center_vertical"
-                                    android:layout_marginTop="10dp"
-                                    android:layout_marginBottom="10dp"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="32dp"
+                                    android:layout_marginStart="6dp"
+                                    android:background="@drawable/bg_tv_filter_pill"
+                                    app:backgroundTint="@null"
+                                    app:strokeWidth="0dp"
+                                    android:insetTop="0dp"
+                                    android:insetBottom="0dp"
+                                    app:cornerRadius="16dp"
+                                    android:fontFamily="@font/google_sans"
+                                    android:textColor="#E9EAEE"
+                                    android:textSize="12sp"
+                                    android:textAllCaps="false"
                                     android:drawableEnd="@drawable/ic_baseline_keyboard_arrow_down_24"
-                                    android:nextFocusLeft="@id/result_season_button"
-                                    android:nextFocusRight="@id/result_season_button"
-                                    android:nextFocusUp="@id/result_description"
-                                    android:nextFocusDown="@id/result_episodes"
+                                    app:drawableTint="#80FFFFFF"
+                                    android:drawablePadding="4dp"
                                     android:paddingStart="10dp"
-                                    android:paddingEnd="5dp"
+                                    android:paddingEnd="8dp"
+                                    android:stateListAnimator="@null"
                                     android:visibility="gone"
-                                    tools:text="Dubbed1"
+                                    tools:text="Dubbed"
                                     tools:visibility="visible" />
-
 
                                 <com.google.android.material.button.MaterialButton
                                     android:id="@+id/result_sort_button"
-                                    style="@style/MultiSelectButton"
-                                    android:layout_gravity="center_vertical"
-                                    android:layout_marginTop="10dp"
-                                    android:layout_marginBottom="10dp"
-                                    android:nextFocusLeft="@id/result_dub_select"
-                                    android:nextFocusUp="@id/result_description"
-                                    android:nextFocusDown="@id/result_episodes"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="32dp"
+                                    android:layout_marginStart="6dp"
+                                    android:background="@drawable/bg_tv_filter_pill"
+                                    app:backgroundTint="@null"
+                                    app:strokeWidth="0dp"
+                                    android:insetTop="0dp"
+                                    android:insetBottom="0dp"
+                                    app:cornerRadius="16dp"
+                                    android:fontFamily="@font/google_sans"
+                                    android:textColor="#E9EAEE"
+                                    android:textSize="12sp"
+                                    android:textAllCaps="false"
                                     android:paddingStart="10dp"
-                                    android:paddingEnd="5dp"
+                                    android:paddingEnd="10dp"
+                                    android:stateListAnimator="@null"
                                     android:text="Sort"
                                     android:visibility="gone"
                                     tools:visibility="visible" />
 
                                 <ImageView
-                                    android:background="?selectableItemBackgroundBorderless"
                                     android:id="@+id/result_batch_download_button"
-                                    android:layout_width="36dp"
-                                    android:layout_height="36dp"
-                                    android:layout_margin="2dp"
+                                    android:layout_width="32dp"
+                                    android:layout_height="32dp"
+                                    android:layout_marginStart="6dp"
+                                    android:background="@drawable/bg_tv_circular_glass_btn"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:padding="7dp"
+                                    android:scaleType="centerInside"
                                     android:contentDescription="@string/download_all"
-                                    android:nextFocusLeft="@id/result_dub_select"
-                                    android:nextFocusUp="@id/result_description"
-                                    android:nextFocusDown="@id/result_episodes"
                                     android:src="@drawable/netflix_download_batch"
+                                    app:tint="#E9EAEE"
                                     android:visibility="gone"
-                                    tools:visibility="visible">
-
-                                </ImageView>
-                                <TextView
-                                    android:id="@+id/result_episodes_text"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_gravity="center_vertical"
-                                    android:layout_marginTop="10dp"
-                                    android:layout_marginBottom="10dp"
-                                    android:paddingTop="10dp"
-                                    android:paddingBottom="10dp"
-                                    android:textColor="?attr/textColor"
-                                    android:textSize="17sp"
-                                    android:textStyle="normal"
-                                    tools:text="8 Episodes" />
-                            </com.lagradost.cloudstream3.widget.FlowLayout>
-
+                                    tools:visibility="visible" />
+                            </LinearLayout>
+                        </HorizontalScrollView>
 
                             <!--TODO add next airing-->
                             <LinearLayout
@@ -949,12 +1162,48 @@
                                 android:id="@+id/result_episodes"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="0dp"
+                                android:layout_marginTop="4dp"
                                 android:clipToPadding="false"
                                 android:descendantFocusability="afterDescendants"
-                                android:paddingBottom="100dp"
+                                android:orientation="horizontal"
+                                android:paddingEnd="16dp"
+                                android:paddingBottom="12dp"
                                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                                tools:listitem="@layout/result_episode" />
+                                tools:listitem="@layout/result_episode_large" />
+
+                        <!-- On-Page Recommendations Slider ("More Like This") -->
+                        <LinearLayout
+                            android:id="@+id/result_onpage_recommendations_holder"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:layout_marginBottom="80dp"
+                            android:orientation="vertical"
+                            android:visibility="gone"
+                            tools:visibility="visible">
+
+                            <TextView
+                                android:id="@+id/result_onpage_recommendations_title"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="12dp"
+                                android:fontFamily="@font/google_sans"
+                                android:text="More Like This"
+                                android:textColor="#FFFFFF"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
+
+                            <androidx.recyclerview.widget.RecyclerView
+                                android:id="@+id/result_onpage_recommendations"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:clipToPadding="false"
+                                android:descendantFocusability="afterDescendants"
+                                android:orientation="horizontal"
+                                android:paddingEnd="16dp"
+                                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                                tools:itemCount="5"
+                                tools:listitem="@layout/home_result_grid" />
                         </LinearLayout>
                     </LinearLayout>
 

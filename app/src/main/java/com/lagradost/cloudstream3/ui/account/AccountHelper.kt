@@ -6,6 +6,7 @@ import android.content.DialogInterface
 import android.os.Bundle
 import android.text.Editable
 import android.view.LayoutInflater
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.TextView
 import android.widget.Toast
@@ -21,6 +22,9 @@ import coil3.ImageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR
+import com.lagradost.cloudstream3.ui.settings.Globals.TV
+import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
 import com.lagradost.cloudstream3.CloudStreamApp.Companion.getActivity
 import com.lagradost.cloudstream3.CommonActivity.showToast
 import com.lagradost.cloudstream3.MainActivity
@@ -98,14 +102,81 @@ object AccountHelper {
             dialog?.dismissSafe()
         }
 
+        val showCustomUrlDialog = {
+            val bottomSheetDialog = BottomSheetDialog(context)
+            val sheetBinding = BottomInputDialogBinding.inflate(LayoutInflater.from(context))
+            bottomSheetDialog.setContentView(sheetBinding.root)
+            bottomSheetDialog.show()
+
+            sheetBinding.apply {
+                text1.text = context.getString(R.string.edit_profile_image_title)
+                nginxTextInput.hint = context.getString(R.string.edit_profile_image_hint)
+
+                applyBtt.setOnClickListener {
+                    val url = sheetBinding.nginxTextInput.text.toString()
+                    if (url.isEmpty()) {
+                        showToast(R.string.edit_profile_image_error_empty, Toast.LENGTH_SHORT)
+                        return@setOnClickListener
+                    }
+                    applyBtt.showProgress()
+                    val imageLoader = ImageLoader(context)
+                    val request = ImageRequest.Builder(context)
+                        .data(url)
+                        .allowHardware(false)
+                        .listener(
+                            onSuccess = { _, _ ->
+                                currentEditAccount = currentEditAccount.copy(customImage = url)
+                                binding.accountImage.loadImage(url)
+                                showToast(
+                                    R.string.edit_profile_image_success,
+                                    Toast.LENGTH_SHORT
+                                )
+                                bottomSheetDialog.dismissSafe()
+                            },
+                            onError = { _, _ ->
+                                showToast(
+                                    R.string.edit_profile_image_error_invalid,
+                                    Toast.LENGTH_SHORT
+                                )
+                                applyBtt.hideProgress()
+                            },
+                            onCancel = {
+                                applyBtt.hideProgress()
+                            }
+                        )
+                        .build()
+                    imageLoader.enqueue(request)
+                }
+                sheetBinding.cancelBtt.setOnClickListener {
+                    bottomSheetDialog.dismissSafe()
+                }
+            }
+        }
+
+        val openAvatarSelector = {
+            showAvatarSelectorDialog(
+                context = context,
+                currentAccount = currentEditAccount,
+                onAvatarSelected = { updatedAcc ->
+                    currentEditAccount = updatedAcc
+                    binding.accountImage.loadImage(currentEditAccount.image)
+                },
+                onCustomUrlRequested = {
+                    showCustomUrlDialog()
+                }
+            )
+        }
+
         // Handle the profile picture and its interactions
         binding.accountImage.loadImage(account.image)
         binding.accountImage.setOnClickListener {
-            // Roll the image forwards once
-            currentEditAccount = currentEditAccount.copy(customImage = null)
-            currentEditAccount =
-                currentEditAccount.copy(defaultImageIndex = (currentEditAccount.defaultImageIndex + 1) % DataStoreHelper.profileImages.size)
-            binding.accountImage.loadImage(currentEditAccount.image)
+            openAvatarSelector()
+        }
+        binding.accountImage.setOnKeyListener { _, keyCode, event ->
+            if (event.action == android.view.KeyEvent.ACTION_UP && (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER || keyCode == android.view.KeyEvent.KEYCODE_ENTER)) {
+                openAvatarSelector()
+                true
+            } else false
         }
 
         // Handle applying changes
@@ -167,54 +238,7 @@ object AccountHelper {
         canSetPin = true
 
         binding.editProfilePhotoButton.setOnClickListener {
-            val bottomSheetDialog = BottomSheetDialog(context)
-            val sheetBinding = BottomInputDialogBinding.inflate(LayoutInflater.from(context))
-            bottomSheetDialog.setContentView(sheetBinding.root)
-            bottomSheetDialog.show()
-
-            sheetBinding.apply {
-                text1.text = context.getString(R.string.edit_profile_image_title)
-                nginxTextInput.hint = context.getString(R.string.edit_profile_image_hint)
-
-                applyBtt.setOnClickListener {
-                    val url = sheetBinding.nginxTextInput.text.toString()
-                    if (url.isEmpty()) {
-                        showToast(R.string.edit_profile_image_error_empty, Toast.LENGTH_SHORT)
-                        return@setOnClickListener
-                    }
-                    applyBtt.showProgress()
-                    val imageLoader = ImageLoader(context)
-                    val request = ImageRequest.Builder(context)
-                        .data(url)
-                        .allowHardware(false)
-                        .listener(
-                            onSuccess = { _, _ ->
-                                currentEditAccount = currentEditAccount.copy(customImage = url)
-                                binding.accountImage.loadImage(url)
-                                showToast(
-                                    R.string.edit_profile_image_success,
-                                    Toast.LENGTH_SHORT
-                                )
-                                bottomSheetDialog.dismissSafe()
-                            },
-                            onError = { _, _ ->
-                                showToast(
-                                    R.string.edit_profile_image_error_invalid,
-                                    Toast.LENGTH_SHORT
-                                )
-                                applyBtt.hideProgress()
-                            },
-                            onCancel = {
-                                applyBtt.hideProgress()
-                            }
-                        )
-                        .build()
-                    imageLoader.enqueue(request)
-                }
-                sheetBinding.cancelBtt.setOnClickListener {
-                    bottomSheetDialog.dismissSafe()
-                }
-            }
+            openAvatarSelector()
         }
     }
 
@@ -359,29 +383,85 @@ object AccountHelper {
         val activity = this as? MainActivity ?: return
         val viewModel = ViewModelProvider(activity)[AccountViewModel::class.java]
 
-        val binding: AccountSelectLinearBinding = AccountSelectLinearBinding.inflate(
-            LayoutInflater.from(activity)
-        )
+        val isTv = isLayout(TV or EMULATOR)
+        val dialog: android.app.Dialog
+        val recyclerView: RecyclerView
+        val manageButton: android.view.View
 
-        val builder = BottomSheetDialog(activity)
-        builder.setContentView(binding.root)
-        builder.show()
+        if (isTv) {
+            val tvBinding = com.lagradost.cloudstream3.databinding.DialogTvProfileSwitchBinding.inflate(
+                LayoutInflater.from(activity)
+            )
+            dialog = android.app.Dialog(activity, R.style.DialogHalfFullscreen).apply {
+                window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+                window?.setGravity(android.view.Gravity.CENTER)
+                setContentView(tvBinding.root)
+            }
+            recyclerView = tvBinding.accountRecyclerView
+            manageButton = tvBinding.manageAccountsButton
+            tvBinding.btnDialogClose.setOnClickListener {
+                dialog.dismissSafe()
+            }
+            tvBinding.addAccountButton.setOnClickListener {
+                val accounts = DataStoreHelper.accounts.toList()
+                val remainingImages =
+                    DataStoreHelper.profileImages.toSet() - accounts.filter { it.customImage == null }
+                        .mapNotNull { DataStoreHelper.profileImages.getOrNull(it.defaultImageIndex) }
+                        .toSet()
 
-        binding.manageAccountsButton.setOnClickListener {
+                val image =
+                    DataStoreHelper.profileImages.indexOf(
+                        remainingImages.randomOrNull()
+                            ?: DataStoreHelper.profileImages.random()
+                    )
+                val keyIndex = (accounts.maxOfOrNull { it.keyIndex } ?: 0) + 1
+                val accountName = activity.getString(R.string.account)
+
+                showAccountEditDialog(
+                    activity,
+                    DataStoreHelper.Account(
+                        keyIndex = keyIndex,
+                        name = "$accountName $keyIndex",
+                        customImage = null,
+                        defaultImageIndex = image
+                    ),
+                    isNewAccount = true,
+                    accountEditCallback = { newAcc ->
+                        viewModel.handleAccountUpdate(newAcc, activity)
+                        viewModel.handleAccountSelect(newAcc, activity)
+                        dialog.dismissSafe()
+                    },
+                    accountDeleteCallback = {}
+                )
+            }
+        } else {
+            val binding: AccountSelectLinearBinding = AccountSelectLinearBinding.inflate(
+                LayoutInflater.from(activity)
+            )
+            dialog = BottomSheetDialog(activity).apply {
+                setContentView(binding.root)
+            }
+            recyclerView = binding.accountRecyclerView
+            manageButton = binding.manageAccountsButton
+        }
+
+        dialog.show()
+
+        manageButton.setOnClickListener {
             activity.navigate(
                 R.id.accountSelectActivity,
                 Bundle().apply { putBoolean("isEditingFromMainActivity", true) }
             )
-            builder.dismissSafe()
+            dialog.dismissSafe()
         }
-
-        val recyclerView: RecyclerView = binding.accountRecyclerView
 
         val itemSize = recyclerView.resources.getDimensionPixelSize(
             R.dimen.account_select_linear_item_size
         )
 
-        recyclerView.addItemDecoration(AccountSelectLinearItemDecoration(itemSize))
+        if (recyclerView.itemDecorationCount == 0) {
+            recyclerView.addItemDecoration(AccountSelectLinearItemDecoration(itemSize))
+        }
 
         recyclerView.setLinearListLayout(isHorizontal = true)
 
@@ -400,7 +480,7 @@ object AccountHelper {
             recyclerView.adapter = AccountAdapter(
                 accountSelectCallback = { account ->
                     viewModel.handleAccountSelect(account, activity)
-                    builder.dismissSafe()
+                    dialog.dismissSafe()
                 },
                 accountCreateCallback = { viewModel.handleAccountUpdate(it, activity) },
                 accountEditCallback = { viewModel.handleAccountUpdate(it, activity) },
@@ -411,9 +491,94 @@ object AccountHelper {
 
             activity.observe(viewModel.selectedKeyIndex) { selectedKeyIndex ->
                 // Scroll to current account (which is focused by default)
-                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
-                layoutManager.scrollToPositionWithOffset(selectedKeyIndex, 0)
+                val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
+                layoutManager?.scrollToPositionWithOffset(selectedKeyIndex, 0)
+                if (isTv) {
+                    recyclerView.post {
+                        val vh = recyclerView.findViewHolderForAdapterPosition(selectedKeyIndex)
+                        if (vh != null) {
+                            vh.itemView.requestFocus()
+                        } else {
+                            recyclerView.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                        }
+                    }
+                }
             }
+        }
+    }
+
+    fun showAvatarSelectorDialog(
+        context: Context,
+        currentAccount: DataStoreHelper.Account,
+        onAvatarSelected: (DataStoreHelper.Account) -> Unit,
+        onCustomUrlRequested: () -> Unit
+    ) {
+        val pickerBinding = com.lagradost.cloudstream3.databinding.DialogProfileAvatarPickerBinding.inflate(
+            LayoutInflater.from(context)
+        )
+        val dialog = android.app.Dialog(context, R.style.DialogHalfFullscreen).apply {
+            window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+            window?.setGravity(android.view.Gravity.CENTER)
+            setContentView(pickerBinding.root)
+        }
+
+        val recyclerView = pickerBinding.avatarRecyclerView
+        recyclerView.layoutManager = androidx.recyclerview.widget.GridLayoutManager(context, 4)
+
+        val avatarList = DataStoreHelper.profileImages.toList()
+        val currentIdx = if (currentAccount.customImage == null) currentAccount.defaultImageIndex else -1
+
+        recyclerView.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val itemBinding = com.lagradost.cloudstream3.databinding.ItemProfileAvatarPickerBinding.inflate(
+                    LayoutInflater.from(parent.context), parent, false
+                )
+                return object : RecyclerView.ViewHolder(itemBinding.root) {}
+            }
+
+            override fun getItemCount(): Int = avatarList.size
+
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+                val itemBinding = com.lagradost.cloudstream3.databinding.ItemProfileAvatarPickerBinding.bind(holder.itemView)
+                val resId = avatarList[position]
+                itemBinding.avatarImage.setImageResource(resId)
+                itemBinding.avatarSelectedBadge.isVisible = (position == currentIdx)
+
+                itemBinding.avatarCard.setOnClickListener {
+                    val updated = currentAccount.copy(customImage = null, defaultImageIndex = position)
+                    onAvatarSelected(updated)
+                    dialog.dismissSafe()
+                }
+                itemBinding.avatarCard.setOnKeyListener { _, keyCode, event ->
+                    if (event.action == android.view.KeyEvent.ACTION_UP && (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER || keyCode == android.view.KeyEvent.KEYCODE_ENTER)) {
+                        val updated = currentAccount.copy(customImage = null, defaultImageIndex = position)
+                        onAvatarSelected(updated)
+                        dialog.dismissSafe()
+                        true
+                    } else false
+                }
+            }
+        }
+
+        pickerBinding.btnAvatarPickerClose.setOnClickListener {
+            dialog.dismissSafe()
+        }
+
+        pickerBinding.btnAvatarPickerCancel.setOnClickListener {
+            dialog.dismissSafe()
+        }
+
+        pickerBinding.btnCustomUrl.setOnClickListener {
+            dialog.dismissSafe()
+            onCustomUrlRequested()
+        }
+
+        dialog.show()
+
+        recyclerView.post {
+            val targetPos = if (currentIdx in avatarList.indices) currentIdx else 0
+            val vh = recyclerView.findViewHolderForAdapterPosition(targetPos)
+            vh?.itemView?.findViewById<android.view.View>(R.id.avatar_card)?.requestFocus()
         }
     }
 }

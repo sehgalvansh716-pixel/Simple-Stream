@@ -75,5 +75,6 @@
     <declare-styleable name="PercentageCropImageView">
         <attr name="cropYCenterOffsetPct" format="float" />
         <attr name="cropXCenterOffsetPct" format="float" />
+        <attr name="enableBottomFade" format="boolean" />
     </declare-styleable>
 </resources>

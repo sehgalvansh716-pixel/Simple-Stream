@@ -5,6 +5,8 @@ import android.app.Dialog
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Rect
+import android.graphics.RenderEffect
+import android.graphics.Shader
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -16,6 +18,7 @@ import android.view.animation.Animation
 import android.view.animation.DecelerateInterpolator
 import android.widget.AbsListView
 import android.widget.ArrayAdapter
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isGone
@@ -24,7 +27,12 @@ import androidx.core.view.isVisible
 import androidx.core.widget.NestedScrollView
 import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import com.lagradost.cloudstream3.ui.utils.TvAmbientVideoHelper
 import com.discord.panels.OverlappingPanelsLayout
 import com.discord.panels.PanelState
 import com.discord.panels.PanelsChildGestureRegionObserver
@@ -59,6 +67,7 @@ import com.lagradost.cloudstream3.ui.WatchType
 import com.lagradost.cloudstream3.ui.download.DOWNLOAD_ACTION_DOWNLOAD
 import com.lagradost.cloudstream3.ui.download.DOWNLOAD_ACTION_LONG_CLICK
 import com.lagradost.cloudstream3.ui.download.DownloadButtonSetup
+import com.lagradost.cloudstream3.ui.home.HomeChildItemAdapter
 import com.lagradost.cloudstream3.ui.player.CS3IPlayer
 import com.lagradost.cloudstream3.ui.player.CSPlayerEvent
 import com.lagradost.cloudstream3.ui.player.IPlayer
@@ -216,13 +225,117 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
     ) {}
 
     override fun fixLayout(view: View) {
-        fixSystemBarsPadding(view)
+        fixSystemBarsPadding(view, padTop = false, padBottom = false)
+        view.findViewById<View>(R.id.result_top_bar)?.let { topBar ->
+            fixSystemBarsPadding(topBar, padTop = true, padBottom = false, padLeft = false, padRight = false, overlayCutout = false)
+        }
+    }
+
+    private var isBackdropImageAActive = true
+    private var lastBackdropUrl: String? = null
+    private var trailerVideoHelper: TvAmbientVideoHelper? = null
+    private var trailerJob: Job? = null
+    private var isPosterMode = false
+    private var isAmbientPausedByScroll = false
+
+    private fun initAtmosphericBackdrop(rootView: View) {
+        val imageA = rootView.findViewById<ImageView>(R.id.result_backdrop_image_a) ?: return
+        val imageB = rootView.findViewById<ImageView>(R.id.result_backdrop_image_b) ?: return
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val blurEffect = RenderEffect.createBlurEffect(24f, 24f, Shader.TileMode.CLAMP)
+            imageA.setRenderEffect(blurEffect)
+            imageB.setRenderEffect(blurEffect)
+        }
+    }
+
+    private fun updateAtmosphericBackdrop(posterUrl: String?, headers: Map<String, String>? = null) {
+        val b = binding ?: return
+        if (posterUrl.isNullOrBlank() || posterUrl == lastBackdropUrl) return
+        val isFirstLoad = (lastBackdropUrl == null)
+        lastBackdropUrl = posterUrl
+
+        val imageA = b.resultBackdropImageA
+        val imageB = b.resultBackdropImageB
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val blurEffect = RenderEffect.createBlurEffect(28f, 28f, Shader.TileMode.CLAMP)
+            imageA.setRenderEffect(blurEffect)
+            imageB.setRenderEffect(blurEffect)
+        }
+
+        if (isFirstLoad) {
+            imageA.alpha = 0f
+            imageB.alpha = 0f
+            imageA.loadImage(posterUrl, headers) {
+                size(320, 180)
+            }
+            imageA.animate().alpha(1.0f).setDuration(800).start()
+            isBackdropImageAActive = true
+            return
+        }
+
+        val incomingView = if (isBackdropImageAActive) imageB else imageA
+        val outgoingView = if (isBackdropImageAActive) imageA else imageB
+
+        incomingView.alpha = 0f
+        incomingView.loadImage(posterUrl, headers) {
+            size(320, 180)
+        }
+        incomingView.animate()
+            .alpha(1.0f)
+            .setDuration(600)
+            .withEndAction {
+                outgoingView.alpha = 0f
+                isBackdropImageAActive = !isBackdropImageAActive
+            }
+            .start()
+        outgoingView.animate()
+            .alpha(0.0f)
+            .setDuration(600)
+            .start()
+    }
+
+    private fun playAmbientVideo(url: String, headers: Map<String, String>? = null) {
+        trailerJob?.cancel()
+        trailerJob = viewLifecycleOwner.lifecycleScope.launch {
+            if (!isActive) return@launch
+            val ctx = context ?: return@launch
+            val rBinding = resultBinding ?: return@launch
+            try {
+                if (trailerVideoHelper == null) {
+                    trailerVideoHelper = TvAmbientVideoHelper(ctx)
+                }
+                trailerVideoHelper?.attachUri(
+                    textureView = rBinding.resultTrailerVideoView,
+                    uri = Uri.parse(url),
+                    headers = headers,
+                    autoPlay = !isPosterMode && !isAmbientPausedByScroll,
+                    onReady = {
+                        if (!isPosterMode) {
+                            rBinding.resultTrailerVideoView.animate()
+                                .alpha(1.0f)
+                                .setDuration(700)
+                                .start()
+                        }
+                        rBinding.resultTrailerToggle.apply {
+                            isVisible = true
+                            text = if (isPosterMode) "Trailer" else "Poster"
+                            setIconResource(if (isPosterMode) R.drawable.ic_baseline_play_arrow_24 else R.drawable.ic_baseline_image_24)
+                        }
+                    }
+                )
+            } catch (e: Exception) {
+                logError(e)
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         PanelsChildGestureRegionObserver.Provider.get().apply {
             resultBinding?.resultCastItems?.let { register(it) }
+            resultBinding?.resultEpisodes?.let { register(it) }
         }
     }
 
@@ -246,96 +359,51 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
         }
     }
 
-    private fun loadTrailer(index: Int? = null) {
-
-        val isSuccess =
-            currentTrailers.getOrNull(index ?: currentTrailerIndex)
-                ?.let { (extractedTrailerLink, _) ->
-                    context?.let { ctx ->
-                        player.onPause()
-                        player.loadPlayer(
-                            ctx,
-                            false,
-                            extractedTrailerLink,
-                            null,
-                            startPosition = 0L,
-                            subtitles = emptySet(),
-                            subtitle = null,
-                            autoPlay = false,
-                            preview = false
-                        )
-                        true
-                    } ?: run {
-                        false
-                    }
-                } ?: run {
-                false
-            }
-        //result_trailer_thumbnail?.setImageBitmap(result_poster_background?.drawable?.toBitmap())
-
-
-        // result_trailer_loading?.isVisible = isSuccess
-        val turnVis = !isSuccess && !isFullScreenPlayer
-        resultBinding?.apply {
-            // If we load a trailer, then cancel the big logo and only show the small title
-            if (isSuccess) {
-                // This is still a bit of a race condition, but it should work if we have the
-                // trailers observe after the page observe!
-                bindLogo(
-                    url = null,
-                    headers = null,
-                    logoView = backgroundPosterWatermarkBadge,
-                    titleView = resultTitle
-                )
-            }
-            resultSmallscreenHolder.isVisible = turnVis
-            resultPosterBackgroundHolder.apply {
-                val fadeIn: Animation = AlphaAnimation(alpha, if (turnVis) 1.0f else 0.0f).apply {
-                    interpolator = DecelerateInterpolator()
-                    duration = 200
-                    fillAfter = true
-                }
-                clearAnimation()
-                startAnimation(fadeIn)
-            }
-
-            // We don't want the trailer to be focusable if it's not visible
-            resultSmallscreenHolder.descendantFocusability = if (isSuccess) {
-                ViewGroup.FOCUS_AFTER_DESCENDANTS
-            } else {
-                ViewGroup.FOCUS_BLOCK_DESCENDANTS
-            }
-            binding?.resultFullscreenHolder?.isVisible = !isSuccess && isFullScreenPlayer
+    fun loadTrailer(index: Int? = null) {
+        val target = currentTrailers.getOrNull(index ?: currentTrailerIndex)?.first
+        if (target != null && !target.url.isNullOrBlank()) {
+            playAmbientVideo(target.url, target.headers)
         }
-        //player_view?.apply {
-        //alpha = 0.0f
-        //ObjectAnimator.ofFloat(player_view, "alpha", 1f).apply {
-        //    duration = 200
-        //    start()
-        //}
-
-        //val fadeIn: Animation = AlphaAnimation(0.0f, 1f).apply {
-        //    interpolator = DecelerateInterpolator()
-        //    duration = 2000
-        //    fillAfter = true
-        //}
-        //startAnimation(fadeIn)
-        //}
     }
 
     private fun setTrailers(trailers: List<Pair<ExtractorLink, String>>?) {
         context?.updateHasTrailers()
         if (!LoadResponse.isTrailersEnabled) return
-        currentTrailers = trailers?.sortedBy { -it.first.quality } ?: emptyList()
-        loadTrailer()
+        val rawResp = viewModel.getCurrentResponse()
+        val ambientTrailerUrl = rawResp?.trailers?.firstOrNull { it.raw }?.extractorUrl
+
+        currentTrailers = if (ambientTrailerUrl != null) {
+            val ambient = trailers?.filter { it.second == ambientTrailerUrl } ?: emptyList()
+            val others = trailers?.filter { it.second != ambientTrailerUrl } ?: emptyList()
+            ambient + others.sortedBy { -it.first.quality }
+        } else {
+            trailers?.sortedBy { -it.first.quality } ?: emptyList()
+        }
+
+        if (trailerVideoHelper?.isPlaying() != true) {
+            val firstTrailer = currentTrailers.firstOrNull()?.first
+            if (firstTrailer != null && !firstTrailer.url.isNullOrBlank()) {
+                playAmbientVideo(firstTrailer.url, firstTrailer.headers)
+            }
+        }
     }
 
     override fun onDestroyView() {
+        trailerJob?.cancel()
+        trailerJob = null
+        trailerVideoHelper?.release()
+        trailerVideoHelper = null
+        lastBackdropUrl = null
+        isPosterMode = false
+        isAmbientPausedByScroll = false
+
         PanelsChildGestureRegionObserver.Provider.get().let { obs ->
             resultBinding?.resultCastItems?.let {
                 obs.unregister(it)
             }
-
+            resultBinding?.resultEpisodes?.let {
+                obs.unregister(it)
+            }
             obs.removeGestureRegionsUpdateListener(gestureRegionsListener)
         }
 
@@ -346,6 +414,7 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
         resultBinding = null
         syncBinding = null
         recommendationBinding = null
+        lastBackdropUrl = null
         activity?.detachBackPressedCallback(this@ResultFragmentPhone.toString())
         super.onDestroyView()
     }
@@ -411,9 +480,19 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
             playerHostView?.onResume(ctx)
             playerHostView?.setupKeyEventListener()
         }
+        if (!isPosterMode && !isAmbientPausedByScroll) {
+            trailerVideoHelper?.play()
+        }
         super.onResume()
         PanelsChildGestureRegionObserver.Provider.get()
             .addGestureRegionsUpdateListener(gestureRegionsListener)
+    }
+
+    override fun onPause() {
+        trailerJob?.cancel()
+        trailerVideoHelper?.pause()
+        playerHostView?.releaseKeyEventListener()
+        super.onPause()
     }
 
     override fun onStop() {
@@ -437,6 +516,8 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
         resultBinding = binding.fragmentResult
         recommendationBinding = binding.resultRecommendations
         syncBinding = binding.resultSync
+
+        initAtmosphericBackdrop(binding.root)
 
         // Set up trailer player
         val ctx = context ?: return
@@ -478,6 +559,8 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
                 override fun onPanelStateChange(panelState: PanelState) {
                     PanelsChildGestureRegionObserver.Provider.get().apply {
                         resultBinding?.resultCastItems?.let { register(it) }
+                        resultBinding?.resultEpisodes?.let { register(it) }
+                        resultBinding?.resultOnpageRecommendations?.let { register(it) }
                     }
                 }
             }
@@ -526,26 +609,50 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
             }.apply {
                 this.orientation = RecyclerView.HORIZONTAL
             }*/
-            resultCastItems.setRecycledViewPool(ActorAdaptor.sharedPool)
-            resultCastItems.adapter = ActorAdaptor()
-            resultEpisodes.setRecycledViewPool(EpisodeAdapter.sharedPool)
-            resultEpisodes.adapter =
-                EpisodeAdapter(
-                    api?.hasDownloadSupport == true,
-                    { episodeClick ->
-                        when (episodeClick.action) {
-                            ACTION_DOWNLOAD_EPISODE, ACTION_DOWNLOAD_MIRROR -> {
-                                requirePathForActions(listOf(episodeClick.action to episodeClick.data))
+            resultCastItems.apply {
+                setHasFixedSize(true)
+                setRecycledViewPool(ActorAdaptor.sharedPool)
+                adapter = ActorAdaptor()
+            }
+            resultEpisodes.apply {
+                setHasFixedSize(true)
+                setItemViewCacheSize(20)
+                setRecycledViewPool(EpisodeAdapter.sharedPool)
+                adapter =
+                    EpisodeAdapter(
+                        api?.hasDownloadSupport == true,
+                        { episodeClick ->
+                            when (episodeClick.action) {
+                                ACTION_DOWNLOAD_EPISODE, ACTION_DOWNLOAD_MIRROR -> {
+                                    requirePathForActions(listOf(episodeClick.action to episodeClick.data))
+                                }
+
+                                else -> viewModel.handleAction(episodeClick)
                             }
-
-                            else -> viewModel.handleAction(episodeClick)
+                        },
+                        { downloadClickEvent ->
+                            DownloadButtonSetup.handleDownloadClick(downloadClickEvent)
                         }
-                    },
-                    { downloadClickEvent ->
-                        DownloadButtonSetup.handleDownloadClick(downloadClickEvent)
-                    }
 
+                    )
+            }
+
+            resultOnpageRecommendations.apply {
+                setHasFixedSize(true)
+                setItemViewCacheSize(20)
+                layoutManager = androidx.recyclerview.widget.LinearLayoutManager(
+                    context,
+                    androidx.recyclerview.widget.RecyclerView.HORIZONTAL,
+                    false
                 )
+                setRecycledViewPool(HomeChildItemAdapter.sharedPool)
+                adapter = HomeChildItemAdapter(
+                    id = 0,
+                    clickCallback = { callback ->
+                        SearchHelper.handleSearchClickCallback(callback)
+                    }
+                )
+            }
 
             observeNullable(viewModel.selectedSorting) {
                 resultSortButton.setText(it)
@@ -559,7 +666,7 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
                                 r to (text.asStringNull(ctx) ?: return@mapNotNull null)
                             }
 
-                        activity?.showDialog(
+                        activity?.showBottomDialog(
                             names.map { it.second },
                             viewModel.selectedSortingIndex.value ?: -1,
                             ctx.getString(R.string.sort_by),
@@ -567,6 +674,25 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
                             {}) { itemId ->
                             viewModel.setSort(names[itemId].first)
                         }
+                    }
+                }
+            }
+
+            resultTrailerToggle.setOnClickListener {
+                isPosterMode = !isPosterMode
+                if (isPosterMode) {
+                    resultTrailerVideoView.animate().alpha(0.0f).setDuration(400).start()
+                    trailerVideoHelper?.pause()
+                    resultTrailerToggle.apply {
+                        text = "Trailer"
+                        setIconResource(R.drawable.ic_baseline_play_arrow_24)
+                    }
+                } else {
+                    trailerVideoHelper?.play()
+                    resultTrailerVideoView.animate().alpha(1.0f).setDuration(400).start()
+                    resultTrailerToggle.apply {
+                        text = "Poster"
+                        setIconResource(R.drawable.ic_baseline_image_24)
                     }
                 }
             }
@@ -583,6 +709,16 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
                             ?: scrollY)
                     ) {
                         player.handleEvent(CSPlayerEvent.Pause)
+                    }
+                }
+
+                val isScrolledAway = scrollY > 250
+                if (isScrolledAway != isAmbientPausedByScroll) {
+                    isAmbientPausedByScroll = isScrolledAway
+                    if (isScrolledAway) {
+                        trailerVideoHelper?.pause()
+                    } else if (!isPosterMode) {
+                        trailerVideoHelper?.play()
                     }
                 }
             })
@@ -736,6 +872,13 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
                 resultResumeParent.isVisible = true
                 resume.progress?.let { progress ->
                     resultNextSeriesButton.isVisible = false
+                    val thumbUrl = resume.result.poster ?: (viewModel.page.value as? Resource.Success)?.value?.posterImage
+                    if (!thumbUrl.isNullOrBlank()) {
+                        resultResumeThumbnail.loadImage(thumbUrl)
+                        resultResumeThumbnailCard.isVisible = true
+                    } else {
+                        resultResumeThumbnailCard.isVisible = false
+                    }
                     resultResumeSeriesTitle.apply {
                         isVisible = !resume.isMovie
                         text =
@@ -760,11 +903,7 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
                     resultResumeProgressHolder.isVisible = false
                     if (!resume.isMovie) {
                         resultNextSeriesButton.isVisible = true
-                        resultNextSeriesButton.text = context?.getNameFull(
-                            resume.result.name,
-                            resume.result.episode,
-                            resume.result.season
-                        )
+                        resultNextSeriesButton.text = "Play"
                     }
                     resultResumeSeriesProgress.isVisible = false
                     resultResumeSeriesTitle.isVisible = false
@@ -811,6 +950,8 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
                 // no failure?
                 resultEpisodeLoading.isVisible = episodes is Resource.Loading
                 resultEpisodes.isVisible = episodes is Resource.Success
+                resultEpisodesHeaderRow.isVisible =
+                    episodes is Resource.Success && episodes.value.isNotEmpty()
                 resultBatchDownloadButton.isVisible =
                     episodes is Resource.Success && episodes.value.isNotEmpty()
 
@@ -874,7 +1015,7 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
                     data is Resource.Success && viewModel.currentRepo?.api?.hasDownloadSupport == true
 
                 (data as? Resource.Success)?.value?.let { (text, ep) ->
-                    resultPlayMovie.setText(text)
+                    resultPlayMovie.text = "Play"
                     resultPlayMovie.setOnClickListener {
                         viewModel.handleAction(
                             EpisodeClickEvent(ACTION_CLICK_DEFAULT, ep)
@@ -932,19 +1073,82 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
             resultBinding?.apply {
                 PanelsChildGestureRegionObserver.Provider.get().apply {
                     register(resultCastItems)
+                    register(resultEpisodes)
+                    register(resultOnpageRecommendations)
                 }
                 (data as? Resource.Success)?.value?.let { d ->
+                    // Atmospheric blurred backdrop transition
+                    val backdropUrl = d.posterBackgroundImage ?: d.posterImage
+                    updateAtmosphericBackdrop(backdropUrl, d.posterHeaders)
+
+                    // Ambient Hero Video Loop: Check for direct raw MP4 trailer
+                    val rawResp = viewModel.getCurrentResponse()
+                    val ambientTrailer = rawResp?.trailers?.firstOrNull { it.raw }
+                    if (ambientTrailer != null && !ambientTrailer.extractorUrl.isNullOrBlank()) {
+                        playAmbientVideo(ambientTrailer.extractorUrl, ambientTrailer.headers)
+                    }
+
+                    // Launch TMDB Enrichment Coroutine
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        val resp = viewModel.getCurrentResponse()
+                        val enriched = if (resp != null) {
+                            TvTmdbEnricher.enrich(resp)
+                        } else {
+                            TvTmdbEnricher.enrich(
+                                url = d.url,
+                                name = d.title,
+                                year = d.yearText?.asStringNull(context)?.take(4)?.toIntOrNull(),
+                                syncData = d.syncData,
+                                isMovie = false
+                            )
+                        }
+
+                        if (enriched != null && isActive) {
+                            if (d.logoUrl.isNullOrBlank() && !enriched.logoUrl.isNullOrBlank()) {
+                                bindLogo(
+                                    url = enriched.logoUrl,
+                                    headers = null,
+                                    titleView = resultTitle,
+                                    logoView = backgroundPosterWatermarkBadge
+                                )
+                            }
+
+                            if (!enriched.yearSpan.isNullOrBlank()) {
+                                resultMetaYear.text = enriched.yearSpan
+                                resultMetaYear.isVisible = true
+                            }
+                            if (!enriched.contentRating.isNullOrBlank()) {
+                                resultMetaContentRating.text = enriched.contentRating
+                                resultMetaContentRating.isVisible = true
+                            }
+                            if (!enriched.tmdbRating.isNullOrBlank()) {
+                                resultMetaRating.text = enriched.tmdbRating
+                                resultMetaRating.isVisible = true
+                            }
+
+                            val directTrailer = resp?.trailers?.firstOrNull { it.raw }
+                            if (directTrailer == null && !enriched.trailerStreamUrl.isNullOrBlank() && trailerVideoHelper?.isPlaying() != true) {
+                                playAmbientVideo(enriched.trailerStreamUrl, enriched.trailerHeaders)
+                            }
+                        }
+                    }
                     resultVpn.setText(d.vpnText)
                     resultInfo.setText(d.metaText)
                     resultNoEpisodes.setText(d.noEpisodesFoundText)
                     resultTitle.setText(d.titleText)
                     resultMetaSite.setText(d.apiName)
                     resultMetaType.setText(d.typeText)
-                    resultMetaYear.setText(d.yearText)
+                    val cleanYear = d.yearText?.asStringNull(context)?.trim()
+                    resultMetaYear.text = cleanYear
+                    resultMetaYear.isVisible = !cleanYear.isNullOrBlank()
                     resultMetaDuration.setText(d.durationText)
-                    resultMetaRating.setText(d.ratingText)
+                    val cleanRating = d.ratingText?.asStringNull(context)?.replace("★", "")?.replace("Rated:", "")?.trim()
+                    resultMetaRating.text = cleanRating
+                    resultMetaRating.isVisible = !cleanRating.isNullOrBlank()
                     resultMetaStatus.setText(d.onGoingText)
-                    resultMetaContentRating.setText(d.contentRatingText)
+                    val cleanContentRating = d.contentRatingText?.asStringNull(context)?.trim()
+                    resultMetaContentRating.text = cleanContentRating
+                    resultMetaContentRating.isVisible = !cleanContentRating.isNullOrBlank()
                     resultCastText.setText(d.actorsText)
                     resultNextAiring.setText(d.nextAiringEpisode)
                     resultNextAiringTime.setText(d.nextAiringDate)
@@ -1040,10 +1244,7 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
                             }
                         }
                         setUrl(d.url)
-                        resultBookmarkFab.apply {
-                            isVisible = true
-                            extend()
-                        }
+                        resultBookmarkFab.isVisible = false
                     }
                 }
 
@@ -1052,7 +1253,7 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
                     resultErrorText.text = storedData.url.plus("\n") + data.errorString
                 }
 
-                binding.resultBookmarkFab.isVisible = data is Resource.Success
+                binding.resultBookmarkFab.isVisible = false
                 resultFinishLoading.isVisible = data is Resource.Success
 
                 resultLoading.isVisible = data is Resource.Loading
@@ -1265,6 +1466,32 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
         }
 
         observe(viewModel.watchStatus) { watchType ->
+            resultBinding?.resultBookmarkButton?.apply {
+                val isSaved = watchType != WatchType.NONE
+                text = if (isSaved) "Saved" else "Save"
+                val iconRes = if (isSaved) R.drawable.ic_baseline_bookmark_24 else R.drawable.ic_baseline_bookmark_border_24
+                setIconResource(iconRes)
+                val tintColor = if (isSaved) {
+                    context.colorFromAttribute(R.attr.colorPrimary)
+                } else {
+                    0xFFE9EAEE.toInt()
+                }
+                val colorState = ColorStateList.valueOf(tintColor)
+                iconTint = colorState
+                setTextColor(colorState)
+
+                setOnClickListener { btn ->
+                    activity?.showBottomDialog(
+                        WatchType.entries.map { btn.context.getString(it.stringRes) }.toList(),
+                        watchType.ordinal,
+                        btn.context.getString(R.string.action_add_to_bookmarks),
+                        showApply = false,
+                        {}) {
+                        viewModel.updateWatchStatus(WatchType.entries[it], context)
+                    }
+                }
+            }
+
             binding.resultBookmarkFab.apply {
                 setText(watchType.stringRes)
                 if (watchType == WatchType.NONE) {
@@ -1365,15 +1592,17 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
         observe(viewModel.dubSubSelections) { range ->
             resultBinding?.resultDubSelect?.setOnClickListener { view ->
                 view?.context?.let { ctx ->
-                    view.popupMenuNoIconsAndNoStringRes(
-                        range
-                            .mapNotNull { (text, status) ->
-                                Pair(
-                                    status.ordinal,
-                                    text?.asStringNull(ctx) ?: return@mapNotNull null
-                                )
-                            }) {
-                        viewModel.changeDubStatus(DubStatus.entries[itemId])
+                    val names = range.mapNotNull { (text, status) ->
+                        status to (text?.asStringNull(ctx) ?: return@mapNotNull null)
+                    }
+                    val currentDub = viewModel.selectedDubStatus.value?.asStringNull(ctx)
+                    activity?.showBottomDialog(
+                        names.map { it.second },
+                        names.indexOfFirst { it.second == currentDub }.coerceAtLeast(0),
+                        "Audio / Dub",
+                        false,
+                        {}) { itemId ->
+                        viewModel.changeDubStatus(names[itemId].first)
                     }
                 }
             }
@@ -1387,9 +1616,9 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
                             r to (text?.asStringNull(ctx) ?: return@mapNotNull null)
                         }
 
-                    activity?.showDialog(
+                    activity?.showBottomDialog(
                         names.map { it.second },
-                        names.indexOfFirst { it.second == selectEpisodeRange },
+                        names.indexOfFirst { it.second == selectEpisodeRange }.coerceAtLeast(0),
                         ctx.getString(R.string.episodes),
                         false,
                         {}) { itemId ->
@@ -1408,21 +1637,14 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
                             r to (text?.asStringNull(ctx) ?: return@mapNotNull null)
                         }
 
-                    activity?.showDialog(
+                    activity?.showBottomDialog(
                         names.map { it.second },
-                        names.indexOfFirst { it.second == selectSeason },
+                        names.indexOfFirst { it.second == selectSeason }.coerceAtLeast(0),
                         ctx.getString(R.string.season),
                         false,
                         {}) { itemId ->
                         viewModel.changeSeason(names[itemId].first)
                     }
-
-
-                    //view.popupMenuNoIconsAndNoStringRes(names.mapIndexed { index, (_, name) ->
-                    //    index to name
-                    //}) {
-                    //    viewModel.changeSeason(names[itemId].first)
-                    //}
                 }
             }
         }
@@ -1440,13 +1662,6 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
         )
     }
 
-    override fun onPause() {
-        playerHostView?.releaseKeyEventListener()
-        super.onPause()
-        PanelsChildGestureRegionObserver.Provider.get()
-            .addGestureRegionsUpdateListener(gestureRegionsListener)
-    }
-
     private fun setRecommendations(rec: List<SearchResponse>?, validApiName: String?) {
         val isInvalid = rec.isNullOrEmpty()
         val matchAgainst = validApiName ?: rec?.firstOrNull()?.apiName
@@ -1460,43 +1675,18 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
             }
         }
 
-        binding?.apply {
-            resultRecommendationsBtt.isGone = isInvalid
-            resultRecommendationsBtt.setOnClickListener {
-                val nextFocusDown = if (resultOverlappingPanels.getSelectedPanel().ordinal == 1) {
-                    resultOverlappingPanels.openEndPanel()
-                    R.id.result_recommendations
-                } else {
-                    resultOverlappingPanels.closePanels()
-                    R.id.result_description
-                }
-                resultBinding?.apply {
-                    resultRecommendationsBtt.nextFocusDownId = nextFocusDown
-                    resultSearch.nextFocusDownId = nextFocusDown
-                    resultOpenInBrowser.nextFocusDownId = nextFocusDown
-                    resultShare.nextFocusDownId = nextFocusDown
-                }
-            }
-            resultOverlappingPanels.setEndPanelLockState(if (isInvalid) OverlappingPanelsLayout.LockState.CLOSE else OverlappingPanelsLayout.LockState.UNLOCKED)
+        resultBinding?.apply {
+            resultOnpageRecommendationsHolder.isGone = isInvalid
+            val filtered = if (matchAgainst != null) rec?.filter { it.apiName == matchAgainst } else rec
+            (resultOnpageRecommendations.adapter as? HomeChildItemAdapter)?.submitList(filtered ?: emptyList())
+        }
 
-            rec?.map { it.apiName }?.distinct()?.let { apiNames ->
-                // very dirty selection
-                recommendationBinding?.resultRecommendationsFilterButton?.apply {
-                    isVisible = apiNames.size > 1
-                    text = matchAgainst
-                    setOnClickListener { _ ->
-                        activity?.showBottomDialog(
-                            apiNames,
-                            apiNames.indexOf(matchAgainst),
-                            getString(R.string.home_change_provider_img_des), false, {}
-                        ) {
-                            setRecommendations(rec, apiNames[it])
-                        }
-                    }
-                }
-            } ?: run {
-                recommendationBinding?.resultRecommendationsFilterButton?.isVisible = false
-            }
+
+        binding?.apply {
+            // Recommendation pill button is removed; on-page slider handles this.
+            resultRecommendationsBtt.isGone = true
+            // Always keep the end swipe panel locked closed
+            resultOverlappingPanels.setEndPanelLockState(OverlappingPanelsLayout.LockState.CLOSE)
         }
     }
 }

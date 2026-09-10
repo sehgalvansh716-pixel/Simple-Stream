@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/search_card_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clickable="true"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:orientation="vertical">
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/background_card"
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="24dp"
+        app:cardElevation="2dp"
+        app:cardMaxElevation="4dp"
+        android:outlineAmbientShadowColor="#14000000"
+        android:outlineSpotShadowColor="#1F000000"
+        android:duplicateParentState="true"
+        android:foreground="@drawable/outline_drawable"
+        app:cardBackgroundColor="#14161D"
+        app:cardCornerRadius="12dp"
+        app:cardPreventCornerOverlap="false">
+
+        <!-- Poster Image -->
+        <ImageView
+            android:id="@+id/card_poster"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:contentDescription="@string/search_poster_img_des" />
+
+        <!-- Unfocused bottom shadow and title -->
+        <ImageView
+            android:id="@+id/card_bottom_shadow"
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_gravity="bottom"
+            android:clickable="false"
+            android:focusable="false"
+            android:src="@drawable/title_shadow" />
+
+        <TextView
+            android:id="@+id/card_unfocused_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="1"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="6dp"
+            android:textColor="#E9EAEE"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/google_sans"
+            android:shadowColor="#99000000"
+            android:shadowRadius="3"
+            android:shadowDy="1"
+            tools:text="The Odyssey" />
+
+        <!-- Unfocused rating badge in top-right corner -->
+        <TextView
+            android:id="@+id/card_rating"
+            style="@style/RatingButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="6dp"
+            android:layout_marginEnd="6dp"
+            android:layout_marginRight="6dp"
+            android:visibility="gone"
+            tools:text="8.5"
+            tools:visibility="visible" />
+
+        <!-- Focused Dimmer Overlay -->
+        <View
+            android:id="@+id/card_focus_dimmer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_tv_card_focus_scrim"
+            android:alpha="0"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <!-- Focused Center Info Container (Play Icon + Title + Year & Rating) -->
+        <LinearLayout
+            android:id="@+id/card_focus_info"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:alpha="0"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <!-- Centered Circular White Play Button with Black Arrow -->
+            <ImageView
+                android:id="@+id/card_play_icon"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_tv_card_play_circle"
+                android:paddingStart="14dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="13dp"
+                android:paddingBottom="13dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_tv_play_black"
+                android:elevation="4dp"
+                tools:ignore="ContentDescription" />
+
+            <!-- Title -->
+            <TextView
+                android:id="@+id/card_focus_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="2"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:fontFamily="@font/google_sans"
+                android:shadowColor="#B3000000"
+                android:shadowRadius="4"
+                android:shadowDy="2"
+                tools:text="Mayday" />
+
+            <!-- Year and Rating (e.g. "2026 ★ 8.0") -->
+            <TextView
+                android:id="@+id/card_focus_subtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:fontFamily="@font/google_sans"
+                android:shadowColor="#B3000000"
+                android:shadowRadius="4"
+                android:shadowDy="2"
+                tools:text="2026 ★ 8.0" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Mobile Title & Subtitle Below Card (Home page content card parity) -->
+    <TextView
+        android:id="@+id/card_mobile_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        android:layout_marginStart="6dp"
+        android:layout_marginEnd="6dp"
+        android:ellipsize="end"
+        android:gravity="start"
+        android:maxLines="1"
+        android:minLines="1"
+        android:paddingStart="4dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="4dp"
+        android:paddingBottom="1dp"
+        android:textColor="@color/white"
+        android:textSize="12.5sp"
+        android:textStyle="bold"
+        android:fontFamily="@font/google_sans"
+        android:visibility="gone"
+        tools:visibility="visible"
+        tools:text="The Perfect Run" />
+
+    <TextView
+        android:id="@+id/card_mobile_subtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        android:layout_marginStart="6dp"
+        android:layout_marginEnd="6dp"
+        android:ellipsize="end"
+        android:gravity="start"
+        android:maxLines="1"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingBottom="6dp"
+        android:textColor="#8A99AD"
+        android:textSize="11sp"
+        android:fontFamily="@font/google_sans"
+        android:visibility="gone"
+        tools:visibility="visible"
+        tools:text="★ 7.7  2026" />
+</LinearLayout>

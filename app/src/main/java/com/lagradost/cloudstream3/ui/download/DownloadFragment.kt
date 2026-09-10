@@ -16,6 +16,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.activityViewModels
 import com.lagradost.cloudstream3.CommonActivity.showToast
@@ -50,16 +52,27 @@ import com.lagradost.cloudstream3.utils.UIHelper.fixSystemBarsPadding
 import com.lagradost.cloudstream3.utils.UIHelper.hideKeyboard
 import com.lagradost.cloudstream3.utils.UIHelper.navigate
 import com.lagradost.cloudstream3.utils.UIHelper.setAppBarNoScrollFlagsOnTV
+import com.lagradost.cloudstream3.utils.UIHelper.toPx
+import android.view.TextureView
+import android.view.ViewGroup
+import com.lagradost.cloudstream3.services.DownloadQueueService
+import com.lagradost.cloudstream3.ui.utils.TvAmbientVideoHelper
+import com.lagradost.cloudstream3.utils.downloader.DownloadQueueManager
+import com.lagradost.cloudstream3.utils.downloader.VideoDownloadManager
 import java.net.URI
 
 const val DOWNLOAD_NAVIGATE_TO = "downloadpage"
 
 class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
-    BaseFragment.BindingCreator.Inflate(FragmentDownloadsBinding::inflate)
+    BaseFragment.BindingCreator.Bind(FragmentDownloadsBinding::bind)
 ) {
 
     private val downloadViewModel: DownloadViewModel by activityViewModels()
     private val downloadQueueViewModel: DownloadQueueViewModel by activityViewModels()
+    private var tvAmbientVideoHelper: TvAmbientVideoHelper? = null
+
+    override fun pickLayout(): Int? =
+        if (isLayout(TV or EMULATOR)) R.layout.fragment_downloads_tv else R.layout.fragment_downloads
 
     private fun View.setLayoutWidth(weight: Long) {
         val param = LinearLayout.LayoutParams(
@@ -72,15 +85,19 @@ class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
 
     override fun onDestroyView() {
         activity?.detachBackPressedCallback("Downloads")
+        tvAmbientVideoHelper?.release()
+        tvAmbientVideoHelper = null
         super.onDestroyView()
     }
 
     override fun fixLayout(view: View) {
-        fixSystemBarsPadding(
-            view,
-            padBottom = isLandscape(),
-            padLeft = isLayout(TV or EMULATOR)
-        )
+        if (isLayout(TV or EMULATOR)) {
+            fixSystemBarsPadding(
+                view,
+                padBottom = isLandscape(),
+                padLeft = true
+            )
+        }
     }
 
     override fun onBindingCreated(binding: FragmentDownloadsBinding) {
@@ -88,12 +105,80 @@ class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
         binding.downloadAppbar.setAppBarNoScrollFlagsOnTV()
         binding.downloadDeleteAppbar.setAppBarNoScrollFlagsOnTV()
 
+        val textureView = binding.root.findViewById<TextureView>(R.id.tv_downloads_video)
+        if (textureView != null) {
+            tvAmbientVideoHelper?.release()
+            tvAmbientVideoHelper = TvAmbientVideoHelper(binding.root.context).apply {
+                attach(textureView, R.raw.tv_search_bg, autoPlay = true)
+            }
+        }
+
+        if (isLayout(TV or EMULATOR)) {
+            binding.root.findViewById<View>(R.id.download_tv_back)?.setOnClickListener {
+                activity?.onBackPressedDispatcher?.onBackPressed()
+            }
+        } else {
+            ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, windowInsets ->
+                val insets = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+                )
+                val targetTop = insets.top + 6.toPx
+                val topAppBar = binding.downloadAppbar.parent as? View
+                if (topAppBar != null && topAppBar.paddingTop != targetTop) {
+                    topAppBar.setPadding(0, targetTop, 0, 0)
+                }
+
+                val navBarClearance = 82.toPx + insets.bottom
+                val fabBottomMargin = navBarClearance + 16.toPx
+                val parentFab = binding.downloadStreamButton.parent as? ViewGroup
+                val lp = parentFab?.layoutParams as? ViewGroup.MarginLayoutParams
+                if (lp != null && lp.bottomMargin != fabBottomMargin) {
+                    lp.bottomMargin = fabBottomMargin
+                    parentFab.layoutParams = lp
+                }
+
+                val targetListPadding = navBarClearance + 60.toPx
+                if (binding.downloadList.paddingBottom != targetListPadding) {
+                    binding.downloadList.setPadding(0, 0, 0, targetListPadding)
+                }
+                windowInsets
+            }
+        }
+
+        binding.root.findViewById<View>(R.id.btn_tv_pause_all)?.setOnClickListener {
+            val instances = DownloadQueueService.downloadInstances.value
+            instances.forEach { instance ->
+                val id = instance.downloadQueueWrapper.id
+                VideoDownloadManager.downloadEvent.invoke(
+                    Pair(id, VideoDownloadManager.DownloadActionType.Pause)
+                )
+            }
+            showToast(R.string.pause, Toast.LENGTH_SHORT)
+        }
+
+        binding.root.findViewById<View>(R.id.btn_tv_resume_all)?.setOnClickListener {
+            val instances = DownloadQueueService.downloadInstances.value
+            instances.forEach { instance ->
+                val id = instance.downloadQueueWrapper.id
+                VideoDownloadManager.downloadEvent.invoke(
+                    Pair(id, VideoDownloadManager.DownloadActionType.Resume)
+                )
+            }
+            showToast(R.string.resume, Toast.LENGTH_SHORT)
+        }
+
+        binding.root.findViewById<View>(R.id.btn_tv_clear_completed)?.setOnClickListener {
+            DownloadQueueManager.removeAllFromQueue()
+            showToast("Queue Cleared", Toast.LENGTH_SHORT)
+        }
+
         observe(downloadViewModel.headerCards) { cards ->
             when (cards) {
                 is Resource.Success -> {
                     val isEmpty = cards.value.isEmpty()
                     (binding.downloadList.adapter as? DownloadAdapter)?.submitList(cards.value)
                     binding.textNoDownloads.isVisible = isEmpty
+                    view?.findViewById<View>(R.id.tv_empty_downloads_card)?.isVisible = isEmpty
                     binding.downloadLoading.isVisible = false
                     binding.downloadList.isVisible = true
 
@@ -107,6 +192,8 @@ class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
                 is Resource.Loading -> {
                     binding.downloadList.isVisible = false
                     binding.downloadLoading.isVisible = true
+                    binding.textNoDownloads.isVisible = false
+                    view?.findViewById<View>(R.id.tv_empty_downloads_card)?.isVisible = false
                 }
 
                 is Resource.Failure -> {
@@ -230,20 +317,26 @@ class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
             setHasFixedSize(true)
             setItemViewCacheSize(20)
             this.adapter = adapter
-            setLinearListLayout(
-                isHorizontal = false,
-                nextRight = FOCUS_SELF,
-                nextDown = R.id.download_queue_button,
-            )
+            if (isLayout(TV or EMULATOR)) {
+                layoutManager = androidx.recyclerview.widget.GridLayoutManager(context, 5)
+                clipChildren = false
+                clipToPadding = false
+            } else {
+                setLinearListLayout(
+                    isHorizontal = false,
+                    nextRight = FOCUS_SELF,
+                    nextDown = R.id.download_queue_button,
+                )
+            }
         }
 
         binding.apply {
             openLocalVideoButton.apply {
-                isGone = isLayout(TV)
+                isGone = isLayout(TV or EMULATOR)
                 setOnClickListener { openLocalVideo() }
             }
             downloadStreamButton.apply {
-                isGone = isLayout(TV)
+                isGone = isLayout(TV or EMULATOR)
                 setOnClickListener { showStreamInputDialog(it.context) }
             }
 
@@ -259,7 +352,7 @@ class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
             downloadQueueButton.isFocusableInTouchMode = true
 
             downloadStreamButtonTv.setOnClickListener { showStreamInputDialog(it.context) }
-            steamImageviewHolder.isVisible = isLayout(TV)
+            steamImageviewHolder.isVisible = false
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -394,5 +487,15 @@ class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
         if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
         val selectedVideoUri = result.data?.data ?: return@registerForActivityResult
         playUri(activity ?: return@registerForActivityResult, selectedVideoUri)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        tvAmbientVideoHelper?.play()
+    }
+
+    override fun onPause() {
+        tvAmbientVideoHelper?.pause()
+        super.onPause()
     }
 }

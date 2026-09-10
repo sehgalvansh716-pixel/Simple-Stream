@@ -304,26 +304,22 @@
     </string-array>
 
     <string-array name="themes_names">
-        <item>Dark</item>
-        <item>Gray</item>
-        <item>Amoled</item>
-        <item>Flashbang</item>
-        <item>System</item>
-        <item>Material You</item>
-        <item>Dracula</item>
-        <item>Lavender Dreams</item>
-        <item>Silent Blue</item>
+        <item>Midnight Monochrome</item>
+        <item>Warm Minimal</item>
+        <item>Sage &amp; Cream</item>
+        <item>Arctic Glass</item>
+        <item>Soft Lavender</item>
+        <item>Obsidian + Electric</item>
+        <item>Pure Mono</item>
     </string-array>
     <string-array name="themes_names_values">
-        <item>AmoledLight</item>
-        <item>Black</item>
-        <item>Amoled</item>
-        <item>Light</item>
-        <item>System</item>
-        <item>Monet</item>
-        <item>Dracula</item>
-        <item>Lavender</item>
-        <item>SilentBlue</item>
+        <item>MidnightMonochrome</item>
+        <item>WarmMinimal</item>
+        <item>SageCream</item>
+        <item>ArcticGlass</item>
+        <item>SoftLavender</item>
+        <item>ObsidianElectric</item>
+        <item>PureMono</item>
     </string-array>
 
     <string-array name="extension_statuses">

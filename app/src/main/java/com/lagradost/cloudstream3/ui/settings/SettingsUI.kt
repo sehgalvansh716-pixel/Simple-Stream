@@ -122,32 +122,15 @@ class SettingsUI : BasePreferenceFragmentCompat() {
         }
 
         getPref(R.string.app_theme_key)?.setOnPreferenceClickListener {
-            val prefNames = resources.getStringArray(R.array.themes_names).toMutableList()
-            val prefValues = resources.getStringArray(R.array.themes_names_values).toMutableList()
-            val removeIncompatible = { text: String ->
-                val toRemove = prefValues
-                    .mapIndexed { idx, s -> if (s.startsWith(text)) idx else null }
-                    .filterNotNull()
-                var offset = 0
-                toRemove.forEach { idx ->
-                    prefNames.removeAt(idx - offset)
-                    prefValues.removeAt(idx - offset)
-                    offset += 1
-                }
-            }
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) { // remove monet on android 11 and less
-                removeIncompatible("Monet")
-            }
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) { // Remove system on android 9 and less
-                removeIncompatible("System")
-            }
+            val prefNames = resources.getStringArray(R.array.themes_names).toList()
+            val prefValues = resources.getStringArray(R.array.themes_names_values).toList()
 
-            val currentLayout =
-                settingsManager.getString(getString(R.string.app_theme_key), prefValues.first())
+            val currentTheme =
+                settingsManager.getString(getString(R.string.app_theme_key), prefValues.first()) ?: prefValues.first()
 
             activity?.showBottomDialog(
-                prefNames.toList(),
-                prefValues.indexOf(currentLayout),
+                prefNames,
+                prefValues.indexOf(currentTheme).let { if (it < 0) 0 else it },
                 getString(R.string.app_theme_settings),
                 true,
                 {}

@@ -40,7 +40,8 @@ object ImageLoader {
         val isBrokenHardware = hasPotentialBrokenHardware()
         return ImageLoader.Builder(context)
             .crossfade(200)
-            .allowHardware(SDK_INT >= 28 && !isBrokenHardware)
+            .allowHardware(false)
+            .bitmapConfig(Bitmap.Config.ARGB_8888)
             .diskCachePolicy(CachePolicy.ENABLED)
             .networkCachePolicy(CachePolicy.ENABLED)
             .memoryCache {
@@ -111,6 +112,8 @@ object ImageLoader {
                     headerBuilder[key] = value
                 }
             }.build())
+            allowHardware(false)
+            bitmapConfig(Bitmap.Config.ARGB_8888)
             builder() // if passed
         }
     }

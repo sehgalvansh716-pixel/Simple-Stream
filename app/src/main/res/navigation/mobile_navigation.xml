@@ -141,22 +141,22 @@
         android:label="@string/title_settings"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim">
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit">
         <action
             android:id="@+id/action_navigation_settings_player_to_navigation_subtitles"
             app:destination="@id/navigation_subtitles"
             app:enterAnim="@anim/enter_anim"
             app:exitAnim="@anim/exit_anim"
-            app:popEnterAnim="@anim/enter_anim"
-            app:popExitAnim="@anim/exit_anim" />
+            app:popEnterAnim="@anim/pop_enter"
+            app:popExitAnim="@anim/pop_exit" />
         <action
             android:id="@+id/action_navigation_settings_player_to_navigation_chrome_subtitles"
             app:destination="@id/navigation_chrome_subtitles"
             app:enterAnim="@anim/enter_anim"
             app:exitAnim="@anim/exit_anim"
-            app:popEnterAnim="@anim/enter_anim"
-            app:popExitAnim="@anim/exit_anim" />
+            app:popEnterAnim="@anim/pop_enter"
+            app:popExitAnim="@anim/pop_exit" />
     </fragment>
 
     <fragment
@@ -165,8 +165,8 @@
         android:label="@string/title_settings"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim" />
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit" />
 
     <fragment
         android:id="@+id/navigation_library"
@@ -183,8 +183,8 @@
         android:label="@string/title_settings"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim">
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit">
         <action
             android:id="@+id/action_navigation_settings_general_to_easterEggMonkeFragment"
             app:destination="@id/easterEggMonkeFragment"
@@ -200,16 +200,16 @@
         android:label="@string/title_settings"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim"
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit"
         tools:layout="@layout/fragment_extensions">
         <action
             android:id="@+id/navigation_settings_extensions_to_navigation_settings_plugins"
             app:destination="@id/navigation_settings_plugins"
             app:enterAnim="@anim/enter_anim"
             app:exitAnim="@anim/exit_anim"
-            app:popEnterAnim="@anim/enter_anim"
-            app:popExitAnim="@anim/exit_anim">
+            app:popEnterAnim="@anim/pop_enter"
+            app:popExitAnim="@anim/pop_exit">
             <argument
                 android:name="name"
                 android:defaultValue="@null"
@@ -231,8 +231,8 @@
         android:label="@string/title_settings"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim"
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit"
         tools:layout="@layout/fragment_plugins" />
 
     <fragment
@@ -241,8 +241,8 @@
         android:label="@string/title_settings"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim"
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit"
         tools:layout="@layout/fragment_webview" />
 
     <fragment
@@ -251,8 +251,8 @@
         android:label="@string/title_settings"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim" />
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit" />
 
     <fragment
         android:id="@+id/navigation_settings_updates"
@@ -260,8 +260,8 @@
         android:label="@string/title_settings"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim" />
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit" />
 
     <fragment
         android:id="@+id/navigation_settings_account"
@@ -269,8 +269,8 @@
         android:label="@string/title_settings"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim" />
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit" />
 
     <action
         android:id="@+id/global_to_navigation_quick_search"
@@ -361,58 +361,58 @@
         android:label="@string/title_settings"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim"
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit"
         tools:layout="@layout/main_settings" />
     <action
         android:id="@+id/action_navigation_global_to_navigation_settings_ui"
         app:destination="@id/navigation_settings_ui"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim" />
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit" />
     <action
         android:id="@+id/action_navigation_global_to_navigation_settings_providers"
         app:destination="@id/navigation_settings_providers"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim" />
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit" />
     <action
         android:id="@+id/action_navigation_global_to_navigation_settings_player"
         app:destination="@id/navigation_settings_player"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim" />
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit" />
     <action
         android:id="@+id/action_navigation_global_to_navigation_settings_updates"
         app:destination="@id/navigation_settings_updates"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim" />
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit" />
     <action
         android:id="@+id/action_navigation_global_to_navigation_settings_account"
         app:destination="@id/navigation_settings_account"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim" />
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit" />
     <action
         android:id="@+id/action_navigation_global_to_navigation_settings_general"
         app:destination="@id/navigation_settings_general"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim" />
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit" />
     <action
         android:id="@+id/action_navigation_global_to_navigation_settings_extensions"
         app:destination="@id/navigation_settings_extensions"
         app:enterAnim="@anim/enter_anim"
         app:exitAnim="@anim/exit_anim"
-        app:popEnterAnim="@anim/enter_anim"
-        app:popExitAnim="@anim/exit_anim" />
+        app:popEnterAnim="@anim/pop_enter"
+        app:popExitAnim="@anim/pop_exit" />
 
     <fragment
         android:id="@+id/navigation_subtitles"

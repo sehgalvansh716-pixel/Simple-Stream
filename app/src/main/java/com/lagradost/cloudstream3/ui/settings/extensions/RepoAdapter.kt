@@ -5,10 +5,12 @@ import android.view.ViewGroup
 import com.lagradost.cloudstream3.R
 import com.lagradost.cloudstream3.databinding.RepositoryItemBinding
 import com.lagradost.cloudstream3.databinding.RepositoryItemTvBinding
+import androidx.core.view.isVisible
 import com.lagradost.cloudstream3.plugins.RepositoryManager.PREBUILT_REPOSITORIES
 import com.lagradost.cloudstream3.ui.BaseDiffCallback
 import com.lagradost.cloudstream3.ui.NoStateAdapter
 import com.lagradost.cloudstream3.ui.ViewHolderState
+import com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR
 import com.lagradost.cloudstream3.ui.settings.Globals.TV
 import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
 import com.lagradost.cloudstream3.utils.ImageLoader.loadImage
@@ -27,7 +29,7 @@ class RepoAdapter(
     })) {
 
     override fun onCreateContent(parent: ViewGroup): ViewHolderState<Any> {
-        val layout = if (isLayout(TV)) RepositoryItemTvBinding.inflate(
+        val layout = if (isLayout(TV or EMULATOR)) RepositoryItemTvBinding.inflate(
             LayoutInflater.from(parent.context),
             parent,
             false
@@ -53,9 +55,10 @@ class RepoAdapter(
         when (val binding = holder.view) {
             is RepositoryItemTvBinding -> {
                 binding.apply {
-                    // Only shows icon if on setup or if it isn't a prebuilt repo.
-                    // No delete buttons on prebuilt repos.
-                    if (!isPrebuilt || isSetup) {
+                    val showAction = !isPrebuilt || isSetup
+                    actionButton.isVisible = showAction
+                    actionButton.isFocusable = showAction
+                    if (showAction) {
                         actionButton.setImageResource(drawable)
                     }
 

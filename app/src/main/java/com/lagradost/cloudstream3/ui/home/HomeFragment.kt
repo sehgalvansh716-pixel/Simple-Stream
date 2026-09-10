@@ -5,10 +5,19 @@ import android.app.Activity
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.os.Build
+import android.graphics.Outline
+import android.view.ViewOutlineProvider
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import com.lagradost.cloudstream3.LoadResponse
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.AbsListView
 import android.widget.ArrayAdapter
 import android.widget.ImageView
@@ -21,6 +30,37 @@ import androidx.core.net.toUri
 import androidx.core.view.isGone
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
+import com.lagradost.cloudstream3.utils.UIHelper.toPx
+import com.lagradost.cloudstream3.utils.UIHelper.getSpanCount
+import android.view.KeyEvent
+import android.view.animation.DecelerateInterpolator
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import androidx.core.widget.doAfterTextChanged
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
+import com.lagradost.cloudstream3.ui.NoStateAdapter
+import com.lagradost.cloudstream3.ui.BaseDiffCallback
+import com.lagradost.cloudstream3.ui.ViewHolderState
+import com.lagradost.cloudstream3.ui.search.SearchResultBuilder
+import com.lagradost.cloudstream3.ui.search.SearchClickCallback
+import com.lagradost.cloudstream3.databinding.SearchResultGridBinding
+import com.lagradost.cloudstream3.databinding.ItemTvPluginSearchCardBinding
+import com.lagradost.cloudstream3.utils.ImageLoader.loadImage
+import android.view.TextureView
+import android.graphics.SurfaceTexture
+import android.view.Surface
+import android.graphics.Matrix
+import android.media.MediaPlayer
+import com.lagradost.cloudstream3.ui.APIRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.fragment.app.activityViewModels
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.RecyclerView
@@ -86,6 +126,7 @@ import com.lagradost.cloudstream3.utils.UIHelper.getSpanCount
 import com.lagradost.cloudstream3.utils.UIHelper.navigate
 import com.lagradost.cloudstream3.utils.UIHelper.popupMenuNoIconsAndNoStringRes
 import com.lagradost.cloudstream3.utils.UIHelper.toPx
+import com.lagradost.cloudstream3.ui.utils.TvAmbientVideoHelper
 
 private const val TAG = "HomeFragment"
 
@@ -96,6 +137,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
         // Used for configuration changed events to fix any popups that are not attached to a fragment
         val configEvent = EmptyEvent()
         var currentSpan = 1
+        var lastFocusedItem: java.lang.ref.WeakReference<View>? = null
 
         private val errorProfilePics = listOf(
             R.drawable.monke_benene,
@@ -380,7 +422,72 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
             }
         }
 
+        fun showTvProviderDialog(context: Context, selectedApiName: String?, callback: (String) -> Unit) {
+            val allValidAPIs = context.filterProviderByPreferredMedia().toMutableList()
+            val isMultiLang = context.getApiProviderLangSettings().let { set ->
+                set.size > 1 || set.contains(AllLanguagesName)
+            }
+            val validAPIs = mutableListOf<MainAPI>()
+            validAPIs.addAll(allValidAPIs)
+            validAPIs.add(randomApi)
+            validAPIs.add(noneApi)
+
+            val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_tv_provider_select, null)
+            val dialog = AlertDialog.Builder(context, R.style.AlertDialogCustom)
+                .setView(dialogView)
+                .create()
+
+            dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            dialog.show()
+
+            val recycler = dialogView.findViewById<RecyclerView>(R.id.tv_provider_recycler) ?: return
+
+            class ProviderViewHolder(v: View) : RecyclerView.ViewHolder(v) {
+                val tick: ImageView = v.findViewById(R.id.tv_provider_item_tick)
+                val title: TextView = v.findViewById(R.id.tv_provider_item_title)
+            }
+
+            val selectedIndex = validAPIs.indexOfFirst { it.name == selectedApiName }.coerceAtLeast(0)
+
+            recycler.adapter = object : RecyclerView.Adapter<ProviderViewHolder>() {
+                override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProviderViewHolder {
+                    val v = LayoutInflater.from(parent.context).inflate(R.layout.item_tv_provider, parent, false)
+                    return ProviderViewHolder(v)
+                }
+
+                override fun onBindViewHolder(holder: ProviderViewHolder, position: Int) {
+                    val api = validAPIs[position]
+                    val displayName = context.getDisplayName(api.name) ?: api.name
+                    val flag = if (isMultiLang) getFlagFromIso(api.lang)?.plus(" ") ?: "" else ""
+                    holder.title.text = "$flag$displayName"
+                    val isSelected = (api.name == selectedApiName)
+                    holder.tick.visibility = if (isSelected) View.VISIBLE else View.INVISIBLE
+
+                    holder.itemView.setOnClickListener {
+                        if (api.name != selectedApiName) {
+                            callback(api.name)
+                        }
+                        dialog.dismissSafe()
+                    }
+
+                    if (position == selectedIndex) {
+                        holder.itemView.post {
+                            holder.itemView.requestFocus()
+                        }
+                    }
+                }
+
+                override fun getItemCount(): Int = validAPIs.size
+            }
+
+            recycler.scrollToPosition(selectedIndex)
+        }
+
         fun Context.selectHomepage(selectedApiName: String?, callback: (String) -> Unit) {
+            if (isLayout(TV or EMULATOR)) {
+                showTvProviderDialog(this, selectedApiName, callback)
+                return
+            }
             val validAPIs = filterProviderByPreferredMedia().toMutableList()
 
             validAPIs.add(0, randomApi)
@@ -391,6 +498,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
                 BottomSheetDialog(this)
 
             builder.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+            builder.behavior.skipCollapsed = true
             val binding: HomeSelectMainpageBinding = HomeSelectMainpageBinding.inflate(
                 builder.layoutInflater,
                 null,
@@ -398,6 +506,16 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
             )
 
             builder.setContentView(binding.root)
+            builder.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            builder.window?.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)?.setBackgroundColor(Color.TRANSPARENT)
+            builder.window?.setDimAmount(0.45f)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                builder.window?.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                builder.window?.attributes?.blurBehindRadius = 32
+            }
+            binding.root.findViewById<View>(R.id.select_mainpage_close)?.setOnClickListener {
+                builder.dismissSafe()
+            }
             builder.show()
             builder.let { dialog ->
                 val isMultiLang = getApiProviderLangSettings().let { set ->
@@ -442,23 +560,33 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
 
                         val name = getItem(position)
                         titleText?.text = name
-                        val providerApi = currentValidApis[position]
-                        val isPinned =
-                            pinnedphashset.contains(providerApi.name)
-                        pinIcon.visibility = if (isPinned) View.VISIBLE else View.GONE
+                        if (position < currentValidApis.size) {
+                            val providerApi = currentValidApis[position]
+                            val isPinned =
+                                pinnedphashset.contains(providerApi.name)
+                            pinIcon.visibility = if (isPinned) View.VISIBLE else View.GONE
 
-                        val pluginInstance = providerApi.sourcePlugin?.let { PluginManager.plugins[it] } as? Plugin
-                        val isDownloadedPluginWithSettings = pluginInstance?.openSettings != null && !isLayout(TV)
+                            val pluginInstance = providerApi.sourcePlugin?.let { PluginManager.plugins[it] } as? Plugin
+                            val isDownloadedPluginWithSettings = pluginInstance?.openSettings != null && !isLayout(TV)
 
-                        settingsIcon.visibility = if (isDownloadedPluginWithSettings) View.VISIBLE else View.GONE
-                        if (isDownloadedPluginWithSettings) {
-                            settingsIcon.setOnClickListener {
-                                try {
-                                    val activityContext = it.context.getActivity() ?: it.context
-                                    pluginInstance.openSettings?.invoke(activityContext)
-                                } catch (e: Throwable) {
-                                    logError(e)
+                            settingsIcon.visibility = if (isDownloadedPluginWithSettings) View.VISIBLE else View.GONE
+                            if (isDownloadedPluginWithSettings) {
+                                settingsIcon.setOnClickListener {
+                                    try {
+                                        val activityContext = it.context.getActivity() ?: it.context
+                                        pluginInstance.openSettings?.invoke(activityContext)
+                                    } catch (e: Throwable) {
+                                        logError(e)
+                                    }
                                 }
+                            }
+                        }
+
+                        view.setOnClickListener {
+                            if (currentValidApis.isNotEmpty() && position < currentValidApis.size) {
+                                currentApiName = currentValidApis[position].name
+                                currentApiName?.let(callback)
+                                dialog.dismissSafe()
                             }
                         }
 
@@ -467,12 +595,16 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
                 }
                 listView?.adapter = arrayAdapter
                 listView?.choiceMode = AbsListView.CHOICE_MODE_SINGLE
+                if (isLayout(TV)) {
+                    listView?.isFocusable = true
+                    listView?.isFocusableInTouchMode = true
+                    listView?.itemsCanFocus = false
+                }
 
                 listView?.setOnItemClickListener { _, _, i, _ ->
-                    if (currentValidApis.isNotEmpty()) {
+                    if (currentValidApis.isNotEmpty() && i < currentValidApis.size) {
                         currentApiName = currentValidApis[i].name
-                        //to switch to apply simply remove this
-                        currentApiName.let(callback)
+                        currentApiName?.let(callback)
                         dialog.dismissSafe()
                     }
                 }
@@ -521,6 +653,12 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
                     listView?.setItemChecked(index, true)
                     arrayAdapter.addAll(names)
                     arrayAdapter.notifyDataSetChanged()
+                    if (isLayout(TV) && index >= 0) {
+                        listView?.setSelection(index)
+                        listView?.post {
+                            listView?.requestFocus()
+                        }
+                    }
                 }
                 // pin provider on hold
                 listView?.setOnItemLongClickListener { _, _, i, _ ->
@@ -612,9 +750,29 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
         return super.onCreateView(inflater, container, savedInstanceState)
     }
 
+    override fun onResume() {
+        super.onResume()
+        val isSearchOverlayVisible = view?.findViewById<View>(R.id.home_plugin_search_overlay)?.isVisible == true
+        if (isSearchOverlayVisible) {
+            pluginSearchVideoHelper?.play()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        try {
+            pluginSearchVideoHelper?.pause()
+        } catch (_: Exception) {}
+    }
+
     override fun onDestroyView() {
         (activity as? ComponentActivity)?.detachBackPressedCallback("HomeFragment_BackPress")
         bottomSheetDialog?.ownHide()
+        try {
+            pluginSearchVideoHelper?.release()
+            pluginSearchVideoHelper = null
+            pluginSearchJob?.cancel()
+        } catch (_: Exception) {}
         super.onDestroyView()
     }
 
@@ -636,6 +794,10 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
 
     private var bottomSheetDialog: BottomSheetDialog? = null
     private var homeMasterAdapter: HomeParentItemAdapterPreview? = null
+    private var pluginSearchJob: Job? = null
+    private var pluginSearchAdapter: TvPluginSearchAdapter? = null
+    private var pluginSearchVideoHelper: TvAmbientVideoHelper? = null
+    private var isPluginSearchCardsFocused = false
 
     var lastSavedHomepage: String? = null
 
@@ -694,11 +856,134 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
 
             homeMasterAdapter = HomeParentItemAdapterPreview(
                 homeViewModel, accountViewModel
-            )
+            ).apply {
+                onPluginSearchClick = {
+                    openPluginSearch()
+                }
+                onCarouselItemChanged = { item ->
+                    updateHomeBackdrop(item)
+                }
+            }
             homeMasterRecycler.setRecycledViewPool(ParentItemAdapter.sharedPool)
+            if (isLayout(TV or EMULATOR)) {
+                homeMasterRecycler.setItemViewCacheSize(4)
+            }
+            initTvBackdrop(binding.root)
             homeMasterRecycler.adapter = homeMasterAdapter
+            setupTvPluginSearch(binding)
 
-            homeApiFab.isVisible = isLayout(PHONE)
+            if (isLayout(PHONE)) {
+                ViewCompat.setOnApplyWindowInsetsListener(homePinnedTopBar) { v, windowInsets ->
+                    val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+                    v.updatePadding(top = insets.top + 52.toPx, bottom = 12.toPx)
+                    windowInsets
+                }
+
+                try {
+                    val decorView = activity?.window?.decorView as? ViewGroup
+                    val rootView = decorView?.findViewById<ViewGroup>(android.R.id.content) ?: binding.root
+                    val windowBackground = decorView?.background
+                    val blurAlgorithm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        eightbitlab.com.blurview.RenderEffectBlur()
+                    } else {
+                        @Suppress("DEPRECATION")
+                        eightbitlab.com.blurview.RenderScriptBlur(requireContext())
+                    }
+
+                    fun setupPillBlur(blurView: eightbitlab.com.blurview.BlurView) {
+                        blurView.apply {
+                            outlineProvider = object : ViewOutlineProvider() {
+                                override fun getOutline(view: View, outline: Outline) {
+                                    outline.setRoundRect(0, 0, view.width, view.height, 19.toPx.toFloat())
+                                }
+                            }
+                            clipToOutline = true
+                            setupWith(rootView, blurAlgorithm)
+                                .setFrameClearDrawable(windowBackground)
+                                .setBlurRadius(16f)
+                                .setOverlayColor(Color.TRANSPARENT)
+                                .setBlurAutoUpdate(true)
+                        }
+                    }
+
+                    setupPillBlur(homeChangeApiBlur)
+                    setupPillBlur(homePluginSearchBlur)
+
+                    binding.root.findViewById<eightbitlab.com.blurview.BlurView>(R.id.home_plugin_search_bar_blur)?.let {
+                        it.outlineProvider = object : ViewOutlineProvider() {
+                            override fun getOutline(view: View, outline: Outline) {
+                                outline.setRoundRect(0, 0, view.width, view.height, 22.toPx.toFloat())
+                            }
+                        }
+                        it.clipToOutline = true
+                        it.setupWith(rootView, blurAlgorithm)
+                            .setFrameClearDrawable(windowBackground)
+                            .setBlurRadius(16f)
+                            .setOverlayColor(Color.TRANSPARENT)
+                            .setBlurAutoUpdate(true)
+                    }
+
+                    binding.root.findViewById<eightbitlab.com.blurview.BlurView>(R.id.home_plugin_search_back_blur)?.let {
+                        it.outlineProvider = object : ViewOutlineProvider() {
+                            override fun getOutline(view: View, outline: Outline) {
+                                outline.setOval(0, 0, view.width, view.height)
+                            }
+                        }
+                        it.clipToOutline = true
+                        it.setupWith(rootView, blurAlgorithm)
+                            .setFrameClearDrawable(windowBackground)
+                            .setBlurRadius(16f)
+                            .setOverlayColor(Color.TRANSPARENT)
+                            .setBlurAutoUpdate(true)
+                    }
+                } catch (t: Throwable) {
+                    logError(t)
+                }
+
+                homePluginSearchBtn.setOnClickListener {
+                    openPluginSearch()
+                }
+
+                val searchHeaderGroup = binding.root.findViewById<View>(R.id.home_plugin_search_header_group)
+                if (!isLayout(TV or EMULATOR) && searchHeaderGroup != null) {
+                    ViewCompat.setOnApplyWindowInsetsListener(searchHeaderGroup) { v, windowInsets ->
+                        val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+                        v.updatePadding(top = insets.top + 16.toPx, bottom = 20.toPx)
+                        windowInsets
+                    }
+                }
+
+                homeHeadProfilePadding.setOnClickListener {
+                    activity?.showAccountSelectLinear()
+                }
+
+                homeViewModel.currentAccount.observe(viewLifecycleOwner) { currentAccount ->
+                    homeHeadProfilePic.loadImage(currentAccount?.image)
+                }
+
+                homeScrollToTop.setOnClickListener {
+                    homeMasterRecycler.smoothScrollToPosition(0)
+                }
+
+                homeMasterRecycler.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                    override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                        val lm = recyclerView.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager
+                        val firstVisiblePos = lm?.findFirstVisibleItemPosition() ?: 0
+                        val shouldShow = firstVisiblePos > 0
+                        if (shouldShow && !homeScrollToTop.isVisible) {
+                            homeScrollToTop.alpha = 0f
+                            homeScrollToTop.isVisible = true
+                            homeScrollToTop.animate().alpha(1f).setDuration(200).start()
+                        } else if (!shouldShow && homeScrollToTop.isVisible) {
+                            homeScrollToTop.animate().alpha(0f).setDuration(150).withEndAction {
+                                homeScrollToTop.isVisible = false
+                            }.start()
+                        }
+                    }
+                })
+            }
+
+            homeApiFab.isVisible = false
 
             homePreviewReloadProvider.setOnClickListener {
                 homeViewModel.loadAndCancel(
@@ -761,40 +1046,19 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
                         }
                     } else {
                         // Header scrolling is only relevant to TV/Emulator
+                        // Provider pill is inside fragment_home_head_tv, keep floating compatibility container hidden
+                        binding.homeApiHolder.isVisible = false
 
-                        val view = recyclerView.findViewHolderForAdapterPosition(0)?.itemView
-                        val scrollParent = binding.homeApiHolder
-
-                        if (view == null) {
-                            // The first view is not visible, so we can assume we have scrolled past it
-                            scrollParent.isVisible = false
-                        } else {
-                            // A bit weird, but this is a major limitation we are working around here
-                            // 1. We cant have a real parent to the recyclerview as android cant layout that without lagging
-                            // 2. We cant put the view in the recyclerview, as it should always be shown
-                            // 3. We cant mirror the view in the recyclerview as then it causes focus issues when swaping out the mirror view
-                            //
-                            // This means that if we want to have a parent view to the recyclerview we are out of luck
-                            // Instead this uses getLocationInWindow to calculate how much the view should be scrolled
-                            // as recyclerView has no scrollY (always 0)
-                            //
-                            // Then it manually "scrolls" it to the correct position
-                            //
-                            // Hopefully getLocationInWindow acts correctly on all devices
-                            val rect = IntArray(2)
-                            view.getLocationInWindow(rect)
-                            scrollParent.isVisible = true
-                            scrollParent.translationY = rect[1].toFloat() - 60.toPx
-
-                            // Move the TV layout real time clock out of the way too
-                            // We check if we have the correct layout and if the clock is enabled
-                            if(isLayout(TV) && binding.homeClock.isVisible) {
-                                val scrollParent = binding.homeClock
-
+                        // Move the TV layout real time clock out of the way if enabled
+                        if (isLayout(TV) && binding.homeClock.isVisible) {
+                            val view = recyclerView.findViewHolderForAdapterPosition(0)?.itemView
+                            if (view != null) {
                                 val rect = IntArray(2)
                                 view.getLocationInWindow(rect)
-                                scrollParent.isVisible = true
-                                scrollParent.translationY = rect[1].toFloat() - 60.toPx
+                                binding.homeClock.isVisible = true
+                                binding.homeClock.translationY = rect[1].toFloat() - 60.toPx
+                            } else {
+                                binding.homeClock.isVisible = false
                             }
                         }
                     }
@@ -818,13 +1082,25 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
 
         observe(homeViewModel.apiName) { apiName ->
             currentApiName = apiName
+            lastBackdropUrl = null
+            com.lagradost.cloudstream3.utils.CardMetadataManager.onPluginChanged(apiName)
             val displayApiName = context?.getDisplayName(apiName) ?: apiName
             binding.apply {
                 homeApiFab.text = displayApiName
-                homeChangeApi.text = displayApiName
-                homePreviewReloadProvider.isGone = (apiName == noneApi.name)
-                homePreviewSearchButton.isGone = (apiName == noneApi.name)
+                homeChangeApi.text = "$displayApiName ▾"
+                val isNone = (apiName == noneApi.name)
+                homePreviewReloadProvider.isGone = isNone
+                homePreviewSearchButton.isGone = isNone
+                if (isNone) {
+                    homeChangeApi.nextFocusRightId = R.id.home_preview_search_button
+                    homePreviewSearchButton.nextFocusLeftId = R.id.home_change_api
+                } else {
+                    homeChangeApi.nextFocusRightId = R.id.home_preview_reload_provider
+                    homePreviewSearchButton.nextFocusLeftId = R.id.home_preview_reload_provider
+                }
             }
+            homeMasterAdapter?.updateApiName(apiName)
+            activity?.findViewById<TextView>(R.id.home_change_api)?.text = "$displayApiName ▾"
         }
 
         observe(homeViewModel.page) { data ->
@@ -834,7 +1110,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
                         ?.sourcePlugin?.let { PluginManager.plugins[it] } as? Plugin
                     homePreviewSettingsButton.isGone = plugin?.openSettings == null
                 }
-                
+
                 when (data) {
                     is Resource.Success -> {
                         val d = data.value
@@ -976,8 +1252,18 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
     }
 
     private fun handleTvBackPress(helper: BackPressedCallbackHelper.CallbackHelper) {
-        // Only apply custom behavior on TV interface
-        if (!isLayout(TV)) {
+        if (view?.findViewById<View>(R.id.home_plugin_search_overlay)?.isVisible == true) {
+            if (isLayout(TV or EMULATOR) && isPluginSearchCardsFocused) {
+                setPluginSearchCardsFocusedState(false)
+                view?.findViewById<View>(R.id.home_plugin_search_input)?.requestFocus()
+                return
+            }
+            closePluginSearch()
+            return
+        }
+
+        // Only run for TV and EMULATOR for the rest of D-pad back hierarchy
+        if (!isLayout(TV or EMULATOR)) {
             helper.runDefault()
             return
         }
@@ -985,7 +1271,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
             helper.runDefault()
             return
         }
-        // isInsideRecycle is true when focus is inside home_master_recycler
+        // isInsideRecycler is true when focus is inside home_master_recycler
         var parent = currentFocus.parent
         var isInsideRecycler = false
         while (parent != null) {
@@ -995,23 +1281,818 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
             }
             parent = parent.parent
         }
+        val changeApiButton = binding?.homeChangeApi
+            ?: activity?.findViewById<View>(R.id.home_change_api)
         when {
-            // Case 1: Focus is within plugin content -> Move to plugin selector
-            isInsideRecycler -> {
-                binding?.homeMasterRecycler?.scrollToPosition(0)
-                // Defer focus request until after scroll ends
-                binding?.homeChangeApi?.post {
-                    binding?.homeChangeApi?.requestFocus()
-                }
-            }
-            // Case 2: Focus is on plugin selector or nearby buttons -> Move to home navigation
+            // Case 1: Focus is on plugin selector, search button, hero banner, or header buttons -> Move to home navigation rail/navbar
             currentFocus.id == R.id.home_change_api ||
+            currentFocus.id == R.id.home_plugin_search_btn ||
+            currentFocus.id == R.id.home_preview_play ||
+            currentFocus.id == R.id.home_preview_bookmark ||
+            currentFocus.id == R.id.home_preview_info ||
             currentFocus.id == R.id.home_preview_reload_provider ||
-            currentFocus.id == R.id.home_preview_search_button -> {
-                activity?.findViewById<View>(R.id.navigation_home)?.requestFocus()
+            currentFocus.id == R.id.home_preview_search_button ||
+            currentFocus.id == R.id.home_preview_info_btt -> {
+                val navHome = activity?.findViewById<View>(R.id.tv_nav_home)
+                    ?: activity?.findViewById<View>(R.id.navigation_home)
+                navHome?.requestFocus()
+            }
+            // Case 2: Focus is within content rows -> Move up to header / hero banner
+            isInsideRecycler -> {
+                (binding?.homeMasterRecycler?.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager)?.scrollToPositionWithOffset(0, 0)
+                val targetFocus = activity?.findViewById<View>(R.id.home_preview_play)
+                    ?: changeApiButton
+                targetFocus?.post {
+                    if (!targetFocus.requestFocus()) {
+                        changeApiButton?.requestFocus()
+                    }
+                }
             }
             // Case 3: Any other location -> Use default back behavior
             else -> helper.runDefault()
         }
     }
+
+    private class TvPluginSearchAdapter(
+        private val clickCallback: (SearchClickCallback) -> Unit,
+        private val onFocusChanged: (Boolean) -> Unit,
+        var spanCount: Int = 5
+    ) : NoStateAdapter<SearchResponse>(
+        BaseDiffCallback(
+            itemSame = { a, b ->
+                if (a.id != null || b.id != null) {
+                    a.id == b.id
+                } else {
+                    a.name == b.name
+                }
+            }
+        )
+    ) {
+        override fun onCreateContent(parent: ViewGroup): ViewHolderState<Any> {
+            val inflater = LayoutInflater.from(parent.context)
+            val binding = ItemTvPluginSearchCardBinding.inflate(inflater, parent, false)
+            return ViewHolderState(binding)
+        }
+
+        override fun onBindContent(holder: ViewHolderState<Any>, item: SearchResponse, position: Int) {
+            val binding = holder.view as? ItemTvPluginSearchCardBinding ?: return
+            val context = binding.root.context
+            val isTv = isLayout(TV or EMULATOR)
+            val dm = context.resources.displayMetrics
+            val currentSpan = if (isTv) 4 else (if (spanCount > 0) spanCount else 3)
+            val totalHorizontalPadding = if (isTv) {
+                72.toPx + (4 * 16.toPx)
+            } else {
+                20.toPx + (currentSpan * 12.toPx)
+            }
+            val colWidth = (dm.widthPixels - totalHorizontalPadding) / currentSpan
+            val posterHeight = (colWidth / 0.68f).toInt()
+            binding.backgroundCard.apply {
+                val lp = layoutParams ?: ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, posterHeight)
+                lp.width = ViewGroup.LayoutParams.MATCH_PARENT
+                lp.height = posterHeight
+                layoutParams = lp
+            }
+
+            val posterUrl = item.posterUrl
+            if (!posterUrl.isNullOrEmpty()) {
+                binding.cardPoster.loadImage(posterUrl, item.posterHeaders) {
+                    error { com.lagradost.cloudstream3.utils.getImageFromDrawable(context, R.drawable.default_cover) }
+                }
+            } else {
+                binding.cardPoster.loadImage(R.drawable.default_cover)
+            }
+
+            com.lagradost.cloudstream3.utils.CardMetadataManager.registerCard(item)
+            val meta = com.lagradost.cloudstream3.utils.CardMetadataManager.resolveFromCard(item)
+            val cleanItemName = com.lagradost.cloudstream3.utils.CardMetadataManager.cleanTitle(item.name)
+            val displayTitle = if (meta.title.isNotBlank()) meta.title else cleanItemName
+            binding.cardUnfocusedTitle.text = displayTitle
+            binding.cardFocusTitle.text = displayTitle
+            val initialSub = com.lagradost.cloudstream3.utils.CardMetadataManager.formatSubtitle(meta.year, meta.score)
+            binding.cardFocusSubtitle.text = initialSub
+            binding.cardFocusSubtitle.isVisible = !initialSub.isNullOrEmpty()
+
+            if (!isTv) {
+                // Mobile Portrait Touch Mode: Exact parity with Home Page content cards (title & rating below card)
+                (binding.backgroundCard.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin = 0
+                binding.backgroundCard.foreground = null
+                binding.root.isFocusable = false
+                binding.root.isFocusableInTouchMode = false
+
+                // Hide TV-specific centered overlays & shadows (no play icon, no centered dimmer, no white outline)
+                binding.cardBottomShadow.isVisible = false
+                binding.cardUnfocusedTitle.isVisible = false
+                binding.cardRating.isVisible = false
+                binding.cardFocusDimmer.isVisible = false
+                binding.cardFocusInfo.isVisible = false
+                binding.cardPlayIcon.isVisible = false
+
+                binding.root.animate().cancel()
+                binding.root.scaleX = 1.0f
+                binding.root.scaleY = 1.0f
+                binding.root.translationZ = 0f
+                binding.root.alpha = 1.0f
+
+                // Show mobile title & subtitle below card
+                binding.cardMobileTitle.isVisible = true
+                binding.cardMobileTitle.text = displayTitle
+
+                val sub = com.lagradost.cloudstream3.utils.CardMetadataManager.formatSubtitle(meta.year, meta.score)
+                binding.cardMobileSubtitle.text = sub
+                binding.cardMobileSubtitle.isVisible = !sub.isNullOrEmpty()
+
+                if (meta.year == null || meta.score == null) {
+                    com.lagradost.cloudstream3.utils.CardMetadataManager.fetchMetadataAsync(item) { updated ->
+                        val updatedTitle = if (updated.title.isNotBlank()) updated.title else com.lagradost.cloudstream3.utils.CardMetadataManager.cleanTitle(item.name)
+                        if (updatedTitle.isNotBlank()) {
+                            binding.cardMobileTitle.text = updatedTitle
+                        }
+                        val updatedSub = com.lagradost.cloudstream3.utils.CardMetadataManager.formatSubtitle(updated.year, updated.score)
+                        binding.cardMobileSubtitle.text = updatedSub
+                        binding.cardMobileSubtitle.isVisible = !updatedSub.isNullOrEmpty()
+                    }
+                }
+
+                binding.root.setOnClickListener {
+                    clickCallback(
+                        SearchClickCallback(
+                            if (item is DataStoreHelper.ResumeWatchingResult) SEARCH_ACTION_PLAY_FILE else SEARCH_ACTION_LOAD,
+                            it,
+                            position,
+                            item
+                        )
+                    )
+                }
+                binding.root.onFocusChangeListener = null
+                binding.root.setOnKeyListener(null)
+            } else {
+                // TV D-pad Remote Focus Mode — always reset to unfocused state on bind.
+                // The setOnFocusChangeListener drives the focused visual at runtime.
+                // This prevents recycled ViewHolders from carrying over scale / dimmer state
+                // from a previously focused card (which looked wrong when focus was on the search bar).
+                (binding.backgroundCard.layoutParams as? ViewGroup.MarginLayoutParams)?.apply {
+                    topMargin = 10.toPx
+                    bottomMargin = 24.toPx
+                }
+                binding.cardMobileTitle.isVisible = false
+                binding.cardMobileSubtitle.isVisible = false
+                binding.backgroundCard.foreground = null
+                binding.root.animate().cancel()
+                binding.cardFocusDimmer.animate().cancel()
+                binding.cardFocusInfo.animate().cancel()
+                binding.cardBottomShadow.animate().cancel()
+                binding.cardUnfocusedTitle.animate().cancel()
+                binding.cardRating.animate().cancel()
+                binding.root.scaleX = 1.0f
+                binding.root.scaleY = 1.0f
+                binding.root.translationZ = 0f
+                binding.root.alpha = 1.0f
+                binding.cardFocusDimmer.isVisible = false
+                binding.cardFocusDimmer.alpha = 0f
+                binding.cardFocusInfo.isVisible = false
+                binding.cardFocusInfo.alpha = 0f
+                binding.cardFocusInfo.translationY = 0f
+                binding.cardBottomShadow.isVisible = true
+                binding.cardBottomShadow.alpha = 1.0f
+                binding.cardUnfocusedTitle.isVisible = true
+                binding.cardUnfocusedTitle.alpha = 1.0f
+                val cleanScore = meta.score?.replace("★", "")?.trim()?.takeIf { it.isNotBlank() }
+                val showRating = !cleanScore.isNullOrBlank()
+                binding.cardRating.isVisible = showRating
+                if (showRating) {
+                    binding.cardRating.text = cleanScore
+                    binding.cardRating.alpha = 1.0f
+                }
+
+                binding.root.setOnClickListener {
+                    clickCallback(
+                        SearchClickCallback(
+                            if (item is DataStoreHelper.ResumeWatchingResult) SEARCH_ACTION_PLAY_FILE else SEARCH_ACTION_LOAD,
+                            it,
+                            position,
+                            item
+                        )
+                    )
+                }
+
+                binding.root.setOnFocusChangeListener { view, hasFocus ->
+                    // Cancel running animations to avoid race conditions during fast traversal
+                    view.animate().cancel()
+                    binding.cardFocusDimmer.animate().cancel()
+                    binding.cardFocusInfo.animate().cancel()
+                    binding.cardBottomShadow.animate().cancel()
+                    binding.cardUnfocusedTitle.animate().cancel()
+                    binding.cardRating.animate().cancel()
+
+                    val duration = 200L
+                    val interpolator = DecelerateInterpolator()
+                    val targetScale = if (hasFocus) 1.10f else 1.0f
+                    val targetZ = if (hasFocus) 12f else 0f
+
+                    binding.backgroundCard.foreground = if (hasFocus) androidx.core.content.ContextCompat.getDrawable(context, R.drawable.outline) else null
+
+                    if (hasFocus) {
+                        com.lagradost.cloudstream3.utils.CardMetadataManager.onCardFocused(item)
+                        val currentMeta = com.lagradost.cloudstream3.utils.CardMetadataManager.resolveFromCard(item)
+                        val cleanCardName = com.lagradost.cloudstream3.utils.CardMetadataManager.cleanTitle(item.name)
+                        val focusedTitle = if (currentMeta.title.isNotBlank()) currentMeta.title else cleanCardName
+                        if (focusedTitle.isNotBlank()) {
+                            binding.cardFocusTitle.text = focusedTitle
+                            binding.cardUnfocusedTitle.text = focusedTitle
+                        }
+                        val focusedSub = com.lagradost.cloudstream3.utils.CardMetadataManager.formatSubtitle(currentMeta.year, currentMeta.score)
+                        binding.cardFocusSubtitle.text = focusedSub
+                        binding.cardFocusSubtitle.isVisible = !focusedSub.isNullOrEmpty()
+
+                        if (focusedTitle.isBlank() || currentMeta.year == null || currentMeta.score == null) {
+                            com.lagradost.cloudstream3.utils.CardMetadataManager.fetchMetadataAsync(item) { updated ->
+                                if (binding.root.isFocused) {
+                                    val updatedTitle = if (updated.title.isNotBlank()) updated.title else com.lagradost.cloudstream3.utils.CardMetadataManager.cleanTitle(item.name)
+                                    if (updatedTitle.isNotBlank()) {
+                                        binding.cardFocusTitle.text = updatedTitle
+                                        binding.cardUnfocusedTitle.text = updatedTitle
+                                    }
+                                    val updatedSub = com.lagradost.cloudstream3.utils.CardMetadataManager.formatSubtitle(updated.year, updated.score)
+                                    binding.cardFocusSubtitle.text = updatedSub
+                                    binding.cardFocusSubtitle.isVisible = !updatedSub.isNullOrEmpty()
+                                }
+                            }
+                        }
+
+                        view.translationZ = 12f
+                        view.animate()
+                            .scaleX(targetScale)
+                            .scaleY(targetScale)
+                            .translationZ(targetZ)
+                            .alpha(1.0f)
+                            .setDuration(duration)
+                            .setInterpolator(interpolator)
+                            .start()
+
+                        binding.cardFocusDimmer.visibility = View.VISIBLE
+                        binding.cardFocusDimmer.alpha = 0f
+                        binding.cardFocusDimmer.animate()
+                            .alpha(1.0f)
+                            .setDuration(duration)
+                            .setInterpolator(interpolator)
+                            .start()
+
+                        binding.cardFocusInfo.visibility = View.VISIBLE
+                        binding.cardFocusInfo.alpha = 0f
+                        binding.cardFocusInfo.translationY = 14.toPx.toFloat()
+                        binding.cardFocusInfo.animate()
+                            .alpha(1.0f)
+                            .translationY(0f)
+                            .setDuration(duration)
+                            .setInterpolator(interpolator)
+                            .start()
+
+                        binding.cardBottomShadow.animate().alpha(0f).setDuration(160).withEndAction { binding.cardBottomShadow.visibility = View.GONE }.start()
+                        binding.cardUnfocusedTitle.animate().alpha(0f).setDuration(160).withEndAction { binding.cardUnfocusedTitle.visibility = View.GONE }.start()
+                        binding.cardRating.animate().alpha(0f).setDuration(160).withEndAction { binding.cardRating.visibility = View.GONE }.start()
+
+                        onFocusChanged(true)
+                    } else {
+                        view.alpha = 1.0f
+                        view.animate()
+                            .scaleX(targetScale)
+                            .scaleY(targetScale)
+                            .translationZ(targetZ)
+                            .alpha(1.0f)
+                            .setDuration(duration)
+                            .setInterpolator(interpolator)
+                            .withEndAction {
+                                if (!view.isFocused) {
+                                    view.translationZ = 0f
+                                }
+                            }
+                            .start()
+
+                        binding.cardFocusDimmer.animate()
+                            .alpha(0f)
+                            .setDuration(160)
+                            .setInterpolator(interpolator)
+                            .withEndAction { binding.cardFocusDimmer.visibility = View.GONE }
+                            .start()
+
+                        binding.cardFocusInfo.animate()
+                            .alpha(0f)
+                            .translationY(10.toPx.toFloat())
+                            .setDuration(160)
+                            .setInterpolator(interpolator)
+                            .withEndAction { binding.cardFocusInfo.visibility = View.GONE }
+                            .start()
+
+                        binding.cardBottomShadow.visibility = View.VISIBLE
+                        binding.cardBottomShadow.alpha = 0f
+                        binding.cardBottomShadow.animate().alpha(1.0f).setDuration(duration).setInterpolator(interpolator).start()
+
+                        binding.cardUnfocusedTitle.visibility = View.VISIBLE
+                        binding.cardUnfocusedTitle.alpha = 0f
+                        binding.cardUnfocusedTitle.animate().alpha(1.0f).setDuration(duration).setInterpolator(interpolator).start()
+
+                        val currentMeta = com.lagradost.cloudstream3.utils.CardMetadataManager.resolveFromCard(item)
+                        val cleanScore = currentMeta.score?.replace("★", "")?.trim()?.takeIf { it.isNotBlank() }
+                        if (!cleanScore.isNullOrBlank()) {
+                            binding.cardRating.text = cleanScore
+                            binding.cardRating.visibility = View.VISIBLE
+                            binding.cardRating.alpha = 0f
+                            binding.cardRating.animate().alpha(1.0f).setDuration(duration).setInterpolator(interpolator).start()
+                        }
+                    }
+                }
+
+                binding.root.setOnKeyListener { _, keyCode, event ->
+                    if (event.action == KeyEvent.ACTION_DOWN) {
+                        val span = 4
+                        val totalCount = itemCount
+                        val rv = (binding.root.parent as? RecyclerView)
+                            ?: binding.root.rootView?.findViewById(R.id.home_plugin_search_recycler)
+                        when (keyCode) {
+                            KeyEvent.KEYCODE_DPAD_DOWN -> {
+                                val targetPos = position + span
+                                if (rv != null) {
+                                    if (targetPos < totalCount) {
+                                        val targetHolder = rv.findViewHolderForAdapterPosition(targetPos)
+                                        if (targetHolder != null && targetHolder.itemView.isAttachedToWindow) {
+                                            targetHolder.itemView.requestFocus()
+                                        } else {
+                                            rv.smoothScrollToPosition(targetPos)
+                                            rv.postDelayed({
+                                                val h = rv.findViewHolderForAdapterPosition(targetPos)
+                                                if (h != null && h.itemView.isAttachedToWindow) {
+                                                    h.itemView.requestFocus()
+                                                } else {
+                                                    rv.postDelayed({
+                                                        rv.findViewHolderForAdapterPosition(targetPos)?.itemView?.requestFocus()
+                                                    }, 80)
+                                                }
+                                            }, 220)
+                                        }
+                                        return@setOnKeyListener true
+                                    } else if (position / span < (totalCount - 1) / span) {
+                                        val lastPos = totalCount - 1
+                                        val targetHolder = rv.findViewHolderForAdapterPosition(lastPos)
+                                        if (targetHolder != null && targetHolder.itemView.isAttachedToWindow) {
+                                            targetHolder.itemView.requestFocus()
+                                        } else {
+                                            rv.smoothScrollToPosition(lastPos)
+                                            rv.postDelayed({
+                                                rv.findViewHolderForAdapterPosition(lastPos)?.itemView?.requestFocus()
+                                            }, 220)
+                                        }
+                                        return@setOnKeyListener true
+                                    } else {
+                                        return@setOnKeyListener true
+                                    }
+                                }
+                            }
+                            KeyEvent.KEYCODE_DPAD_UP -> {
+                                if (position in 0 until span) {
+                                    onFocusChanged(false)
+                                    rv?.smoothScrollToPosition(0)
+                                    binding.root.rootView?.findViewById<View>(R.id.home_plugin_search_input)?.requestFocus()
+                                    return@setOnKeyListener true
+                                } else {
+                                    val targetPos = position - span
+                                    if (rv != null) {
+                                        val targetHolder = rv.findViewHolderForAdapterPosition(targetPos)
+                                        if (targetHolder != null && targetHolder.itemView.isAttachedToWindow) {
+                                            targetHolder.itemView.requestFocus()
+                                        } else {
+                                            rv.scrollToPosition(targetPos)
+                                            rv.post {
+                                                val h = rv.findViewHolderForAdapterPosition(targetPos)
+                                                if (h != null && h.itemView.isAttachedToWindow) {
+                                                    h.itemView.requestFocus()
+                                                } else {
+                                                    rv.postDelayed({
+                                                        rv.findViewHolderForAdapterPosition(targetPos)?.itemView?.requestFocus()
+                                                    }, 30)
+                                                }
+                                            }
+                                        }
+                                        return@setOnKeyListener true
+                                    }
+                                }
+                            }
+                            KeyEvent.KEYCODE_DPAD_LEFT -> {
+                                if (position % span == 0) {
+                                    return@setOnKeyListener true
+                                }
+                            }
+                            KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                                if (position % span == span - 1 || position == totalCount - 1) {
+                                    return@setOnKeyListener true
+                                }
+                            }
+                        }
+                    }
+                    false
+                }
+            }
+        }
+    }
+
+    private fun setPluginSearchCardsFocusedState(focused: Boolean) {
+        isPluginSearchCardsFocused = focused
+    }
+
+    private fun initTvPluginSearchVideo(rootView: View) {
+        val textureView = rootView.findViewById<TextureView>(R.id.home_plugin_search_video) ?: return
+        pluginSearchVideoHelper?.release()
+        val autoPlay = rootView.findViewById<View>(R.id.home_plugin_search_overlay)?.isVisible == true
+        val videoRes = R.raw.tv_search_bg
+        pluginSearchVideoHelper = TvAmbientVideoHelper(rootView.context).apply {
+            attach(textureView, videoRes, autoPlay = autoPlay)
+        }
+    }
+
+    private fun setupTvPluginSearch(binding: FragmentHomeBinding) {
+        val rootView = binding.root
+        val isTv = isLayout(TV or EMULATOR)
+        initTvPluginSearchVideo(rootView)
+
+        val span = if (isTv) 4 else rootView.context.getSpanCount()
+
+        pluginSearchAdapter = TvPluginSearchAdapter(
+            clickCallback = { callback ->
+                homeViewModel.click(callback)
+            },
+            onFocusChanged = { isCardFocused ->
+                if (isCardFocused && isTv) {
+                    setPluginSearchCardsFocusedState(true)
+                }
+            },
+            spanCount = span
+        )
+
+        val searchRecycler = rootView.findViewById<RecyclerView>(R.id.home_plugin_search_recycler)
+        val searchInput = rootView.findViewById<android.widget.EditText>(R.id.home_plugin_search_input)
+        val searchBar = rootView.findViewById<android.view.View>(R.id.home_plugin_search_bar)
+        val searchClear = rootView.findViewById<android.widget.ImageView>(R.id.home_plugin_search_clear)
+        val searchBack = rootView.findViewById<android.view.View>(R.id.home_plugin_search_back)
+
+        searchBack?.setOnClickListener {
+            closePluginSearch()
+        }
+        searchBack?.setOnKeyListener { _, keyCode, event ->
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                when (keyCode) {
+                    KeyEvent.KEYCODE_DPAD_UP -> {
+                        val navHome = activity?.findViewById<View>(R.id.tv_nav_home)
+                            ?: activity?.findViewById<View>(R.id.tv_nav_search)
+                        if (navHome != null) {
+                            navHome.requestFocus()
+                            return@setOnKeyListener true
+                        }
+                    }
+                    KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        searchInput?.requestFocus()
+                        return@setOnKeyListener true
+                    }
+                }
+            }
+            false
+        }
+
+        searchRecycler?.apply {
+            layoutManager = GridLayoutManager(context, span)
+            adapter = pluginSearchAdapter
+            clipChildren = true
+            clipToPadding = false
+        }
+
+        searchInput?.apply {
+            setOnFocusChangeListener { _, hasFocus ->
+                searchBar?.isActivated = hasFocus
+            }
+
+            setOnEditorActionListener { _, actionId, _ ->
+                if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE) {
+                    val query = text?.toString()?.trim().orEmpty()
+                    if (query.isNotEmpty()) {
+                        performPluginSearch(query)
+                    }
+                    true
+                } else false
+            }
+
+            setOnKeyListener { _, keyCode, event ->
+                if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+                when (keyCode) {
+                    KeyEvent.KEYCODE_BACK -> {
+                        closePluginSearch()
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_DOWN -> {
+                        if ((pluginSearchAdapter?.itemCount ?: 0) > 0) {
+                            val firstCard = searchRecycler?.findViewHolderForAdapterPosition(0)?.itemView
+                            if (firstCard != null) {
+                                firstCard.requestFocus()
+                            } else {
+                                searchRecycler?.scrollToPosition(0)
+                                searchRecycler?.post {
+                                    searchRecycler?.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                                        ?: searchRecycler?.requestFocus()
+                                }
+                            }
+                            true
+                        } else false
+                    }
+                    KeyEvent.KEYCODE_DPAD_UP -> {
+                        val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                        imm?.hideSoftInputFromWindow(windowToken, 0)
+                        searchBack?.requestFocus()
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        if (selectionStart == 0 || text.isNullOrEmpty()) {
+                            searchBack?.requestFocus()
+                            true
+                        } else false
+                    }
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        if (searchClear?.isVisible == true && (selectionEnd == (text?.length ?: 0) || text.isNullOrEmpty())) {
+                            searchClear?.requestFocus()
+                            true
+                        } else false
+                    }
+                    else -> false
+                }
+            }
+
+            doAfterTextChanged { text ->
+                val query = text?.toString()?.trim().orEmpty()
+                searchClear?.isVisible = query.isNotEmpty()
+                pluginSearchJob?.cancel()
+                if (query.isEmpty()) {
+                    loadDefaultTrendingItems()
+                } else {
+                    pluginSearchJob = lifecycleScope.launch {
+                        delay(350)
+                        performPluginSearch(query)
+                    }
+                }
+            }
+        }
+
+        searchClear?.apply {
+            setOnClickListener {
+                searchInput?.text?.clear()
+                searchInput?.requestFocus()
+            }
+            setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_LEFT -> {
+                            searchInput?.requestFocus()
+                            true
+                        }
+                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            if ((pluginSearchAdapter?.itemCount ?: 0) > 0) {
+                                val firstCard = searchRecycler?.findViewHolderForAdapterPosition(0)?.itemView
+                                if (firstCard != null) {
+                                    firstCard.requestFocus()
+                                } else {
+                                    searchRecycler?.scrollToPosition(0)
+                                    searchRecycler?.post {
+                                        searchRecycler?.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                                            ?: searchRecycler?.requestFocus()
+                                    }
+                                }
+                                true
+                            } else false
+                        }
+                        KeyEvent.KEYCODE_DPAD_UP -> {
+                            searchBack?.requestFocus()
+                            true
+                        }
+                        else -> false
+                    }
+                } else false
+            }
+        }
+    }
+
+    private fun loadDefaultTrendingItems() {
+        val rootView = view ?: return
+        val sectionTitle = rootView.findViewById<TextView>(R.id.home_plugin_search_section_title)
+        val searchLoading = rootView.findViewById<android.widget.ProgressBar>(R.id.home_plugin_search_loading)
+        val searchEmpty = rootView.findViewById<TextView>(R.id.home_plugin_search_empty)
+
+        sectionTitle?.setText(R.string.tv_trending_today)
+        searchLoading?.isVisible = false
+
+        val pageData = (homeViewModel.page.value as? Resource.Success)?.value
+        val defaultItems = pageData?.values?.firstOrNull()?.list?.list
+        if (!defaultItems.isNullOrEmpty()) {
+            pluginSearchAdapter?.submitList(defaultItems)
+            searchEmpty?.isVisible = false
+        } else {
+            val apiName = homeViewModel.apiName.value ?: currentApiName
+            val api = APIHolder.getApiFromNameNull(apiName)
+            if (api != null && api.hasMainPage) {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        val repo = APIRepository(api)
+                        val res = repo.getMainPage(1, null)
+                        if (res is Resource.Success) {
+                            val firstList = res.value.firstOrNull()?.items?.firstOrNull()?.list
+                            withContext(Dispatchers.Main) {
+                                if (!firstList.isNullOrEmpty()) {
+                                    pluginSearchAdapter?.submitList(firstList)
+                                    searchEmpty?.isVisible = false
+                                }
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        }
+    }
+
+    fun openPluginSearch() {
+        val rootView = view ?: return
+        val overlay = rootView.findViewById<android.view.View>(R.id.home_plugin_search_overlay) ?: return
+        val searchBar = rootView.findViewById<android.view.View>(R.id.home_plugin_search_bar)
+        val searchBarBlur = rootView.findViewById<android.view.View>(R.id.home_plugin_search_bar_blur)
+        val searchInput = rootView.findViewById<android.widget.EditText>(R.id.home_plugin_search_input)
+
+        if (overlay.isVisible) return
+
+        // Start ambient theme shader loop
+        pluginSearchVideoHelper?.play()
+
+        // Reset collapse state
+        setPluginSearchCardsFocusedState(false)
+
+        // Load trending items if input is empty
+        val currentQuery = searchInput?.text?.toString()?.trim().orEmpty()
+        if (currentQuery.isEmpty()) {
+            loadDefaultTrendingItems()
+        }
+
+        val activeApi = APIHolder.getApiFromNameNull(homeViewModel.apiName.value ?: currentApiName)
+        if (activeApi != null) {
+            searchInput?.hint = "Search in ${activeApi.name}..."
+        } else {
+            searchInput?.setHint(R.string.tv_search_hint)
+        }
+
+        overlay.alpha = 0f
+        overlay.isVisible = true
+        overlay.animate()
+            .alpha(1f)
+            .setDuration(220)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+
+        val animTarget = searchBarBlur ?: searchBar
+        animTarget?.also {
+            it.scaleX = 0.5f
+            it.scaleY = 0.8f
+            it.alpha = 0f
+            it.animate()
+                .scaleX(1f)
+                .scaleY(1f)
+                .alpha(1f)
+                .setDuration(250)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+        }
+
+        searchInput?.requestFocus()
+        val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.showSoftInput(searchInput, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    fun closePluginSearch() {
+        val rootView = view ?: return
+        val overlay = rootView.findViewById<android.view.View>(R.id.home_plugin_search_overlay) ?: return
+        val searchInput = rootView.findViewById<android.widget.EditText>(R.id.home_plugin_search_input)
+
+        if (!overlay.isVisible) return
+
+        // Pause background video
+        pluginSearchVideoHelper?.pause()
+
+        setPluginSearchCardsFocusedState(false)
+
+        val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.hideSoftInputFromWindow(searchInput?.windowToken, 0)
+
+        overlay.animate()
+            .alpha(0f)
+            .setDuration(180)
+            .withEndAction {
+                overlay.isVisible = false
+                val searchBtn = binding?.homePluginSearchBtn
+                    ?: binding?.homeMasterRecycler?.findViewById<View>(R.id.home_plugin_search_btn)
+                    ?: binding?.homeMasterRecycler?.findViewById<View>(R.id.home_change_api)
+                searchBtn?.requestFocus()
+            }
+            .start()
+    }
+
+    private fun performPluginSearch(query: String) {
+        pluginSearchJob?.cancel()
+        val apiName = homeViewModel.apiName.value ?: currentApiName
+        val api = APIHolder.getApiFromNameNull(apiName)
+        val rootView = view
+
+        val searchEmpty = rootView?.findViewById<android.widget.TextView>(R.id.home_plugin_search_empty)
+        val searchLoading = rootView?.findViewById<android.widget.ProgressBar>(R.id.home_plugin_search_loading)
+        val sectionTitle = rootView?.findViewById<android.widget.TextView>(R.id.home_plugin_search_section_title)
+
+        sectionTitle?.text = "${getString(R.string.search)}: \"$query\""
+
+        if (api == null) {
+            searchEmpty?.isVisible = true
+            searchLoading?.isVisible = false
+            return
+        }
+
+        searchLoading?.isVisible = true
+        searchEmpty?.isVisible = false
+
+        pluginSearchJob = lifecycleScope.launch(Dispatchers.IO) {
+            val repo = APIRepository(api)
+            val res = repo.search(query, 1)
+            val items = if (res is Resource.Success) res.value.items else emptyList()
+            withContext(Dispatchers.Main) {
+                searchLoading?.isVisible = false
+                pluginSearchAdapter?.submitList(items)
+                searchEmpty?.isVisible = items.isEmpty()
+            }
+        }
+    }
+
+    private var isBackdropImageAActive = true
+    private var lastBackdropUrl: String? = null
+
+    private fun initTvBackdrop(rootView: View) {
+        val imageA = rootView.findViewById<ImageView>(R.id.home_tv_backdrop_image_a) ?: return
+        val imageB = rootView.findViewById<ImageView>(R.id.home_tv_backdrop_image_b) ?: return
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val blurEffect = RenderEffect.createBlurEffect(28f, 28f, Shader.TileMode.CLAMP)
+            imageA.setRenderEffect(blurEffect)
+            imageB.setRenderEffect(blurEffect)
+        }
+    }
+
+    private fun updateHomeBackdrop(item: LoadResponse) {
+        val rootView = view ?: return
+        val posterUrl = if (isLayout(PHONE)) {
+            item.posterUrl ?: item.backgroundPosterUrl ?: return
+        } else {
+            item.backgroundPosterUrl ?: item.posterUrl ?: return
+        }
+        if (posterUrl == lastBackdropUrl) return
+        val isFirstLoad = (lastBackdropUrl == null)
+        lastBackdropUrl = posterUrl
+
+        val imageA = rootView.findViewById<ImageView>(R.id.home_tv_backdrop_image_a) ?: return
+        val imageB = rootView.findViewById<ImageView>(R.id.home_tv_backdrop_image_b) ?: return
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val blurEffect = RenderEffect.createBlurEffect(24f, 24f, Shader.TileMode.CLAMP)
+            imageA.setRenderEffect(blurEffect)
+            imageB.setRenderEffect(blurEffect)
+        }
+
+        if (isFirstLoad) {
+            imageA.alpha = 0f
+            imageB.alpha = 0f
+            imageA.loadImage(posterUrl, item.posterHeaders) {
+                size(320, 180)
+            }
+            imageA.animate().alpha(1.0f).setDuration(800).start()
+            isBackdropImageAActive = true
+            return
+        }
+
+        val incomingView = if (isBackdropImageAActive) imageB else imageA
+        val outgoingView = if (isBackdropImageAActive) imageA else imageB
+
+        incomingView.alpha = 0f
+        incomingView.loadImage(posterUrl, item.posterHeaders) {
+            size(320, 180)
+        }
+        incomingView.animate()
+            .alpha(1.0f)
+            .setDuration(600)
+            .withEndAction {
+                outgoingView.alpha = 0f
+                isBackdropImageAActive = !isBackdropImageAActive
+            }
+            .start()
+        outgoingView.animate()
+            .alpha(0.0f)
+            .setDuration(600)
+            .start()
+    }
 }
+

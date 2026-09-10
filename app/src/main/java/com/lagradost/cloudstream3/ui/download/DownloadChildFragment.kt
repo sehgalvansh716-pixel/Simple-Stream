@@ -5,6 +5,8 @@ import android.text.format.Formatter.formatShortFileSize
 import android.view.View
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.activityViewModels
 import com.lagradost.cloudstream3.R
 import com.lagradost.cloudstream3.databinding.FragmentChildDownloadsBinding
@@ -22,14 +24,21 @@ import com.lagradost.cloudstream3.ui.settings.Globals.isLandscape
 import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
 import com.lagradost.cloudstream3.utils.BackPressedCallbackHelper.attachBackPressedCallback
 import com.lagradost.cloudstream3.utils.BackPressedCallbackHelper.detachBackPressedCallback
+import android.view.TextureView
+import com.lagradost.cloudstream3.ui.utils.TvAmbientVideoHelper
 import com.lagradost.cloudstream3.utils.UIHelper.fixSystemBarsPadding
 import com.lagradost.cloudstream3.utils.UIHelper.setAppBarNoScrollFlagsOnTV
+import com.lagradost.cloudstream3.utils.UIHelper.toPx
 
 class DownloadChildFragment : BaseFragment<FragmentChildDownloadsBinding>(
-    BaseFragment.BindingCreator.Inflate(FragmentChildDownloadsBinding::inflate)
+    BaseFragment.BindingCreator.Bind(FragmentChildDownloadsBinding::bind)
 ) {
 
     private val downloadViewModel: DownloadViewModel by activityViewModels()
+    private var tvAmbientVideoHelper: TvAmbientVideoHelper? = null
+
+    override fun pickLayout(): Int? =
+        if (isLayout(TV or EMULATOR)) R.layout.fragment_child_downloads_tv else R.layout.fragment_child_downloads
 
     companion object {
         fun newInstance(headerName: String, folder: String): Bundle {
@@ -43,15 +52,19 @@ class DownloadChildFragment : BaseFragment<FragmentChildDownloadsBinding>(
     override fun onDestroyView() {
         activity?.detachBackPressedCallback("Downloads")
         downloadViewModel.clearChildren()
+        tvAmbientVideoHelper?.release()
+        tvAmbientVideoHelper = null
         super.onDestroyView()
     }
 
     override fun fixLayout(view: View) {
-        fixSystemBarsPadding(
-            view,
-            padBottom = isLandscape(),
-            padLeft = isLayout(TV or EMULATOR)
-        )
+        if (isLayout(TV or EMULATOR)) {
+            fixSystemBarsPadding(
+                view,
+                padBottom = isLandscape(),
+                padLeft = true
+            )
+        }
     }
 
     override fun onBindingCreated(binding: FragmentChildDownloadsBinding) {
@@ -63,6 +76,43 @@ class DownloadChildFragment : BaseFragment<FragmentChildDownloadsBinding>(
         }
 
         context?.let { downloadViewModel.updateChildList(it, folder) }
+
+        val textureView = binding.root.findViewById<TextureView>(R.id.tv_child_downloads_video)
+        if (textureView != null) {
+            tvAmbientVideoHelper?.release()
+            tvAmbientVideoHelper = TvAmbientVideoHelper(binding.root.context).apply {
+                attach(textureView, R.raw.tv_search_bg, autoPlay = true)
+            }
+        }
+
+        if (isLayout(TV or EMULATOR)) {
+            binding.root.findViewById<View>(R.id.download_child_tv_back)?.setOnClickListener {
+                dispatchBackPressed()
+            }
+        } else {
+            ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, windowInsets ->
+                val insets = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+                )
+                val targetTop = insets.top + 6.toPx
+                val topAppBar = binding.downloadChildToolbar.parent as? View
+                if (topAppBar != null && topAppBar.paddingTop != targetTop) {
+                    topAppBar.setPadding(0, targetTop, 0, 0)
+                }
+
+                val navBarClearance = 82.toPx + insets.bottom
+                val targetListPadding = navBarClearance + 60.toPx
+                if (binding.downloadChildList.paddingBottom != targetListPadding) {
+                    binding.downloadChildList.setPadding(
+                        binding.downloadChildList.paddingLeft,
+                        binding.downloadChildList.paddingTop,
+                        binding.downloadChildList.paddingRight,
+                        targetListPadding
+                    )
+                }
+                windowInsets
+            }
+        }
 
         binding.downloadChildToolbar.apply {
             title = name
@@ -162,11 +212,17 @@ class DownloadChildFragment : BaseFragment<FragmentChildDownloadsBinding>(
             setHasFixedSize(true)
             setItemViewCacheSize(20)
             this.adapter = adapter
-            setLinearListLayout(
-                isHorizontal = false,
-                nextRight = FOCUS_SELF,
-                nextDown = FOCUS_SELF,
-            )
+            if (isLayout(TV or EMULATOR)) {
+                layoutManager = androidx.recyclerview.widget.GridLayoutManager(context, 4)
+                clipChildren = false
+                clipToPadding = false
+            } else {
+                setLinearListLayout(
+                    isHorizontal = false,
+                    nextRight = FOCUS_SELF,
+                    nextDown = FOCUS_SELF,
+                )
+            }
         }
     }
 
@@ -174,5 +230,15 @@ class DownloadChildFragment : BaseFragment<FragmentChildDownloadsBinding>(
         val formattedSize = formatShortFileSize(context, selectedBytes)
         binding?.btnDelete?.text =
             getString(R.string.delete_format).format(count, formattedSize)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        tvAmbientVideoHelper?.play()
+    }
+
+    override fun onPause() {
+        tvAmbientVideoHelper?.pause()
+        super.onPause()
     }
 }

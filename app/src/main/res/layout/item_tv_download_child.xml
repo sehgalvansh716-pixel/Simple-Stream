@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/download_child_episode_holder"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    android:clickable="true"
+    android:defaultFocusHighlightEnabled="false"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:orientation="vertical">
+
+    <!-- 16:9 Landscape Card Container with Non-Clipping Boundaries -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/episode_thumbnail_card"
+        android:layout_width="match_parent"
+        android:layout_height="146dp"
+        android:clickable="false"
+        android:focusable="false"
+        android:duplicateParentState="true"
+        android:foreground="@drawable/outline_drawable"
+        app:cardBackgroundColor="#14161D"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="2dp"
+        app:cardMaxElevation="4dp"
+        app:cardPreventCornerOverlap="false">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <!-- Episode Thumbnail Image -->
+            <ImageView
+                android:id="@+id/episode_poster"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:contentDescription="@string/episode_poster_img_des"
+                tools:src="@drawable/example_poster" />
+
+            <!-- Subtle Vignette Scrim over Thumbnail -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#1A000000" />
+
+            <!-- Top-Left Episode Number Badge (e.g. E1) -->
+            <TextView
+                android:id="@+id/download_child_episode_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|start"
+                android:layout_margin="8dp"
+                android:background="@drawable/bg_tv_episode_badge"
+                android:paddingStart="8dp"
+                android:paddingTop="2dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="2dp"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                tools:text="E1" />
+
+            <!-- Top-Right Watched Status Icon Badge -->
+            <ImageView
+                android:id="@+id/download_child_episode_play"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="top|end"
+                android:layout_margin="8dp"
+                android:background="@drawable/bg_tv_episode_badge"
+                android:contentDescription="@null"
+                android:padding="4dp"
+                android:src="@drawable/ic_tv_eye_watched"
+                android:visibility="visible"
+                app:tint="#D1D5DB" />
+
+            <!-- Bottom-Right File Size Badge (e.g. 285 MB) -->
+            <TextView
+                android:id="@+id/download_child_episode_text_extra"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="8dp"
+                android:background="@drawable/bg_tv_episode_badge"
+                android:paddingStart="8dp"
+                android:paddingTop="2dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="2dp"
+                android:textColor="#E0E0E0"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                tools:text="285 MB" />
+
+            <!-- Centered TV Play Circle Button (Appears on focus) -->
+            <ImageView
+                android:id="@+id/episode_play_icon"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_tv_card_play_circle"
+                android:elevation="4dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="11dp"
+                android:paddingBottom="11dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_tv_play_black"
+                android:visibility="gone"
+                tools:visibility="visible"
+                android:contentDescription="@string/home_play" />
+
+            <!-- Linear Watch Progress Bar at Bottom of Thumbnail -->
+            <ProgressBar
+                android:id="@+id/download_child_episode_progress"
+                style="@android:style/Widget.Material.ProgressBar.Horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_gravity="bottom"
+                android:progressDrawable="@drawable/rounded_progress"
+                android:progressTint="#6366F1"
+                android:progressBackgroundTint="#33FFFFFF"
+                android:visibility="gone"
+                tools:progress="50"
+                tools:visibility="visible" />
+
+            <!-- Multi-Delete Checkbox (Top-Left overlay) -->
+            <CheckBox
+                android:id="@+id/delete_checkbox"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="top|start"
+                android:layout_margin="8dp"
+                android:focusable="false"
+                android:clickable="false"
+                android:visibility="gone" />
+
+            <!-- Action Pie Button (Bottom-Start overlay) -->
+            <com.lagradost.cloudstream3.ui.download.button.PieFetchButton
+                android:id="@+id/download_button"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="bottom|start"
+                android:layout_margin="8dp"
+                android:visibility="gone" />
+        </FrameLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Episode Title & Info -->
+    <TextView
+        android:id="@+id/download_child_episode_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="4dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="#E9EAEE"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:fontFamily="@font/google_sans"
+        tools:text="Episode 1 • Winter Is Coming" />
+</LinearLayout>

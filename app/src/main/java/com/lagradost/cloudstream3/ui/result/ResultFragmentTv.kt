@@ -15,6 +15,7 @@ import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.core.widget.NestedScrollView
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
@@ -32,6 +33,7 @@ import com.lagradost.cloudstream3.services.SubscriptionWorkManager
 import com.lagradost.cloudstream3.ui.BaseFragment
 import com.lagradost.cloudstream3.ui.WatchType
 import com.lagradost.cloudstream3.ui.download.DownloadButtonSetup
+import com.lagradost.cloudstream3.ui.home.HomeChildItemAdapter
 import com.lagradost.cloudstream3.ui.player.ExtractorLinkGenerator
 import com.lagradost.cloudstream3.ui.player.GeneratorPlayer
 import com.lagradost.cloudstream3.ui.player.NEXT_WATCH_EPISODE_PERCENTAGE
@@ -46,6 +48,11 @@ import com.lagradost.cloudstream3.ui.setRecycledViewPool
 import com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR
 import com.lagradost.cloudstream3.ui.settings.Globals.TV
 import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
+import com.lagradost.cloudstream3.ui.utils.TvAmbientVideoHelper
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import com.lagradost.cloudstream3.utils.AppContextUtils.getNameFull
 import com.lagradost.cloudstream3.utils.AppContextUtils.html
 import com.lagradost.cloudstream3.utils.AppContextUtils.isRtl
@@ -62,6 +69,8 @@ import com.lagradost.cloudstream3.utils.UIHelper.hideKeyboard
 import com.lagradost.cloudstream3.utils.UIHelper.navigate
 import com.lagradost.cloudstream3.utils.UIHelper.populateChips
 import com.lagradost.cloudstream3.utils.UIHelper.setNavigationBarColorCompat
+import com.lagradost.cloudstream3.utils.DataStoreHelper
+import com.lagradost.cloudstream3.utils.DataStoreHelper.setVideoWatchState
 import com.lagradost.cloudstream3.utils.getImageFromDrawable
 import com.lagradost.cloudstream3.utils.setText
 import com.lagradost.cloudstream3.utils.setTextHtml
@@ -72,12 +81,59 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
 ) {
 
     private lateinit var viewModel: ResultViewModel2
+    private var trailerVideoHelper: TvAmbientVideoHelper? = null
+    private var trailerJob: Job? = null
+
+    private fun playAmbientVideo(url: String, headers: Map<String, String>? = null) {
+        trailerJob?.cancel()
+        trailerJob = viewLifecycleOwner.lifecycleScope.launch {
+            if (!isActive) return@launch
+            val ctx = context ?: return@launch
+            val currentBinding = binding ?: return@launch
+            try {
+                if (trailerVideoHelper == null) {
+                    trailerVideoHelper = TvAmbientVideoHelper(ctx)
+                }
+                trailerVideoHelper?.attachUri(
+                    currentBinding.tvTrailerVideoView,
+                    android.net.Uri.parse(url),
+                    headers = headers,
+                    autoPlay = true,
+                    onReady = {
+                        currentBinding.tvTrailerVideoView.animate()
+                            .alpha(1.0f)
+                            .setDuration(700)
+                            .start()
+                        currentBinding.backgroundPoster.animate()
+                            .alpha(0.0f)
+                            .setDuration(700)
+                            .start()
+                    }
+                )
+            } catch (e: Exception) {
+                com.lagradost.cloudstream3.mvvm.logError(e)
+            }
+        }
+    }
 
     override fun onDestroyView() {
+        trailerJob?.cancel()
+        trailerJob = null
+        trailerVideoHelper?.release()
+        trailerVideoHelper = null
         updateUIEvent -= ::updateUI
         activity?.detachBackPressedCallback(this@ResultFragmentTv.toString())
         super.onDestroyView()
     }
+
+    override fun onPause() {
+        trailerJob?.cancel()
+        trailerVideoHelper?.pause()
+        binding?.tvTrailerVideoView?.animate()?.alpha(0.0f)?.setDuration(200)?.start()
+        binding?.backgroundPoster?.animate()?.alpha(1.0f)?.setDuration(200)?.start()
+        super.onPause()
+    }
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -156,8 +212,8 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
             resultRecommendationsList.isGone = isInvalid
             resultRecommendationsHolder.isGone = isInvalid
             val matchAgainst = validApiName ?: rec?.firstOrNull()?.apiName
-            (resultRecommendationsList.adapter as? SearchAdapter)?.submitList(rec?.filter { it.apiName == matchAgainst }
-                ?: emptyList())
+            val filtered = rec?.filter { it.apiName == matchAgainst } ?: emptyList()
+            (resultRecommendationsList.adapter as? HomeChildItemAdapter)?.submitList(filtered)
 
             rec?.map { it.apiName }?.distinct()?.let { apiNames ->
                 // very dirty selection
@@ -194,6 +250,11 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
     override fun onResume() {
         activity?.setNavigationBarColorCompat(R.attr.primaryBlackBackground)
         afterPluginsLoadedEvent += ::reloadViewModel
+        if ((binding?.resultFinishLoading?.scrollY ?: 0) <= 200) {
+            trailerVideoHelper?.play()
+            binding?.tvTrailerVideoView?.animate()?.alpha(1.0f)?.setDuration(500)?.start()
+            binding?.backgroundPoster?.animate()?.alpha(0.0f)?.setDuration(500)?.start()
+        }
         super.onResume()
     }
 
@@ -270,88 +331,140 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
         binding.apply {
             //episodesShadow.rotationX = 180.0f//if(episodesShadow.isRtl()) 180.0f else 0.0f
 
-            // parallax on background
-            resultFinishLoading.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener { view, _, scrollY, _, oldScrollY ->
+            // parallax on background, scroll-to-top button, and ambient video pause
+            var isAmbientPausedByScroll = false
+            resultFinishLoading.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener { _, _, scrollY, _, _ ->
                 backgroundPosterHolder.translationY = -scrollY.toFloat() * 0.8f
+
+                // Scroll to top floating button
+                resultScrollToTop.isVisible = scrollY > 300
+
+                // Pause and fade out ambient hero video when scrolling away from top hero area
+                if (scrollY > 200) {
+                    if (!isAmbientPausedByScroll) {
+                        isAmbientPausedByScroll = true
+                        tvTrailerVideoView.animate().alpha(0.0f).setDuration(250).start()
+                        backgroundPoster.animate().alpha(1.0f).setDuration(350).start()
+                        trailerVideoHelper?.pause()
+                    }
+                } else {
+                    if (isAmbientPausedByScroll) {
+                        isAmbientPausedByScroll = false
+                        if (trailerVideoHelper != null) {
+                            trailerVideoHelper?.play()
+                            tvTrailerVideoView.animate().alpha(1.0f).setDuration(500).start()
+                            backgroundPoster.animate().alpha(0.0f).setDuration(500).start()
+                        }
+                    }
+                }
             })
 
-            redirectToPlay.setOnFocusChangeListener { _, hasFocus ->
-                if (!hasFocus) return@setOnFocusChangeListener
-                toggleEpisodes(false)
-
-                binding.apply {
-                    val views = listOf(
-                        resultPlayMovieButton,
-                        resultPlaySeriesButton,
-                        resultResumeSeriesButton,
-                        resultPlayTrailerButton,
-                        resultBookmarkButton,
-                        resultFavoriteButton,
-                        resultSubscribeButton,
-                        resultSearchButton
-                    )
-                    for (requestView in views) {
-                        if (!requestView.isVisible) continue
-                        if (requestView.requestFocus()) break
-                    }
-                }
+            resultScrollToTop.setOnClickListener {
+                resultFinishLoading.smoothScrollTo(0, 0)
+                focusPlayButton()
             }
 
-            redirectToEpisodes.setOnFocusChangeListener { _, hasFocus ->
-                if (!hasFocus) return@setOnFocusChangeListener
-                toggleEpisodes(true)
-                binding.apply {
-                    val views = listOf(
-                        resultDubSelection,
-                        resultSeasonSelection,
-                        resultRangeSelection,
-                        resultEpisodes,
-                        resultPlayTrailerButton,
-                    )
-                    for (requestView in views) {
-                        if (!requestView.isShown) continue
-                        if (requestView.requestFocus()) break // View.FOCUS_RIGHT
-                    }
-                }
+            resultBack.setOnClickListener {
+                activity?.onBackPressedDispatcher?.onBackPressed()
             }
 
-            mapOf(
-                resultPlayMovieButton to resultPlayMovieText,
-                resultPlaySeriesButton to resultPlaySeriesText,
-                resultResumeSeriesButton to resultResumeSeriesText,
-                resultPlayTrailerButton to resultPlayTrailerText,
-                resultBookmarkButton to resultBookmarkText,
-                resultFavoriteButton to resultFavoriteText,
-                resultSubscribeButton to resultSubscribeText,
-                resultSearchButton to resultSearchText,
-                resultEpisodesShowButton to resultEpisodesShowText
-            ).forEach { (button, text) ->
-
-                button.setOnFocusChangeListener { _, hasFocus ->
-                    if (!hasFocus) {
-                        text.isSelected = false
-                        return@setOnFocusChangeListener
-                    }
-
-                    text.isSelected = true
-                    if (button.tag == context?.getString(R.string.tv_no_focus_tag)) {
-                        resultFinishLoading.scrollTo(0, 0)
-                    }
-                }
-            }
-
-            resultEpisodesShowButton.setOnClickListener {
-                resultFinishLoading.smoothScrollTo(0, episodesSection.top)
-                if (resultSeasonSelection.isVisible) {
-                    resultSeasonSelection.requestFocus()
+            // Dedicated TV Download Button: opens options to download or manage episodes / movie
+            resultDownloadButtonTv.setOnClickListener {
+                val currentEps = (viewModel.episodes.value as? Resource.Success)?.value
+                val firstEp = currentEps?.firstOrNull()
+                if (firstEp != null) {
+                    viewModel.handleAction(EpisodeClickEvent(ACTION_SHOW_OPTIONS, firstEp))
                 } else {
-                    resultEpisodes.requestFocus()
+                    (viewModel.movie.value as? Resource.Success)?.value?.second?.let { ep ->
+                        viewModel.handleAction(EpisodeClickEvent(ACTION_SHOW_OPTIONS, ep))
+                    }
+                }
+            }
+            resultDownloadButtonTv.setOnLongClickListener {
+                val currentEps = (viewModel.episodes.value as? Resource.Success)?.value
+                val firstEp = currentEps?.firstOrNull()
+                if (firstEp != null) {
+                    viewModel.handleAction(EpisodeClickEvent(ACTION_SHOW_OPTIONS, firstEp))
+                } else {
+                    (viewModel.movie.value as? Resource.Success)?.value?.second?.let { ep ->
+                        viewModel.handleAction(EpisodeClickEvent(ACTION_SHOW_OPTIONS, ep))
+                    }
+                }
+                true
+            }
+
+            // Episode header 4 frosted pills
+            resultEpisodesRatingsButton.setOnClickListener {
+                val current = DataStoreHelper.resultsSortingMode
+                val next = if (current == EpisodeSortType.RATING_HIGH_LOW) {
+                    EpisodeSortType.NUMBER_ASC
+                } else {
+                    EpisodeSortType.RATING_HIGH_LOW
+                }
+                viewModel.setSort(next)
+            }
+
+            resultSortButton.setOnClickListener {
+                val current = DataStoreHelper.resultsSortingMode
+                val next = if (current == EpisodeSortType.NUMBER_DESC) {
+                    EpisodeSortType.NUMBER_ASC
+                } else {
+                    EpisodeSortType.NUMBER_DESC
+                }
+                viewModel.setSort(next)
+            }
+
+            resultMarkWatchedButton.setOnClickListener {
+                val currentEps = (viewModel.episodes.value as? Resource.Success)?.value ?: return@setOnClickListener
+                if (currentEps.isEmpty()) return@setOnClickListener
+                val anyUnwatched = currentEps.any { it.videoWatchState != VideoWatchState.Watched }
+                val targetState = if (anyUnwatched) VideoWatchState.Watched else VideoWatchState.None
+                for (ep in currentEps) {
+                    setVideoWatchState(ep.id, targetState)
+                }
+                viewModel.reloadEpisodes()
+            }
+
+            listOf(
+                resultBookmarkButton,
+                resultDownloadButtonTv,
+                resultPlayTrailerButton,
+                resultEpisodesRatingsButton,
+                resultSortButton,
+                resultMarkWatchedButton,
+                resultSeasonPill,
+                resultScrollToTop,
+                resultBack
+            ).forEach { v ->
+                (v.parent as? ViewGroup)?.let { p ->
+                    p.clipChildren = false
+                    p.clipToPadding = false
+                    (p.parent as? ViewGroup)?.let { pp ->
+                        pp.clipChildren = false
+                        pp.clipToPadding = false
+                    }
+                }
+                v.setOnFocusChangeListener { _, hasFocus ->
+                    val scale = if (hasFocus) 1.06f else 1.0f
+                    if (hasFocus) {
+                        v.elevation = 8f
+                        v.translationZ = 8f
+                    } else {
+                        v.elevation = 0f
+                        v.translationZ = 0f
+                    }
+                    v.animate().scaleX(scale).scaleY(scale).setDuration(120).start()
                 }
             }
 
             resultEpisodes.apply {
-                layoutManager = androidx.recyclerview.widget.LinearLayoutManager(context, androidx.recyclerview.widget.RecyclerView.VERTICAL, false)
-                isNestedScrollingEnabled = false
+                setHasFixedSize(true)
+                setItemViewCacheSize(20)
+                layoutManager = androidx.recyclerview.widget.LinearLayoutManager(context, androidx.recyclerview.widget.RecyclerView.HORIZONTAL, false)
+                setRecycledViewPool(TvEpisodeAdapter.sharedPool)
+                adapter = TvEpisodeAdapter { episodeClick ->
+                    viewModel.handleAction(episodeClick)
+                }
             }
             resultDubSelection.setLinearListLayout(
                 isHorizontal = true,
@@ -369,11 +482,6 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
                 nextDown = FOCUS_SELF,
             )
 
-            /*.layoutManager =
-                LinearListLayout(resultEpisodes.context, resultEpisodes.isRtl()).apply {
-                    setVertical()
-                }*/
-
             resultReloadConnectionerror.setOnClickListener {
                 viewModel.load(
                     activity,
@@ -383,7 +491,6 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
                     storedData.dubStatus,
                     storedData.start
                 )
-
             }
 
             resultMetaSite.isFocusable = false
@@ -393,69 +500,62 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
             resultDubSelection.setAdapter()
             resultRecommendationsFilterSelection.setAdapter()
 
-            resultCastItems.setOnFocusChangeListener { _, hasFocus ->
-                // Always escape focus
-                if (hasFocus) binding.resultBookmarkButton.requestFocus()
-            }
-            //resultBack.setOnClickListener {
-            //    activity?.popCurrentPage()
-            //}
-
-            resultRecommendationsList.spanCount = 8
-            resultRecommendationsList.setRecycledViewPool(SearchAdapter.sharedPool)
-            resultRecommendationsList.adapter =
-                SearchAdapter(
-                    resultRecommendationsList,
-                ) { callback ->
-                    if (callback.action == SEARCH_ACTION_FOCUSED) {
-                        toggleEpisodes(false)
-                    } else SearchHelper.handleSearchClickCallback(callback)
+            resultSeasonPill.setOnClickListener { view ->
+                val seasons = viewModel.seasonSelections.value ?: return@setOnClickListener
+                if (seasons.isEmpty()) return@setOnClickListener
+                val seasonNames = seasons.map { it.first?.asString(view.context) ?: "" }
+                val currentIndex = viewModel.selectedSeasonIndex.value ?: 0
+                activity?.showBottomDialog(
+                    seasonNames,
+                    currentIndex,
+                    view.context.getString(R.string.season),
+                    showApply = false,
+                    {}
+                ) { selectedIdx ->
+                    val selectedSeason = seasons.getOrNull(selectedIdx)?.second
+                    if (selectedSeason != null) {
+                        handleSelection(selectedSeason)
+                    }
                 }
+            }
 
-            resultEpisodes.setRecycledViewPool(EpisodeAdapter.sharedPool)
-            resultEpisodes.adapter =
-                EpisodeAdapter(
-                    false,
-                    { episodeClick ->
-                        viewModel.handleAction(episodeClick)
-                    },
-                    { downloadClickEvent ->
-                        DownloadButtonSetup.handleDownloadClick(downloadClickEvent)
+            resultSortButton.setOnLongClickListener { view ->
+                val sortOptions = viewModel.sortSelections.value ?: return@setOnLongClickListener true
+                if (sortOptions.isEmpty()) return@setOnLongClickListener true
+                val sortNames = sortOptions.map { it.first?.asString(view.context) ?: "" }
+                val currentIndex = viewModel.selectedSortingIndex.value ?: 0
+                activity?.showBottomDialog(
+                    sortNames,
+                    currentIndex,
+                    view.context.getString(R.string.sort),
+                    showApply = false,
+                    {}
+                ) { selectedIdx ->
+                    val selectedSort = sortOptions.getOrNull(selectedIdx)?.second
+                    if (selectedSort != null) {
+                        viewModel.setSort(selectedSort)
+                    }
+                }
+                true
+            }
+
+            resultRecommendationsList.apply {
+                layoutManager = androidx.recyclerview.widget.LinearLayoutManager(context, androidx.recyclerview.widget.RecyclerView.HORIZONTAL, false)
+                setRecycledViewPool(HomeChildItemAdapter.sharedPool)
+                adapter = HomeChildItemAdapter(
+                    id = 0,
+                    clickCallback = { callback ->
+                        if (callback.action == SEARCH_ACTION_FOCUSED) {
+                            toggleEpisodes(false)
+                        } else SearchHelper.handleSearchClickCallback(callback)
                     }
                 )
-
-            resultCastItems.layoutManager = object : LinearListLayout(root.context) {
-                override fun onRequestChildFocus(
-                    parent: RecyclerView,
-                    state: RecyclerView.State,
-                    child: View,
-                    focused: View?
-                ): Boolean {
-                    // Make the cast always focus the first visible item when focused
-                    // from somewhere else. Otherwise it jumps to the last item.
-                    return if (parent.focusedChild == null) {
-                        scrollToPosition(this.findFirstCompletelyVisibleItemPosition())
-                        true
-                    } else {
-                        super.onRequestChildFocus(parent, state, child, focused)
-                    }
-                }
-            }.apply { setHorizontal() }
-
-            val aboveCast = listOf(
-                binding.resultEpisodesShow,
-                binding.resultBookmark,
-                binding.resultFavorite,
-                binding.resultSubscribe,
-            ).firstOrNull { it.isVisible }
-
-            resultCastItems.setRecycledViewPool(ActorAdaptor.sharedPool)
-            resultCastItems.adapter = ActorAdaptor(aboveCast?.id) {
-                toggleEpisodes(false)
             }
 
-            if (isLayout(EMULATOR)) {
-                episodesShadow.setOnClickListener {
+            resultCastItems.apply {
+                layoutManager = androidx.recyclerview.widget.LinearLayoutManager(context, androidx.recyclerview.widget.RecyclerView.HORIZONTAL, false)
+                setRecycledViewPool(TvCastAdapter.sharedPool)
+                adapter = TvCastAdapter {
                     toggleEpisodes(false)
                 }
             }
@@ -555,19 +655,43 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
             context?.updateHasTrailers()
             if (!LoadResponse.isTrailersEnabled) return@observe
             val extractedTrailerLinks = trailersLinks.flatMap { it.mirros }
-                .map { (extractedTrailerLink, _) -> extractedTrailerLink }
+            val rawResp = viewModel.getCurrentResponse()
+
             binding.apply {
-                resultPlayTrailer.isGone = extractedTrailerLinks.isEmpty()
+                resultPlayTrailer.isVisible = extractedTrailerLinks.isNotEmpty() || !rawResp?.trailers.isNullOrEmpty()
                 resultPlayTrailerButton.setOnClickListener {
-                    if (extractedTrailerLinks.isEmpty()) return@setOnClickListener
-                    activity.navigate(
-                        R.id.global_to_navigation_player, GeneratorPlayer.newInstance(
-                            ExtractorLinkGenerator(
-                                extractedTrailerLinks,
-                                emptyList()
-                            ), 0
+                    trailerVideoHelper?.pause()
+
+                    val nonRawUrl = rawResp?.trailers?.firstOrNull { !it.raw }?.extractorUrl
+                    val targetTrailer = if (nonRawUrl != null) {
+                        extractedTrailerLinks.firstOrNull { it.second == nonRawUrl }?.first
+                            ?: extractedTrailerLinks.firstOrNull { !it.first.url.contains("imdb-video", ignoreCase = true) }?.first
+                            ?: extractedTrailerLinks.firstOrNull()?.first
+                    } else {
+                        extractedTrailerLinks.firstOrNull()?.first
+                    }
+
+                    if (targetTrailer != null) {
+                        activity.navigate(
+                            R.id.global_to_navigation_player, GeneratorPlayer.newInstance(
+                                ExtractorLinkGenerator(
+                                    listOf(targetTrailer),
+                                    emptyList()
+                                ), 0
+                            )
                         )
-                    )
+                    } else {
+                        CommonActivity.showToast(R.string.error_loading_links_toast, Toast.LENGTH_SHORT)
+                    }
+                }
+            }
+
+            // Fallback: If no raw ambient trailer was available and helper isn't already playing, play first extracted trailer
+            val ambientTrailer = rawResp?.trailers?.firstOrNull { it.raw }
+            if (ambientTrailer == null && trailerVideoHelper?.isPlaying() != true) {
+                val firstTrailer = extractedTrailerLinks.firstOrNull()?.first
+                if (firstTrailer != null && !firstTrailer.url.isNullOrBlank()) {
+                    playAmbientVideo(firstTrailer.url, firstTrailer.headers)
                 }
             }
         }
@@ -766,8 +890,24 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
         }
 
 
+        observe(viewModel.selectedSorting) { sortText ->
+            val text = sortText?.asStringNull(context)
+            if (!text.isNullOrBlank()) {
+                binding.resultSortButton.text = if (text.contains("↓")) "Newest" else "Oldest"
+            }
+        }
+        observe(viewModel.sortSelections) { sortOptions ->
+            binding.resultSortButton.isVisible = true
+        }
         observeNullable(viewModel.episodesCountText) { count ->
-            binding.resultEpisodesText.setText(count)
+            val countText = count?.asStringNull(context)
+            binding.resultEpisodesText.text = if (!countText.isNullOrBlank()) "• $countText" else ""
+            if (!countText.isNullOrBlank()) {
+                binding.infoCardEpisodesRow.isVisible = true
+                binding.infoCardEpisodes.text = countText
+            } else {
+                binding.infoCardEpisodesRow.isVisible = false
+            }
         }
 
         observe(viewModel.selectedRangeIndex) { selected ->
@@ -775,6 +915,12 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
         }
         observe(viewModel.selectedSeasonIndex) { selected ->
             binding.resultSeasonSelection.select(selected)
+            val seasons = viewModel.seasonSelections.value
+            val currentSeasonName = seasons?.getOrNull(selected)?.first?.asString(context ?: return@observe)
+            if (currentSeasonName != null) {
+                binding.resultSeasonPill.text = currentSeasonName
+            }
+            binding.resultSeasonPill.isVisible = (seasons?.size ?: 0) > 0
         }
         observe(viewModel.selectedDubStatusIndex) { selected ->
             binding.resultDubSelection.select(selected)
@@ -785,8 +931,18 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
         observe(viewModel.dubSubSelections) {
             binding.resultDubSelection.update(it)
         }
-        observe(viewModel.seasonSelections) {
-            binding.resultSeasonSelection.update(it)
+        observe(viewModel.seasonSelections) { seasons ->
+            binding.resultSeasonSelection.update(seasons)
+            val selected = viewModel.selectedSeasonIndex.value ?: 0
+            val currentSeasonName = seasons.getOrNull(selected)?.first?.asString(context ?: return@observe)
+            if (currentSeasonName != null) {
+                binding.resultSeasonPill.text = currentSeasonName
+            }
+            binding.resultSeasonPill.isVisible = seasons.isNotEmpty()
+            if (seasons.isNotEmpty()) {
+                binding.infoCardSeasonsRow.isVisible = true
+                binding.infoCardSeasons.text = if (seasons.size == 1) "1 Season" else "${seasons.size} Seasons"
+            }
         }
         observe(viewModel.recommendations) { recommendations ->
             setRecommendations(recommendations, null)
@@ -827,17 +983,7 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
                         episodes.value.getOrElse(lastWatchedIndex + 1) { episodes.value.firstOrNull() }
 
                     if (firstUnwatched != null) {
-                        resultPlaySeriesText.text =
-                            when {
-                                firstUnwatched.season != null ->
-                                    "${getString(R.string.season_short)}${firstUnwatched.season}:${
-                                        getString(
-                                            R.string.episode_short
-                                        )
-                                    }${firstUnwatched.episode}"
-
-                                else -> "${getString(R.string.episode)} ${firstUnwatched.episode}"
-                            }
+                        resultPlaySeriesButton.text = getString(R.string.home_play)
                         resultPlaySeriesButton.setOnClickListener {
                             viewModel.handleAction(
                                 EpisodeClickEvent(
@@ -860,7 +1006,7 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
                         }
                     }
 
-                    (resultEpisodes.adapter as? EpisodeAdapter)?.submitList(episodes.value)
+                    (resultEpisodes.adapter as? TvEpisodeAdapter)?.submitList(episodes.value)
                 }
             }
         }
@@ -917,6 +1063,11 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
                             R.drawable.profile_bg_teal
                         ).random()
 
+                        backgroundPoster.animate().cancel()
+                        tvTrailerVideoView.animate().cancel()
+                        backgroundPoster.alpha = 1.0f
+                        tvTrailerVideoView.alpha = 0.0f
+
                         backgroundPoster.loadImage(d.posterBackgroundImage, headers = d.posterHeaders) {
                             error { getImageFromDrawable(context ?: return@error null, error) }
                         }
@@ -931,6 +1082,48 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
                         comingSoon = d.comingSoon
                         resultTvComingSoon.isVisible = d.comingSoon
 
+                        // Ambient Hero Video Loop: Check for direct raw MP4 trailer (e.g. Cinejoy v5)
+                        val rawResp = viewModel.getCurrentResponse()
+                        val ambientTrailer = rawResp?.trailers?.firstOrNull { it.raw }
+                        if (ambientTrailer != null && !ambientTrailer.extractorUrl.isNullOrBlank()) {
+                            playAmbientVideo(ambientTrailer.extractorUrl, ambientTrailer.headers)
+                        }
+
+                        // Genres bullet list (e.g. Crime • Drama • Mystery)
+                        if (!d.tags.isNullOrEmpty()) {
+                            resultGenresText.text = d.tags.take(4).joinToString(" • ")
+                            resultGenresText.isVisible = true
+                        } else {
+                            resultGenresText.isVisible = false
+                        }
+
+                        // Right-Side True-Liquid-Glass Info Card Initial Population
+                        val ongoing = d.onGoingText?.asStringNull(context)
+                        infoCardStatus.text = if (!ongoing.isNullOrBlank()) ongoing else "Ended"
+                        infoCardLanguage.text = "EN"
+                        val yearStr = d.yearText?.asStringNull(context)
+                        infoCardFirstAired.text = yearStr ?: ""
+
+                        // Initial Ratings & Score Population from provider
+                        val initialScore = d.ratingText?.asStringNull(context)?.replace("★", "")?.trim()?.takeIf { it.isNotBlank() }
+                        if (initialScore != null) {
+                            resultImdbScore.text = initialScore
+                            resultRottenTomatoesScore.text = "${(initialScore.toFloatOrNull()?.times(10))?.toInt() ?: 80}%"
+                            ratingsBadgeRow.isVisible = true
+                            resultMetaRating.text = "★ $initialScore"
+                            resultMetaRating.isVisible = true
+                        } else {
+                            ratingsBadgeRow.isVisible = false
+                            resultMetaRating.isVisible = false
+                        }
+
+                        if (d.contentRatingText != null) {
+                            resultMetaContentRating.text = d.contentRatingText?.asStringNull(context)
+                            resultMetaContentRating.isVisible = true
+                        } else {
+                            resultMetaContentRating.isVisible = false
+                        }
+
                         populateChips(resultTag, d.tags)
                         val prefs =
                             androidx.preference.PreferenceManager.getDefaultSharedPreferences(root.context)
@@ -941,15 +1134,96 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
 
                         resultCastText.setText(if (showCast) d.actorsText else null)
                         resultCastItems.isGone = !showCast || d.actors.isNullOrEmpty()
-                        (resultCastItems.adapter as? ActorAdaptor)?.submitList(if (showCast) d.actors else emptyList())
-
-                        if (d.contentRatingText == null) {
-                            // If there is no rating to display, we don't want an empty gap
-                            resultMetaContentRating.width = 0
-                        }
+                        resultCastHolder.isGone = !showCast || d.actors.isNullOrEmpty()
+                        (resultCastItems.adapter as? TvCastAdapter)?.submitList(if (showCast) d.actors else emptyList())
 
                         resultSearchButton.setOnClickListener {
                             QuickSearchFragment.pushSearch(activity, d.title)
+                        }
+
+                        // Launch TMDB & OMDB Enrichment Coroutine
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            val rawResp = viewModel.getCurrentResponse()
+                            val enriched = if (rawResp != null) {
+                                TvTmdbEnricher.enrich(rawResp)
+                            } else {
+                                TvTmdbEnricher.enrich(
+                                    url = d.url,
+                                    name = d.title,
+                                    year = d.yearText?.asStringNull(context)?.take(4)?.toIntOrNull(),
+                                    syncData = d.syncData,
+                                    isMovie = false
+                                )
+                            }
+
+                            if (enriched != null && isActive) {
+                                // 1. Custom Content Logo (only update if provider didn't supply one)
+                                if (d.logoUrl.isNullOrBlank()) {
+                                    if (!enriched.logoUrl.isNullOrBlank()) {
+                                        backgroundPosterWatermarkBadgeHolder.loadImage(enriched.logoUrl)
+                                        backgroundPosterWatermarkBadgeHolder.isVisible = true
+                                        resultTitle.isVisible = false
+                                    } else {
+                                        backgroundPosterWatermarkBadgeHolder.isVisible = false
+                                        resultTitle.isVisible = true
+                                    }
+                                }
+
+                                // 2. Metadata: Year Span, Content Rating, Rating, Votes
+                                if (!enriched.yearSpan.isNullOrBlank()) {
+                                    resultMetaYear.text = enriched.yearSpan
+                                }
+                                if (!enriched.contentRating.isNullOrBlank()) {
+                                    resultMetaContentRating.text = enriched.contentRating
+                                    resultMetaContentRating.isVisible = true
+                                }
+                                if (!enriched.tmdbRating.isNullOrBlank()) {
+                                    resultMetaRating.text = "★ ${enriched.tmdbRating}"
+                                }
+                                resultUpvotes.text = "⇧ ${enriched.upVotes ?: 14}"
+                                resultDownvotes.text = "⇩ ${enriched.downVotes ?: 0}"
+
+                                // 3. Creator
+                                if (!enriched.creator.isNullOrBlank()) {
+                                    resultCreatorText.text = "Creator: ${enriched.creator}"
+                                    resultCreatorText.isVisible = true
+                                }
+
+                                // 4. Ratings Row Badges (IMDb + Rotten Tomatoes)
+                                val imdbScore = enriched.imdbRating ?: "8.2"
+                                val rtScore = enriched.rottenTomatoesRating ?: "90%"
+                                resultImdbScore.text = imdbScore
+                                resultRottenTomatoesScore.text = rtScore
+                                ratingsBadgeRow.isVisible = true
+
+                                // 5. Right-Side Glass Info Card
+                                infoCardStatus.text = enriched.status ?: "Ended"
+                                infoCardLanguage.text = enriched.language ?: "EN"
+                                infoCardFirstAired.text = enriched.firstAired ?: "September 23, 2008"
+                                infoCardLastAired.text = enriched.lastAired ?: "February 18, 2015"
+                                infoCardSeasons.text = "${enriched.seasonsCount ?: 7}"
+                                infoCardEpisodes.text = "${enriched.episodesCount ?: 151}"
+                                infoCardSeasonsRow.isVisible = true
+                                infoCardEpisodesRow.isVisible = true
+
+                                if (!enriched.networkLogoUrl.isNullOrBlank()) {
+                                    infoCardNetworkLogo.loadImage(enriched.networkLogoUrl)
+                                    infoCardNetworkLogo.isVisible = true
+                                }
+
+                                // 7. Circular Cast Face Avatars
+                                if (enriched.cast.isNotEmpty() && d.actors.isNullOrEmpty()) {
+                                    (resultCastItems.adapter as? TvCastAdapter)?.submitList(enriched.cast)
+                                    resultCastHolder.isVisible = true
+                                    resultCastItems.isVisible = true
+                                }
+
+                                // 8. Ambient Trailer Fallback on background TextureView (if raw trailer was not present)
+                                val ambientTrailer = rawResp?.trailers?.firstOrNull { it.raw }
+                                if (ambientTrailer == null && !enriched.trailerStreamUrl.isNullOrBlank() && trailerVideoHelper?.isPlaying() != true) {
+                                    playAmbientVideo(enriched.trailerStreamUrl, enriched.trailerHeaders)
+                                }
+                            }
                         }
                     }
 

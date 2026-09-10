@@ -12,10 +12,15 @@ import androidx.viewbinding.ViewBinding
 import com.lagradost.cloudstream3.R
 import com.lagradost.cloudstream3.databinding.DownloadChildEpisodeBinding
 import com.lagradost.cloudstream3.databinding.DownloadHeaderEpisodeBinding
+import com.lagradost.cloudstream3.databinding.ItemTvDownloadChildBinding
+import com.lagradost.cloudstream3.databinding.ItemTvDownloadHeaderBinding
 import com.lagradost.cloudstream3.mvvm.logError
 import com.lagradost.cloudstream3.ui.NoStateAdapter
 import com.lagradost.cloudstream3.ui.ViewHolderState
 import com.lagradost.cloudstream3.ui.download.button.DownloadStatusTell
+import com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR
+import com.lagradost.cloudstream3.ui.settings.Globals.TV
+import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
 import com.lagradost.cloudstream3.utils.AppContextUtils.getNameFull
 import com.lagradost.cloudstream3.utils.DataStoreHelper.getViewPos
 import com.lagradost.cloudstream3.utils.ImageLoader.loadImage
@@ -367,11 +372,223 @@ class DownloadAdapter(
         }
     }
 
+    private fun bindTvHeader(binding: ViewBinding, card: VisualDownloadCached.Header?) {
+        if (binding !is ItemTvDownloadHeaderBinding || card == null) return
+        val data = card.data
+        val context = binding.root.context
+        val formattedSize = formatShortFileSize(context, card.totalBytes)
+
+        binding.apply {
+            downloadHeaderPoster.loadImage(data.poster)
+            downloadHeaderTitle.text = data.name
+            cardFocusedTitle.text = data.name
+
+            val isEpisodeBased = card.child == null
+            if (isEpisodeBased) {
+                downloadHeaderBadge.text = "${card.totalDownloads} EPS"
+                downloadHeaderInfo.text = formattedSize
+                cardFocusedSubtitle.text = "${card.totalDownloads} Episodes • $formattedSize"
+                watchProgressContainer.isVisible = false
+                downloadHeaderGotoChild.isVisible = !isMultiDeleteState
+                downloadButton.isVisible = false
+            } else {
+                downloadHeaderBadge.text = "MOVIE"
+                downloadHeaderInfo.text = formattedSize
+                cardFocusedSubtitle.text = "Movie • $formattedSize"
+                downloadHeaderGotoChild.isVisible = false
+
+                val posDur = getViewPos(data.id)
+                if (posDur != null) {
+                    val max = (posDur.duration / 1000).toInt()
+                    val progress = (posDur.position / 1000).toInt()
+                    if (max > 0 && progress < (0.95 * max).toInt()) {
+                        downloadHeaderEpisodeProgress.max = max
+                        downloadHeaderEpisodeProgress.progress = progress
+                        watchProgressContainer.isVisible = true
+                    } else {
+                        watchProgressContainer.isVisible = false
+                    }
+                } else {
+                    watchProgressContainer.isVisible = false
+                }
+            }
+
+            // Click and Long-click handling
+            if (isMultiDeleteState) {
+                root.setOnClickListener {
+                    toggleIsChecked(deleteCheckbox, data.id)
+                }
+                root.setOnLongClickListener {
+                    toggleIsChecked(deleteCheckbox, data.id)
+                    true
+                }
+            } else {
+                root.setOnClickListener {
+                    if (isEpisodeBased) {
+                        onHeaderClickEvent.invoke(
+                            DownloadHeaderClickEvent(
+                                DOWNLOAD_ACTION_GO_TO_CHILD,
+                                data
+                            )
+                        )
+                    } else if (card.child != null) {
+                        onItemClickEvent.invoke(
+                            DownloadClickEvent(
+                                DOWNLOAD_ACTION_PLAY_FILE,
+                                card.child
+                            )
+                        )
+                    }
+                }
+
+                root.setOnLongClickListener {
+                    onItemSelectionChanged.invoke(data.id, true)
+                    true
+                }
+            }
+
+            // D-pad remote focus animation with 1.06x scale and non-clipping
+            root.setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) {
+                    root.animate()
+                        .scaleX(1.06f)
+                        .scaleY(1.06f)
+                        .setDuration(150)
+                        .start()
+                    root.translationZ = 8f
+                    cardFocusDimmer.isVisible = true
+                    cardFocusInfo.isVisible = true
+                    cardUnfocusedInfo.isVisible = false
+                    downloadHeaderBadge.isVisible = false
+                } else {
+                    root.animate()
+                        .scaleX(1.0f)
+                        .scaleY(1.0f)
+                        .setDuration(150)
+                        .start()
+                    root.translationZ = 0f
+                    cardFocusDimmer.isVisible = false
+                    cardFocusInfo.isVisible = false
+                    cardUnfocusedInfo.isVisible = true
+                    downloadHeaderBadge.isVisible = true
+                }
+            }
+
+            deleteCheckbox.apply {
+                isVisible = isMultiDeleteState
+                isChecked = card.isSelected
+            }
+        }
+    }
+
+    private fun bindTvChild(binding: ViewBinding, card: VisualDownloadCached.Child?) {
+        if (binding !is ItemTvDownloadChildBinding || card == null) return
+        val data = card.data
+        val context = binding.root.context
+
+        binding.apply {
+            episodePoster.loadImage(data.poster)
+            val seasonNumber = data.season
+            val epNumber = data.episode
+            downloadChildEpisodeBadge.text = if (seasonNumber != null && seasonNumber > 0) {
+                "S${seasonNumber} E${epNumber}"
+            } else {
+                "E${epNumber}"
+            }
+
+            val title = if (data.name.isNullOrBlank()) {
+                "${context.getString(R.string.episode)} $epNumber"
+            } else {
+                data.name
+            }
+            downloadChildEpisodeText.text = context.getNameFull(title, epNumber, seasonNumber)
+            downloadChildEpisodeTextExtra.text = formatShortFileSize(context, card.totalBytes)
+
+            // Watch progress
+            val posDur = getViewPos(data.id)
+            if (posDur != null) {
+                val max = (posDur.duration / 1000).toInt()
+                val progress = (posDur.position / 1000).toInt()
+                if (max > 0 && progress >= (0.95 * max).toInt()) {
+                    downloadChildEpisodePlay.setImageResource(R.drawable.ic_baseline_check_24)
+                    downloadChildEpisodeProgress.isVisible = false
+                } else {
+                    downloadChildEpisodePlay.setImageResource(R.drawable.ic_tv_eye_watched)
+                    downloadChildEpisodeProgress.max = max
+                    downloadChildEpisodeProgress.progress = progress
+                    downloadChildEpisodeProgress.isVisible = true
+                }
+            } else {
+                downloadChildEpisodeProgress.isVisible = false
+                downloadChildEpisodePlay.setImageResource(R.drawable.ic_tv_eye_watched)
+            }
+
+            // Click handling
+            if (isMultiDeleteState) {
+                root.setOnClickListener {
+                    toggleIsChecked(deleteCheckbox, data.id)
+                }
+                root.setOnLongClickListener {
+                    toggleIsChecked(deleteCheckbox, data.id)
+                    true
+                }
+            } else {
+                root.setOnClickListener {
+                    onItemClickEvent.invoke(
+                        DownloadClickEvent(
+                            DOWNLOAD_ACTION_PLAY_FILE,
+                            data
+                        )
+                    )
+                }
+                root.setOnLongClickListener {
+                    onItemSelectionChanged.invoke(data.id, true)
+                    true
+                }
+            }
+
+            // Remote D-pad focus animation
+            root.setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) {
+                    root.animate()
+                        .scaleX(1.05f)
+                        .scaleY(1.05f)
+                        .setDuration(150)
+                        .start()
+                    root.translationZ = 8f
+                    episodePlayIcon.isVisible = true
+                } else {
+                    root.animate()
+                        .scaleX(1.0f)
+                        .scaleY(1.0f)
+                        .setDuration(150)
+                        .start()
+                    root.translationZ = 0f
+                    episodePlayIcon.isVisible = false
+                }
+            }
+
+            deleteCheckbox.apply {
+                isVisible = isMultiDeleteState
+                isChecked = card.isSelected
+            }
+        }
+    }
+
     override fun onCreateCustomContent(parent: ViewGroup, viewType: Int): ViewHolderState<Any> {
         val inflater = LayoutInflater.from(parent.context)
+        val isTv = isLayout(TV or EMULATOR)
         val binding = when (viewType) {
-            VIEW_TYPE_HEADER -> DownloadHeaderEpisodeBinding.inflate(inflater, parent, false)
-            VIEW_TYPE_CHILD -> DownloadChildEpisodeBinding.inflate(inflater, parent, false)
+            VIEW_TYPE_HEADER -> if (isTv) {
+                ItemTvDownloadHeaderBinding.inflate(inflater, parent, false)
+            } else {
+                DownloadHeaderEpisodeBinding.inflate(inflater, parent, false)
+            }
+            VIEW_TYPE_CHILD -> if (isTv) {
+                ItemTvDownloadChildBinding.inflate(inflater, parent, false)
+            } else {
+                DownloadChildEpisodeBinding.inflate(inflater, parent, false)
+            }
             else -> throw IllegalArgumentException("Invalid view type")
         }
         return ViewHolderState(binding)
@@ -383,6 +600,16 @@ class DownloadAdapter(
         position: Int
     ) {
         when (val binding = holder.view) {
+            is ItemTvDownloadHeaderBinding -> bindTvHeader(
+                binding,
+                item as? VisualDownloadCached.Header
+            )
+
+            is ItemTvDownloadChildBinding -> bindTvChild(
+                binding,
+                item as? VisualDownloadCached.Child
+            )
+
             is DownloadHeaderEpisodeBinding -> bindHeader(
                 binding,
                 item as? VisualDownloadCached.Header

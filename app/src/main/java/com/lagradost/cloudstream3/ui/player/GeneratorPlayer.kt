@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.Bundle
 import android.text.Spanned
 import android.util.Log
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -2138,9 +2139,223 @@ class GeneratorPlayer : FullScreenPlayer() {
         return viewModel.state.generatorState?.allMeta?.getOrNull(1) as? ResultEpisode != null
     }
 
+    private var lastFocusedEpisodeView: View? = null
+    private var lastFocusedEpisodePosition: Int = -1
+    private var lastFocusedBeforeCloseView: View? = null
+
+    private fun isChildOf(child: View?, parent: View?): Boolean {
+        if (child == null || parent == null) return false
+        var current: View? = child
+        while (current != null) {
+            if (current === parent) return true
+            current = current.parent as? View
+        }
+        return false
+    }
+
+    private fun findDirectChildOf(parent: ViewGroup, descendant: View?): View? {
+        var current = descendant
+        while (current != null && current.parent !== parent) {
+            current = current.parent as? View
+        }
+        return current
+    }
+
+    private fun restoreEpisodeFocus(binding: com.lagradost.cloudstream3.databinding.PlayerCustomLayoutBinding) {
+        val episodeList = binding.playerEpisodeList
+        val targetView = lastFocusedEpisodeView?.takeIf { it.isAttachedToWindow && it.isVisible }
+        if (targetView != null) {
+            targetView.requestFocus()
+            return
+        }
+        val pos = lastFocusedEpisodePosition
+        val adapterCount = episodeList.adapter?.itemCount ?: 0
+        if (pos in 0 until adapterCount) {
+            val vh = episodeList.findViewHolderForAdapterPosition(pos)
+            if (vh != null) {
+                vh.itemView.requestFocus()
+            } else {
+                episodeList.scrollToPosition(pos)
+                episodeList.post {
+                    val holder = episodeList.findViewHolderForAdapterPosition(pos)
+                    holder?.itemView?.requestFocus()
+                }
+            }
+        } else {
+            val lm = episodeList.layoutManager as? LinearLayoutManager
+            val firstPos = lm?.findFirstVisibleItemPosition()?.takeIf { it != RecyclerView.NO_POSITION } ?: 0
+            val vh = episodeList.findViewHolderForAdapterPosition(firstPos)
+            vh?.itemView?.requestFocus() ?: episodeList.requestFocus()
+        }
+    }
+
+    override fun handleEpisodeOverlayKeyEvent(event: KeyEvent): Boolean {
+        val binding = playerBinding ?: return false
+        val overlay = binding.playerEpisodeOverlay
+        if (overlay.isGone) return false
+
+        val currentFocus = activity?.currentFocus
+        val keyCode = event.keyCode
+        val isActionDown = event.action == KeyEvent.ACTION_DOWN
+
+        if (!isActionDown) {
+            return when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_LEFT,
+                KeyEvent.KEYCODE_DPAD_RIGHT,
+                KeyEvent.KEYCODE_DPAD_UP,
+                KeyEvent.KEYCODE_DPAD_DOWN,
+                KeyEvent.KEYCODE_DPAD_CENTER,
+                KeyEvent.KEYCODE_ENTER -> true
+                else -> false
+            }
+        }
+
+        val closeBtn = binding.playerEpisodeOverlayClose
+        val seasonBtn = binding.playerSeasonPickerButton
+        val seasonHolder = binding.playerSeasonPickerHolder
+        val episodeList = binding.playerEpisodeList
+
+        val isCloseFocused = currentFocus === closeBtn
+        val isSeasonFocused = currentFocus === seasonBtn
+        val isListFocused = currentFocus != null && isChildOf(currentFocus, episodeList)
+
+        when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                if (isCloseFocused) {
+                    return true // Trapped at close button
+                } else if (isSeasonFocused) {
+                    lastFocusedBeforeCloseView = seasonBtn
+                    closeBtn.requestFocus()
+                    return true
+                } else if (isListFocused) {
+                    val focusedChild = findDirectChildOf(episodeList, currentFocus)
+                    if (focusedChild != null) {
+                        lastFocusedEpisodeView = focusedChild
+                        val pos = episodeList.getChildAdapterPosition(focusedChild)
+                        if (pos != RecyclerView.NO_POSITION) {
+                            lastFocusedEpisodePosition = pos
+                        }
+                    }
+                    lastFocusedBeforeCloseView = lastFocusedEpisodeView
+                    closeBtn.requestFocus()
+                    return true
+                } else {
+                    closeBtn.requestFocus()
+                    return true
+                }
+            }
+
+            KeyEvent.KEYCODE_DPAD_LEFT -> {
+                if (isCloseFocused) {
+                    if (lastFocusedBeforeCloseView === seasonBtn && seasonHolder.isVisible) {
+                        seasonBtn.requestFocus()
+                    } else {
+                        restoreEpisodeFocus(binding)
+                    }
+                    return true
+                } else if (isSeasonFocused) {
+                    return true // Trapped at season picker
+                } else if (isListFocused) {
+                    return true // Trapped in episode list: never go out of drawer
+                }
+                return true
+            }
+
+            KeyEvent.KEYCODE_DPAD_UP -> {
+                if (isCloseFocused) {
+                    return true // Trapped at top
+                } else if (isSeasonFocused) {
+                    return true // Trapped at top
+                } else if (isListFocused) {
+                    val focusedChild = findDirectChildOf(episodeList, currentFocus)
+                    val pos = if (focusedChild != null) episodeList.getChildAdapterPosition(focusedChild) else -1
+                    if (pos == 0) {
+                        if (seasonHolder.isVisible) {
+                            seasonBtn.requestFocus()
+                        } else {
+                            closeBtn.requestFocus()
+                        }
+                        return true
+                    }
+                    return false
+                }
+                return true
+            }
+
+            KeyEvent.KEYCODE_DPAD_DOWN -> {
+                if (isCloseFocused) {
+                    if (seasonHolder.isVisible) {
+                        seasonBtn.requestFocus()
+                    } else {
+                        restoreEpisodeFocus(binding)
+                    }
+                    return true
+                } else if (isSeasonFocused) {
+                    restoreEpisodeFocus(binding)
+                    return true
+                } else if (isListFocused) {
+                    val focusedChild = findDirectChildOf(episodeList, currentFocus)
+                    val pos = if (focusedChild != null) episodeList.getChildAdapterPosition(focusedChild) else -1
+                    val itemCount = episodeList.adapter?.itemCount ?: 0
+                    if (pos != -1 && pos >= itemCount - 1) {
+                        return true // Trapped at bottom
+                    }
+                    return false
+                }
+                return true
+            }
+
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                if (isCloseFocused) {
+                    closeEpisodesOverlay()
+                    return true
+                }
+                return false
+            }
+
+            KeyEvent.KEYCODE_BACK -> {
+                closeEpisodesOverlay()
+                return true
+            }
+
+            else -> return false
+        }
+    }
+
     override fun showEpisodesOverlay() {
         try {
+            lastFocusedEpisodeView = null
+            lastFocusedBeforeCloseView = null
             playerBinding?.apply {
+                playerEpisodeOverlayClose.setOnClickListener {
+                    closeEpisodesOverlay()
+                }
+                playerEpisodeOverlayClose.setOnKeyListener { _, keyCode, event ->
+                    if (event.action == KeyEvent.ACTION_DOWN) {
+                        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+                            closeEpisodesOverlay()
+                            return@setOnKeyListener true
+                        }
+                    }
+                    false
+                }
+                playerEpisodeList.clearOnChildAttachStateChangeListeners()
+                playerEpisodeList.addOnChildAttachStateChangeListener(object : RecyclerView.OnChildAttachStateChangeListener {
+                    override fun onChildViewAttachedToWindow(view: View) {
+                        view.setOnFocusChangeListener { v, hasFocus ->
+                            if (hasFocus) {
+                                lastFocusedEpisodeView = v
+                                val pos = playerEpisodeList.getChildAdapterPosition(v)
+                                if (pos != RecyclerView.NO_POSITION) {
+                                    lastFocusedEpisodePosition = pos
+                                }
+                            }
+                        }
+                    }
+
+                    override fun onChildViewDetachedFromWindow(view: View) {
+                    }
+                })
                 playerEpisodeList.setRecycledViewPool(EpisodeAdapter.sharedPool)
                 playerEpisodeList.adapter = EpisodeAdapter(
                     false,
@@ -2148,7 +2363,7 @@ class GeneratorPlayer : FullScreenPlayer() {
                         if (episodeClick.action == ACTION_CLICK_DEFAULT) {
                             isNextEpisode = false
                             releasePlayer()
-                            playerEpisodeOverlay.isGone = true
+                            closeEpisodesOverlay()
                             val targetIndex = episodeClick.data.index
                             viewModel.loadThisEpisode(targetIndex)
                         }
@@ -2175,9 +2390,10 @@ class GeneratorPlayer : FullScreenPlayer() {
                 val nextUpTarget = if (seasonGroups.size > 1) R.id.player_season_picker_button else R.id.player_episode_overlay_close
                 playerEpisodeList.setLinearListLayout(
                     isHorizontal = false,
+                    nextLeft = FOCUS_SELF,
+                    nextRight = R.id.player_episode_overlay_close,
                     nextUp = nextUpTarget,
                     nextDown = FOCUS_SELF,
-                    nextRight = FOCUS_SELF,
                 )
                 val seasonOptions = ArrayList<PlayerSeasonOption>()
 
@@ -2212,6 +2428,7 @@ class GeneratorPlayer : FullScreenPlayer() {
                     (playerEpisodeList.adapter as? EpisodeAdapter)?.submitList(option.episodes) {
                         val targetPos = option.episodes.indexOfFirst { it.index == activePlayingIndex }
                         val scrollPos = if (targetPos >= 0) targetPos else 0
+                        lastFocusedEpisodePosition = scrollPos
                         playerEpisodeList.scrollToPosition(scrollPos)
 
                         if (isInitialLoad && isLayout(TV)) {
@@ -2221,6 +2438,7 @@ class GeneratorPlayer : FullScreenPlayer() {
                                 viewHolder?.itemView?.let { itemView ->
                                     itemView.isFocusableInTouchMode = true
                                     itemView.requestFocus()
+                                    lastFocusedEpisodeView = itemView
                                 }
                             }
                         }
@@ -2246,6 +2464,7 @@ class GeneratorPlayer : FullScreenPlayer() {
                 } else {
                     playerSeasonPickerHolder.isGone = true
                     (playerEpisodeList.adapter as? EpisodeAdapter)?.currentPlayingIndex = activePlayingIndex
+                    lastFocusedEpisodePosition = currentEpIndex
                     (playerEpisodeList.adapter as? EpisodeAdapter)?.submitList(episodes)
                     playerEpisodeList.scrollToPosition(currentEpIndex)
                     if (isLayout(TV)) {
@@ -2255,6 +2474,7 @@ class GeneratorPlayer : FullScreenPlayer() {
                             viewHolder?.itemView?.let { itemView ->
                                 itemView.isFocusableInTouchMode = true
                                 itemView.requestFocus()
+                                lastFocusedEpisodeView = itemView
                             }
                         }
                     }

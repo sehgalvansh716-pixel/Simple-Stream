@@ -15,6 +15,8 @@ import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.core.view.marginBottom
 import androidx.core.view.marginTop
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.lagradost.cloudstream3.CommonActivity.showToast
@@ -31,10 +33,16 @@ import com.lagradost.cloudstream3.ui.result.FOCUS_SELF
 import com.lagradost.cloudstream3.ui.result.setLinearListLayout
 import com.lagradost.cloudstream3.ui.setRecycledViewPool
 import com.lagradost.cloudstream3.ui.settings.Globals.TV
+import com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR
 import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
 import com.lagradost.cloudstream3.ui.settings.SettingsFragment.Companion.setSystemBarsPadding
 import com.lagradost.cloudstream3.ui.settings.SettingsFragment.Companion.setToolBarScrollFlags
 import com.lagradost.cloudstream3.ui.settings.SettingsFragment.Companion.setUpToolbar
+import com.lagradost.cloudstream3.ui.utils.TvAmbientVideoHelper
+import androidx.core.content.ContextCompat
+import androidx.core.view.updateLayoutParams
+import android.view.ViewGroup
+import com.lagradost.cloudstream3.utils.UIHelper.toPx
 import com.lagradost.cloudstream3.utils.AppContextUtils.addRepositoryDialog
 import com.lagradost.cloudstream3.utils.AppContextUtils.setDefaultFocus
 import com.lagradost.cloudstream3.utils.Coroutines.ioSafe
@@ -50,6 +58,7 @@ class ExtensionsFragment : BaseFragment<FragmentExtensionsBinding>(
 
     private val extensionViewModel: ExtensionsViewModel by activityViewModels()
     private val pluginViewModel: PluginsViewModel by activityViewModels()
+    private var ambientVideoHelper: TvAmbientVideoHelper? = null
 
     private fun View.setLayoutWidth(weight: Int) {
         val param = LinearLayout.LayoutParams(
@@ -63,11 +72,26 @@ class ExtensionsFragment : BaseFragment<FragmentExtensionsBinding>(
     override fun onResume() {
         super.onResume()
         afterRepositoryLoadedEvent += ::reloadRepositories
+        ambientVideoHelper?.play()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        ambientVideoHelper?.pause()
     }
 
     override fun onStop() {
         super.onStop()
         afterRepositoryLoadedEvent -= ::reloadRepositories
+        ambientVideoHelper?.pause()
+    }
+
+    override fun onDestroyView() {
+        try {
+            ambientVideoHelper?.release()
+            ambientVideoHelper = null
+        } catch (_: Exception) {}
+        super.onDestroyView()
     }
 
     private fun reloadRepositories(success: Boolean = true) {
@@ -80,8 +104,136 @@ class ExtensionsFragment : BaseFragment<FragmentExtensionsBinding>(
     }
 
     override fun onBindingCreated(binding: FragmentExtensionsBinding) {
-        setUpToolbar(R.string.extensions)
-        setToolBarScrollFlags()
+        val isTv = isLayout(TV or EMULATOR)
+
+        binding.root.setBackgroundColor(0x00000000)
+        binding.tvExtensionsVideo.isVisible = true
+        binding.tvExtensionsVideoOverlay.isVisible = true
+        ambientVideoHelper?.release()
+        ambientVideoHelper = TvAmbientVideoHelper(binding.root.context).apply {
+            attach(binding.tvExtensionsVideo, R.raw.tv_search_bg, autoPlay = true)
+        }
+
+        if (isTv) {
+            binding.settingsToolbar.apply {
+                setBackgroundColor(0x00000000)
+                setPadding(44.toPx, paddingTop, 44.toPx, paddingBottom)
+            }
+
+            binding.repoRecyclerView.apply {
+                background = ContextCompat.getDrawable(context, R.drawable.bg_tv_settings_card)
+                clipToOutline = true
+                updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    leftMargin = 44.toPx
+                    rightMargin = 44.toPx
+                    topMargin = 12.toPx
+                    bottomMargin = 96.toPx
+                }
+                setPadding(20.toPx, 16.toPx, 20.toPx, 16.toPx)
+                clipToPadding = false
+            }
+
+            binding.pluginRecyclerView.apply {
+                background = ContextCompat.getDrawable(context, R.drawable.bg_tv_settings_card)
+                clipToOutline = true
+                updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    leftMargin = 44.toPx
+                    rightMargin = 44.toPx
+                    topMargin = 12.toPx
+                    bottomMargin = 96.toPx
+                }
+                setPadding(20.toPx, 16.toPx, 20.toPx, 16.toPx)
+                clipToPadding = false
+            }
+
+            binding.pluginStorageAppbar.apply {
+                background = ContextCompat.getDrawable(context, R.drawable.bg_tv_settings_category_card)
+                clipToOutline = true
+                updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    leftMargin = 44.toPx
+                    rightMargin = 44.toPx
+                    bottomMargin = 14.toPx
+                    height = 72.toPx
+                }
+                elevation = 8.toPx.toFloat()
+                setPadding(20.toPx, 8.toPx, 20.toPx, 8.toPx)
+                isFocusable = true
+                isFocusableInTouchMode = false
+                nextFocusRightId = R.id.add_repo_button_imageview
+                nextFocusUpId = R.id.repo_recycler_view
+                nextFocusDownId = id
+            }
+
+            binding.addRepoButtonImageview.apply {
+                background = ContextCompat.getDrawable(context, R.drawable.bg_tv_card_action_btn)
+                setPadding(10.toPx, 10.toPx, 10.toPx, 10.toPx)
+                isFocusable = true
+                isFocusableInTouchMode = false
+                nextFocusLeftId = R.id.plugin_storage_appbar
+                nextFocusUpId = R.id.repo_recycler_view
+                nextFocusDownId = id
+            }
+        } else {
+            binding.root.setBackgroundColor(0x00000000)
+            binding.settingsToolbar.apply {
+                setBackgroundColor(0x00000000)
+            }
+            binding.blankRepoScreen.apply {
+                setBackgroundColor(0x00000000)
+            }
+            binding.pluginStorageAppbar.apply {
+                background = ContextCompat.getDrawable(context, R.drawable.bg_mobile_glass_card)
+                updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    leftMargin = 14.toPx
+                    rightMargin = 14.toPx
+                    bottomMargin = 108.toPx
+                    height = 72.toPx
+                }
+                elevation = 6.toPx.toFloat()
+                setPadding(16.toPx, 8.toPx, 16.toPx, 8.toPx)
+            }
+            binding.addRepoButton.translationY = -196.toPx.toFloat()
+            binding.repoRecyclerView.apply {
+                setBackgroundColor(0x00000000)
+                setPadding(0, 8.toPx, 0, 260.toPx)
+                clipToPadding = false
+            }
+            binding.pluginRecyclerView.apply {
+                setBackgroundColor(0x00000000)
+                setPadding(0, 8.toPx, 0, 260.toPx)
+                clipToPadding = false
+            }
+            binding.addRepoButtonImageview.apply {
+                background = ContextCompat.getDrawable(context, R.drawable.bg_mobile_search_circle_glass)
+                imageTintList = android.content.res.ColorStateList.valueOf(0xFF818CF8.toInt())
+            }
+
+            ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, windowInsets ->
+                val insets = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+                )
+                val navBarClearance = 82.toPx + insets.bottom
+                val storageCardBottom = navBarClearance + 14.toPx
+                val storageLp = binding.pluginStorageAppbar.layoutParams as? ViewGroup.MarginLayoutParams
+                if (storageLp != null && storageLp.bottomMargin != storageCardBottom) {
+                    storageLp.bottomMargin = storageCardBottom
+                    binding.pluginStorageAppbar.layoutParams = storageLp
+                }
+                val fabBottomOffset = storageCardBottom + 72.toPx + 16.toPx
+                val targetTransY = -(fabBottomOffset - 16.toPx).toFloat()
+                if (binding.addRepoButton.translationY != targetTransY) {
+                    binding.addRepoButton.translationY = targetTransY
+                }
+                val targetPaddingBottom = fabBottomOffset + 60.toPx
+                if (binding.repoRecyclerView.paddingBottom != targetPaddingBottom) {
+                    binding.repoRecyclerView.setPadding(0, 8.toPx, 0, targetPaddingBottom)
+                }
+                if (binding.pluginRecyclerView.paddingBottom != targetPaddingBottom) {
+                    binding.pluginRecyclerView.setPadding(0, 8.toPx, 0, targetPaddingBottom)
+                }
+                windowInsets
+            }
+        }
 
         binding.repoRecyclerView.apply {
             setLinearListLayout(
@@ -89,20 +241,8 @@ class ExtensionsFragment : BaseFragment<FragmentExtensionsBinding>(
                 nextUp = R.id.settings_toolbar, // FOCUS_SELF, // back has no id so we cant :pensive:
                 nextDown = R.id.plugin_storage_appbar,
                 nextRight = FOCUS_SELF,
-                nextLeft = R.id.nav_rail_view
+                nextLeft = if (isLayout(TV or EMULATOR)) FOCUS_SELF else R.id.nav_rail_view
             )
-
-            if (!isLayout(TV))
-                binding.addRepoButton.let { button ->
-                    button.post {
-                        setPadding(
-                            paddingLeft,
-                            paddingTop,
-                            paddingRight,
-                            button.measuredHeight + button.marginTop + button.marginBottom
-                        )
-                    }
-                }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
@@ -156,6 +296,14 @@ class ExtensionsFragment : BaseFragment<FragmentExtensionsBinding>(
             binding.blankRepoScreen.isVisible = repos.isEmpty()
             (binding.repoRecyclerView.adapter as? RepoAdapter)?.submitList(repos.toList())
             pluginViewModel.updatePluginList(binding.root.context, repos.toList())
+
+            if (isTv) {
+                binding.repoRecyclerView.post {
+                    if (activity?.currentFocus == null || activity?.currentFocus == view) {
+                        binding.repoRecyclerView.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                    }
+                }
+            }
         }
 
         observeNullable(extensionViewModel.pluginStats) { value ->
@@ -341,14 +489,14 @@ class ExtensionsFragment : BaseFragment<FragmentExtensionsBinding>(
         }
 
 
-        val isTv = isLayout(TV)
         binding.apply {
             addRepoButton.isGone = isTv
             addRepoButtonImageviewHolder.isVisible = isTv
 
-            // Band-aid for Fire TV
-            pluginStorageAppbar.isFocusableInTouchMode = isTv
-            addRepoButtonImageview.isFocusableInTouchMode = isTv
+            pluginStorageAppbar.isFocusable = isTv
+            pluginStorageAppbar.isFocusableInTouchMode = false
+            addRepoButtonImageview.isFocusable = isTv
+            addRepoButtonImageview.isFocusableInTouchMode = false
 
             addRepoButton.setOnClickListener(addRepositoryClick)
             addRepoButtonImageview.setOnClickListener(addRepositoryClick)

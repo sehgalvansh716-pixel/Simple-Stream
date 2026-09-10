@@ -96,8 +96,15 @@ open class ParentItemAdapter(
         if (binding !is HomepageParentBinding) return
         val info = item.list
         binding.apply {
+            if (position == 0) {
+                homeChildRecyclerview.nextFocusUpId = if (isLayout(TV or EMULATOR)) R.id.home_preview_play else R.id.home_preview_info_btt
+            } else {
+                homeChildRecyclerview.nextFocusUpId = View.NO_ID
+            }
             val currentAdapter = homeChildRecyclerview.adapter as? HomeChildItemAdapter
             if (currentAdapter == null) {
+                homeChildRecyclerview.setHasFixedSize(true)
+                homeChildRecyclerview.setItemViewCacheSize(10)
                 homeChildRecyclerview.setRecycledViewPool(HomeChildItemAdapter.sharedPool)
                 homeChildRecyclerview.adapter = HomeChildItemAdapter(
                     id = id + position + 100,

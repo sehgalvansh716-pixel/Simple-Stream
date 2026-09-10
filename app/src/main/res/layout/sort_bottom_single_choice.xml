@@ -1,20 +1,24 @@
-<!--<CheckedTextView
-        xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"
-        android:id="@android:id/text1"
-        android:layout_width="match_parent"
-        android:layout_height="?android:attr/listPreferredItemHeightSmall"
-        android:textAppearance="?android:attr/textAppearanceListItemSmall"
-        android:gravity="center_vertical"
-        android:textColor="?attr/textColor"
-        tools:text="Example Text"
-        android:background="?attr/bitDarkerGrayBackground"
-        android:checkMark="?android:attr/listChoiceIndicatorSingle"
-        android:paddingStart="?android:attr/listPreferredItemPaddingStart"
-        android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"/>
--->
-
-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" encoding="utf-8"?>
+<CheckedTextView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@android:id/text1"
-    style="@style/CheckLabel"
-    tools:text="hello" />
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="8dp"
+    android:layout_marginEnd="8dp"
+    android:layout_marginTop="3dp"
+    android:layout_marginBottom="3dp"
+    android:minHeight="48dp"
+    android:gravity="center_vertical"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:background="@drawable/bg_mobile_dialog_item_pill"
+    android:checkMark="?android:attr/listChoiceIndicatorMultiple"
+    android:checkMarkTint="#818CF8"
+    android:fontFamily="@font/google_sans"
+    android:textColor="#F3F4F6"
+    android:textSize="14.5sp"
+    android:textStyle="bold"
+    android:ellipsize="end"
+    android:maxLines="1"
+    tools:text="Cinejoy" />

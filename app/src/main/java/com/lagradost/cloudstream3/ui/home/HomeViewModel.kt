@@ -311,7 +311,7 @@ class HomeViewModel : ViewModel() {
     private var addJob: Job? = null
     fun loadMoreHomeScrollResponses() {
         addJob = ioSafe {
-            updatePreviewResponses(previewResponses, previewResponsesAdded, currentShuffledList, 1)
+            updatePreviewResponses(previewResponses, previewResponsesAdded, currentShuffledList, 5)
             _preview.postValue(Resource.Success((previewResponsesAdded.size < currentShuffledList.size) to previewResponses))
         }
     }
@@ -370,6 +370,8 @@ class HomeViewModel : ViewModel() {
                                 .flatMap { it.list }
                                 .distinctBy { it.url }.toList()
 
+                        com.lagradost.cloudstream3.utils.CardMetadataManager.registerCards(currentList)
+
                         if (currentList.isNotEmpty()) {
                             val randomItems =
                                 context?.filterSearchResultByFilmQuality(currentList.shuffled())
@@ -379,7 +381,7 @@ class HomeViewModel : ViewModel() {
                                 previewResponses,
                                 previewResponsesAdded,
                                 randomItems,
-                                3
+                                10
                             )
 
                             _randomItems.postValue(randomItems)
@@ -541,6 +543,12 @@ class HomeViewModel : ViewModel() {
                     _page.postValue(Resource.Loading())
                     if (preferredApiName != null)
                         _apiName.postValue(preferredApiName)
+                    ioSafe {
+                        kotlinx.coroutines.delay(2500L)
+                        if (page.value is Resource.Loading && getApiFromNameNull(preferredApiName) == null) {
+                            loadAndCancel(noneApi)
+                        }
+                    }
                 }
             } else {
                 // if the api is found, then set it to it and save key

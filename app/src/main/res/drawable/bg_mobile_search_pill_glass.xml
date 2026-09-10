@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Focused or Activated state: Brightened crystal liquid glass sheen with crisp refractive rim -->
+    <item android:state_focused="true">
+        <layer-list>
+            <!-- Layer 0: Frosted Obsidian Glass Base -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="22dp" />
+                    <solid android:color="#331A2433" />
+                </shape>
+            </item>
+            <!-- Layer 1: Luminous Frost Glaze -->
+            <item
+                android:top="1dp"
+                android:left="1dp"
+                android:right="1dp"
+                android:bottom="1dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="21dp" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#40FFFFFF"
+                        android:centerColor="#18FFFFFF"
+                        android:endColor="#08FFFFFF"
+                        android:type="linear" />
+                </shape>
+            </item>
+            <!-- Layer 2: Top edge specular glare line -->
+            <item
+                android:top="1dp"
+                android:left="20dp"
+                android:right="20dp"
+                android:bottom="41dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="1dp" />
+                    <gradient
+                        android:angle="0"
+                        android:startColor="#00FFFFFF"
+                        android:centerColor="#90FFFFFF"
+                        android:endColor="#00FFFFFF" />
+                </shape>
+            </item>
+            <!-- Layer 3: Specular perimeter rim (Razor-sharp 1.2dp refractive glass edge) -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="22dp" />
+                    <solid android:color="@android:color/transparent" />
+                    <stroke android:width="1.2dp" android:color="#80FFFFFF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <item android:state_activated="true">
+        <layer-list>
+            <!-- Layer 0: Frosted Obsidian Glass Base -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="22dp" />
+                    <solid android:color="#331A2433" />
+                </shape>
+            </item>
+            <!-- Layer 1: Luminous Frost Glaze -->
+            <item
+                android:top="1dp"
+                android:left="1dp"
+                android:right="1dp"
+                android:bottom="1dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="21dp" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#40FFFFFF"
+                        android:centerColor="#18FFFFFF"
+                        android:endColor="#08FFFFFF"
+                        android:type="linear" />
+                </shape>
+            </item>
+            <!-- Layer 2: Top edge specular glare line -->
+            <item
+                android:top="1dp"
+                android:left="20dp"
+                android:right="20dp"
+                android:bottom="41dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="1dp" />
+                    <gradient
+                        android:angle="0"
+                        android:startColor="#00FFFFFF"
+                        android:centerColor="#90FFFFFF"
+                        android:endColor="#00FFFFFF" />
+                </shape>
+            </item>
+            <!-- Layer 3: Specular perimeter rim -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="22dp" />
+                    <solid android:color="@android:color/transparent" />
+                    <stroke android:width="1.2dp" android:color="#80FFFFFF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Default state: True-Liquid-Glass capsule with luminous frosted surface fill -->
+    <item>
+        <layer-list>
+            <!-- Layer 0: Translucent Frosted Obsidian Base -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="22dp" />
+                    <solid android:color="#261A2433" />
+                </shape>
+            </item>
+            <!-- Layer 1: Ambient frost glaze for depth & high contrast against dark canvas -->
+            <item
+                android:top="1dp"
+                android:left="1dp"
+                android:right="1dp"
+                android:bottom="1dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="21dp" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#30FFFFFF"
+                        android:centerColor="#12FFFFFF"
+                        android:endColor="#04FFFFFF"
+                        android:type="linear" />
+                </shape>
+            </item>
+            <!-- Layer 2: Top edge specular glare line -->
+            <item
+                android:top="1dp"
+                android:left="20dp"
+                android:right="20dp"
+                android:bottom="41dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="1dp" />
+                    <gradient
+                        android:angle="0"
+                        android:startColor="#00FFFFFF"
+                        android:centerColor="#70FFFFFF"
+                        android:endColor="#00FFFFFF" />
+                </shape>
+            </item>
+            <!-- Layer 3: Specular Refractive Perimeter Rim -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="22dp" />
+                    <solid android:color="@android:color/transparent" />
+                    <stroke android:width="1.2dp" android:color="#50FFFFFF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>

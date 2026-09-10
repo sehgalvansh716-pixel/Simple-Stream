@@ -262,6 +262,7 @@ dependencies {
     implementation(libs.juniversalchardet) // Subtitle Decoding
 
     // UI Stuff
+    implementation("com.github.Dimezis:BlurView:version-2.0.6")
     implementation(libs.shimmer) // Shimmering Effect (Loading Skeleton)
     implementation(libs.palette.ktx) // Palette for Images -> Colors
     implementation(libs.tvprovider)

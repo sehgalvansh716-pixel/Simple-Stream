@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:padding="6dp">
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/avatar_card"
+        android:layout_width="86dp"
+        android:layout_height="86dp"
+        android:focusable="true"
+        android:clickable="true"
+        android:foreground="@drawable/outline_drawable_forced_round"
+        app:cardCornerRadius="@dimen/rounded_image_radius"
+        app:cardElevation="4dp"
+        app:cardBackgroundColor="#181D26">
+
+        <ImageView
+            android:id="@+id/avatar_image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:contentDescription="@string/profile_background_des" />
+
+        <!-- Selected Indicator Badge -->
+        <FrameLayout
+            android:id="@+id/avatar_selected_badge"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="4dp"
+            android:background="@drawable/player_button_tv_attr_no_bg"
+            android:backgroundTint="#00E599"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_baseline_check_24"
+                app:tint="#000000" />
+        </FrameLayout>
+    </androidx.cardview.widget.CardView>
+</FrameLayout>

@@ -26,9 +26,14 @@ object Globals {
         val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as UiModeManager?
         // AFT = Fire TV
         val model = Build.MODEL.lowercase()
-        return uiModeManager?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION || Build.MODEL.contains(
-            "AFT"
-        ) || model.contains("firestick") || model.contains("fire tv") || model.contains("chromecast")
+        val product = Build.PRODUCT.lowercase()
+        return uiModeManager?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION ||
+                Build.MODEL.contains("AFT") ||
+                model.contains("firestick") ||
+                model.contains("fire tv") ||
+                model.contains("chromecast") ||
+                model.contains("tv") ||
+                product.contains("tv")
     }
 
     private fun Context.layoutIntCorrected(): Int {

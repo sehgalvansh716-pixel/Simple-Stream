@@ -4,16 +4,15 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/home_root"
     android:layout_width="match_parent"
-
     android:layout_height="match_parent"
     tools:context=".ui.home.HomeFragment">
 
-
+    <!-- Loading Shimmer State -->
     <FrameLayout
         android:id="@+id/home_loading"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginStart="@dimen/navbar_width"
+        android:layout_marginStart="0dp"
         android:visibility="gone"
         tools:visibility="visible">
 
@@ -81,7 +80,6 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/result_padding"
                     android:layout_marginTop="@dimen/result_padding"
-
                     android:layout_marginEnd="@dimen/result_padding"
                     android:orientation="vertical">
 
@@ -93,15 +91,14 @@
                 </LinearLayout>
             </LinearLayout>
         </com.facebook.shimmer.ShimmerFrameLayout>
-
     </FrameLayout>
 
+    <!-- Error State -->
     <LinearLayout
         android:id="@+id/home_loading_error"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:layout_marginStart="@dimen/navbar_width"
         android:orientation="vertical"
         android:visibility="gone"
         tools:visibility="gone">
@@ -109,9 +106,7 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/home_reload_connectionerror"
             style="@style/WhiteButton"
-
             android:layout_width="wrap_content"
-
             android:layout_gravity="center"
             android:layout_margin="5dp"
             android:minWidth="200dp"
@@ -121,22 +116,17 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/home_reload_connection_open_in_browser"
             style="@style/BlackButton"
-
             android:layout_width="wrap_content"
-
             android:layout_gravity="center"
             android:layout_margin="5dp"
             android:minWidth="200dp"
             android:text="@string/result_open_in_browser"
             app:icon="@drawable/ic_baseline_public_24" />
 
-
         <com.google.android.material.button.MaterialButton
             android:id="@+id/home_reload_connection_go_to_downloads"
             style="@style/BlackButton"
-
             android:layout_width="wrap_content"
-
             android:layout_gravity="center"
             android:layout_margin="5dp"
             android:minWidth="200dp"
@@ -153,161 +143,401 @@
             android:textColor="?attr/textColor" />
     </LinearLayout>
 
+    <!-- Fullscreen Extended Atmospheric Backdrop Layer (Matches Carousel Colors) -->
+    <FrameLayout
+        android:id="@+id/home_tv_backdrop_layer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <ImageView
+            android:id="@+id/home_tv_backdrop_image_a"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            tools:ignore="ContentDescription" />
+
+        <ImageView
+            android:id="@+id/home_tv_backdrop_image_b"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:alpha="0"
+            tools:ignore="ContentDescription" />
+
+        <!-- Extended Ambient Gradient Overlay -->
+        <View
+            android:id="@+id/home_tv_backdrop_gradient"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_tv_home_extended_gradient" />
+    </FrameLayout>
+
+    <!-- Master Recycler (Full Screen, holding the Hero Billboard and Content Rails) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/home_master_recycler"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:descendantFocusability="afterDescendants"
-        android:nextFocusLeft="@id/navigation_home"
-        android:nextFocusUp="@id/home_bookmarked_child_recyclerview"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        tools:listitem="@layout/homepage_parent_tv"
-        tools:visibility="gone" />
+        tools:listitem="@layout/homepage_parent_tv" />
 
+    <!-- Clock (Preserved for ViewBinding, hidden) -->
     <TextClock
-            android:id="@+id/home_clock"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxWidth="600dp"
-            android:textColor="@color/white"
-            android:textSize="20sp"
-            android:visibility="visible"
-            android:format12Hour="hh:mm a"
-            android:format24Hour="HH:mm"
-            android:fontFamily="@font/google_sans"
-            android:textStyle="bold"
-            android:gravity="start"
-            android:layout_gravity="start"
-            android:layout_margin="10dp" />
+        android:id="@+id/home_clock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
 
+    <!-- Compatibility Provider Views for ViewBinding (Real UI is inside fragment_home_head_tv) -->
     <LinearLayout
         android:id="@+id/home_api_holder"
         android:layout_width="wrap_content"
-        android:layout_height="40dp"
-        android:layout_gravity="end"
-        android:layout_margin="10dp"
-        android:background="@drawable/player_button_tv_attr"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        android:descendantFocusability="blocksDescendants"
         android:orientation="horizontal">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/home_change_api"
-            style="@style/RegularButtonTV"
-            android:layout_width="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:layout_marginStart="0dp"
-            android:layout_marginEnd="0dp"
-            android:background="@drawable/player_button_tv_attr_no_bg"
-            android:gravity="center"
-            android:nextFocusLeft="@id/navigation_home"
-            tools:text="Hello!"
-            android:nextFocusRight="@id/home_preview_search_button"
-            android:nextFocusDown="@id/home_preview_info_btt" />
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone"
+            android:focusable="false"
+            android:focusableInTouchMode="false" />
 
+        <!-- Hidden compatibility views for ViewBinding in HomeFragment -->
         <ImageView
             android:id="@+id/home_preview_settings_button"
-            android:layout_width="50dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="end"
-            android:background="@drawable/player_button_tv_attr_no_bg"
-            android:contentDescription="@string/title_settings"
-            android:focusable="true"
-            android:nextFocusLeft="@id/home_change_api"
-            android:nextFocusRight="@id/home_preview_reload_provider"
-            android:nextFocusDown="@id/home_preview_info_btt"
-            android:padding="10dp"
-            android:src="@drawable/ic_baseline_tune_24"
-            android:tag="@string/tv_no_focus_tag"
-            android:visibility="gone"
-            app:tint="@color/player_on_button_tv_attr" />
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
 
         <ImageView
             android:id="@+id/home_preview_reload_provider"
-            android:layout_width="50dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="end"
-            android:background="@drawable/player_button_tv_attr_no_bg"
-            android:contentDescription="@string/reload_provider"
-            android:focusable="true"
-            android:nextFocusLeft="@id/home_preview_settings_button"
-            android:nextFocusRight="@id/home_preview_search_button"
-            android:nextFocusUp="@id/home_preview_reload_provider"
-            android:nextFocusDown="@id/home_preview_info_btt"
-            android:padding="10dp"
-            tools:visibility="visible"
-            android:src="@drawable/ic_refresh"
-            android:tag="@string/tv_no_focus_tag"
-            android:visibility="gone"
-            app:tint="@color/player_on_button_tv_attr" />
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
 
         <ImageView
             android:id="@+id/home_preview_search_button"
-            android:layout_width="50dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="end"
-            android:background="@drawable/player_button_tv_attr_no_bg"
-            android:clickable="true"
-            android:contentDescription="@string/search"
-            android:focusable="true"
-            android:nextFocusLeft="@id/home_change_api"
-            android:nextFocusRight="@id/home_change_api"
-            android:nextFocusDown="@id/home_preview_info_btt"
-            android:padding="10dp"
-            android:src="@drawable/search_icon"
-            app:tint="@color/player_on_button_tv_attr" />
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
 
         <ImageView
             android:id="@+id/home_random_button_tv"
-            android:layout_width="50dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="end"
-            android:background="@drawable/player_button_tv_attr_no_bg"
-            android:clickable="true"
-            android:contentDescription="@string/home_random"
-            android:focusable="true"
-            android:nextFocusLeft="@id/home_preview_search_button"
-            android:nextFocusRight="@id/home_switch_account"
-            android:nextFocusDown="@id/home_preview_info_btt"
-            android:padding="10dp"
-            android:src="@drawable/ic_baseline_play_arrow_24"
-            android:tag="@string/tv_no_focus_tag"
-            android:visibility="gone"
-            app:tint="@color/player_on_button_tv_attr" />
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
 
         <ImageView
-            android:visibility="gone"
             android:id="@+id/home_switch_account"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_gravity="end"
-            android:background="@drawable/player_button_tv_attr_no_bg"
-            android:contentDescription="@string/account"
-            android:focusable="true"
-            android:nextFocusLeft="@id/home_preview_search_button"
-            android:nextFocusRight="@id/home_switch_account"
-            android:nextFocusDown="@id/home_change_api"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
 
-            android:padding="10dp"
-            android:src="@drawable/ic_outline_account_circle_24"
-            android:tag="@string/tv_no_focus_tag"
-            app:tint="@color/player_on_button_tv_attr" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/home_change_api_loading_legacy"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/home_pinned_top_bar"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/home_mobile_logo"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/home_plugin_search_btn"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+
+        <eightbitlab.com.blurview.BlurView
+            android:id="@+id/home_change_api_blur"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+
+        <eightbitlab.com.blurview.BlurView
+            android:id="@+id/home_plugin_search_blur"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+
+        <eightbitlab.com.blurview.BlurView
+            android:id="@+id/home_plugin_search_back_blur"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+
+        <eightbitlab.com.blurview.BlurView
+            android:id="@+id/home_plugin_search_bar_blur"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/home_head_profile_padding"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone">
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/home_head_profile_card"
+                android:layout_width="0dp"
+                android:layout_height="0dp">
+
+                <ImageView
+                    android:id="@+id/home_head_profile_pic"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp" />
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+
+        <!-- Placeholder for mobile scroll-to-top FAB - always hidden on TV -->
+        <ImageView
+            android:id="@+id/home_scroll_to_top"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
     </LinearLayout>
 
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/home_api_fab"
         style="@style/ExtendedFloatingActionButton"
-        android:visibility="gone"
-        app:icon="@drawable/ic_baseline_filter_list_24"
-        tools:ignore="ContentDescription"
-        tools:visibility="visible" />
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
 
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/home_random"
         style="@style/ExtendedFloatingActionButton"
-        android:layout_gravity="bottom|start"
-        android:text="@string/home_random"
-        android:textColor="?attr/textColor"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+
+    <!-- In-Plugin Search Overlay (Matches PluginSearchbarExample.png & TV lay bg video) -->
+    <FrameLayout
+        android:id="@+id/home_plugin_search_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#FF07090D"
         android:visibility="gone"
-        app:icon="@drawable/ic_baseline_play_arrow_24"
-        tools:ignore="ContentDescription"
-        tools:visibility="visible" />
+        android:elevation="25dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:clickable="true"
+        android:focusable="true">
+
+        <!-- Looping Green Silk Background Video -->
+        <TextureView
+            android:id="@+id/home_plugin_search_video"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Atmospheric Dark Gradient & Vignette Overlay -->
+        <View
+            android:id="@+id/home_plugin_search_gradient"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_tv_search_video_overlay" />
+
+        <!-- Top-Left Back Button & Logo -->
+        <LinearLayout
+            android:id="@+id/home_plugin_search_top_left"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start|top"
+            android:layout_marginStart="36dp"
+            android:layout_marginTop="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:elevation="6dp">
+
+            <ImageView
+                android:id="@+id/home_plugin_search_back"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/go_back"
+                android:focusable="true"
+                android:clickable="true"
+                android:padding="6dp"
+                android:src="@drawable/ic_baseline_arrow_back_24"
+                app:tint="#FFFFFF" />
+
+            <ImageView
+                android:id="@+id/home_plugin_search_logo"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
+                android:contentDescription="@string/app_name"
+                android:scaleType="fitCenter"
+                android:src="@drawable/splash_logo_white" />
+        </LinearLayout>
+
+        <!-- Main Content Area -->
+        <LinearLayout
+            android:id="@+id/home_plugin_search_main_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <!-- Search Header Group (Permanently Anchored at Top) -->
+            <LinearLayout
+                android:id="@+id/home_plugin_search_header_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:elevation="4dp"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <!-- Headline: "Let's find a movie night pick" -->
+                <TextView
+                    android:id="@+id/home_plugin_search_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="60dp"
+                    android:fontFamily="@font/google_sans"
+                    android:text="@string/tv_movie_night_pick"
+                    android:textColor="#FFFFFF"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <!-- Glassmorphic Search Bar Capsule -->
+                <LinearLayout
+                    android:id="@+id/home_plugin_search_bar"
+                    android:layout_width="600dp"
+                    android:layout_height="44dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="18dp"
+                    android:background="@drawable/bg_tv_search_pill"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="16dp">
+
+                    <ImageView
+                        android:id="@+id/home_plugin_search_icon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/search_icon"
+                        app:tint="#80FFFFFF"
+                        android:contentDescription="@string/search" />
+
+                    <EditText
+                        android:id="@+id/home_plugin_search_input"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="8dp"
+                        android:background="@android:color/transparent"
+                        android:fontFamily="@font/google_sans"
+                        android:hint="@string/tv_search_hint"
+                        android:imeOptions="actionSearch"
+                        android:inputType="text"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="#FFFFFF"
+                        android:textColorHint="#80FFFFFF"
+                        android:textSize="15sp"
+                        android:nextFocusUp="@+id/home_plugin_search_input"
+                        android:nextFocusDown="@+id/home_plugin_search_recycler" />
+
+                    <ProgressBar
+                        android:id="@+id/home_plugin_search_loading"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:indeterminate="true"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/home_plugin_search_clear"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:src="@drawable/ic_baseline_clear_24"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:padding="3dp"
+                        android:visibility="gone"
+                        android:focusable="true"
+                        android:clickable="true"
+                        app:tint="#80FFFFFF"
+                        android:contentDescription="@string/clear" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Content Group (Section Title + Recycler Grid with Viewport Clipping) -->
+            <LinearLayout
+                android:id="@+id/home_plugin_search_content_group"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:clipChildren="true"
+                android:clipToPadding="true">
+
+                <!-- Section Title: "Trending Today" / Query Results -->
+                <TextView
+                    android:id="@+id/home_plugin_search_section_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginBottom="12dp"
+                    android:fontFamily="@font/google_sans"
+                    android:text="@string/tv_trending_today"
+                    android:textColor="#FFFFFF"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <!-- Empty Results Message -->
+                <TextView
+                    android:id="@+id/home_plugin_search_empty"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="40dp"
+                    android:fontFamily="@font/google_sans"
+                    android:text="@string/tv_no_results_found"
+                    android:textColor="#8A99AD"
+                    android:textSize="16sp"
+                    android:visibility="gone" />
+
+                <!-- 5-Column Search Results Recycler Grid -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/home_plugin_search_recycler"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:clipChildren="true"
+                    android:clipToPadding="false"
+                    android:descendantFocusability="afterDescendants"
+                    android:paddingStart="36dp"
+                    android:paddingEnd="36dp"
+                    android:paddingTop="28dp"
+                    android:paddingBottom="64dp"
+                    android:nextFocusUp="@+id/home_plugin_search_input" />
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
 </FrameLayout>

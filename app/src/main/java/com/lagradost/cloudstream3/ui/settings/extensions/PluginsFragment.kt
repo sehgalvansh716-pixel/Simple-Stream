@@ -28,6 +28,10 @@ import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import com.lagradost.cloudstream3.utils.SingleSelectionHelper.showMultiDialog
 import com.lagradost.cloudstream3.utils.SubtitleHelper.getNameNextToFlagEmoji
 import com.lagradost.cloudstream3.utils.UIHelper.toPx
+import androidx.core.content.ContextCompat
+import androidx.core.view.updateLayoutParams
+import android.view.ViewGroup
+import com.lagradost.cloudstream3.ui.utils.TvAmbientVideoHelper
 
 const val PLUGINS_BUNDLE_DATA = "data"
 const val PLUGINS_BUNDLE_LOCAL = "isLocal"
@@ -36,9 +40,24 @@ class PluginsFragment : BaseFragment<FragmentPluginsBinding>(
     BaseFragment.BindingCreator.Inflate(FragmentPluginsBinding::inflate)
 ) {
     private lateinit var pluginViewModel: PluginsViewModel
+    private var ambientVideoHelper: TvAmbientVideoHelper? = null
+
+    override fun onResume() {
+        super.onResume()
+        ambientVideoHelper?.play()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        ambientVideoHelper?.pause()
+    }
 
     override fun onDestroyView() {
         pluginViewModel.clear() // clear for the next observe
+        try {
+            ambientVideoHelper?.release()
+            ambientVideoHelper = null
+        } catch (_: Exception) {}
         super.onDestroyView()
     }
 
@@ -72,6 +91,46 @@ class PluginsFragment : BaseFragment<FragmentPluginsBinding>(
         if (repositoryData == null) {
             dispatchBackPressed()
             return
+        }
+
+        val isTv = isLayout(TV or EMULATOR)
+        binding.root.setBackgroundColor(0x00000000)
+        binding.tvPluginsVideo.isVisible = true
+        binding.tvPluginsVideoOverlay.isVisible = true
+        ambientVideoHelper?.release()
+        ambientVideoHelper = TvAmbientVideoHelper(binding.root.context).apply {
+            attach(binding.tvPluginsVideo, R.raw.tv_search_bg, autoPlay = true)
+        }
+
+        if (isTv) {
+            binding.settingsToolbar.apply {
+                setBackgroundColor(0x00000000)
+                setPadding(44.toPx, paddingTop, 44.toPx, paddingBottom)
+            }
+
+            binding.tvtypesChipsScroll.root.setPadding(44.toPx, 0, 44.toPx, 0)
+
+            binding.pluginRecyclerView.apply {
+                background = ContextCompat.getDrawable(context, R.drawable.bg_tv_settings_card)
+                clipToOutline = true
+                updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    leftMargin = 44.toPx
+                    rightMargin = 44.toPx
+                    topMargin = 12.toPx
+                    bottomMargin = 24.toPx
+                }
+                setPadding(20.toPx, 16.toPx, 20.toPx, 48.toPx)
+                clipToPadding = false
+            }
+        } else {
+            binding.settingsToolbar.apply {
+                setBackgroundColor(0x00000000)
+            }
+            binding.pluginRecyclerView.apply {
+                setBackgroundColor(0x00000000)
+                setPadding(0, 8.toPx, 0, 96.toPx)
+                clipToPadding = false
+            }
         }
 
         setToolBarScrollFlags()
@@ -174,6 +233,13 @@ class PluginsFragment : BaseFragment<FragmentPluginsBinding>(
             (binding.pluginRecyclerView.adapter as? PluginAdapter)?.submitList(list)
             if (scrollToTop) {
                 binding.pluginRecyclerView.scrollToPosition(0)
+            }
+            if (isTv) {
+                binding.pluginRecyclerView.post {
+                    if (activity?.currentFocus == null || activity?.currentFocus == view) {
+                        binding.pluginRecyclerView.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                    }
+                }
             }
         }
 

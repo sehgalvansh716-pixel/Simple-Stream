@@ -6,30 +6,44 @@
     android:id="@+id/extensions_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/primaryGrayBackground"
+    android:background="#0B0C10"
     android:orientation="vertical">
+
+    <!-- Ambient Video Loop for TV -->
+    <TextureView
+        android:id="@+id/tv_plugins_video"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/tv_plugins_video_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#CC070A0F"
+        android:visibility="gone" />
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/primaryGrayBackground">
+        android:background="@android:color/transparent">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/settings_toolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="?attr/primaryGrayBackground"
+            android:background="@android:color/transparent"
             android:paddingTop="@dimen/navbar_height"
             app:layout_scrollFlags="scroll|enterAlways"
             app:menu="@menu/repository"
-            app:navigationIconTint="?attr/iconColor"
-            app:titleTextColor="?attr/textColor"
+            app:navigationIconTint="#FFFFFF"
+            app:titleTextColor="#FFFFFF"
             tools:title="Overlord" />
 
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="?attr/primaryGrayBackground"
+            android:background="@android:color/transparent"
             android:paddingBottom="10dp"
             app:layout_scrollFlags="scroll|enterAlways">
 
@@ -43,9 +57,9 @@
         android:id="@+id/plugin_recycler_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="?attr/primaryBlackBackground"
+        android:background="#0B0C10"
         android:clipToPadding="false"
-
+        android:paddingTop="6dp"
         android:nextFocusLeft="@id/nav_rail_view"
         android:nextFocusUp="@id/tvtypes_chips"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
@@ -53,4 +67,3 @@
         tools:listitem="@layout/repository_item" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
-

@@ -39,6 +39,12 @@
     <string name="speech_recognition_unavailable">Speech recognition is not available</string>
     <string name="begin_speaking">Begin Speaking…</string>
     <string name="no_data">No Data</string>
+    <string name="tv_movie_night_pick">Let\'s find a movie night pick</string>
+    <string name="tv_trending_today">Trending Today</string>
+    <string name="tv_search_hint">Search for movies &amp; TV shows…</string>
+    <string name="tv_no_results_found">No titles found</string>
+    <string name="search_results">Search Results</string>
+    <string name="clear">Clear</string>
     <string name="episode_more_options_des">More Options</string>
     <string name="next_episode">Next episode</string>
     <string name="result_tags">Genres</string>

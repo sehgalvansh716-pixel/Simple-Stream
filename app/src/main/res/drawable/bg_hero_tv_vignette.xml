@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Top navbar legibility shadow, smoothly fading out so bottom is 100% transparent -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#4007090D"
+                android:centerColor="#1007090D"
+                android:endColor="#00000000"
+                android:centerY="0.30"
+                android:type="linear" />
+        </shape>
+    </item>
+    <!-- Left-to-right shadow making text and buttons crisp and high-contrast -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="0"
+                android:startColor="#B307090D"
+                android:centerColor="#4007090D"
+                android:endColor="#00000000"
+                android:centerX="0.45"
+                android:type="linear" />
+        </shape>
+    </item>
+</layer-list>

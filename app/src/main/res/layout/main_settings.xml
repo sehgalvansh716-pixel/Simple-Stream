@@ -4,38 +4,68 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/primaryBlackBackground">
+    android:background="#0B0C10">
+
+    <!-- 60fps Hardware-Accelerated Dynamic Theme Shader -->
+    <TextureView
+        android:id="@+id/tv_settings_video"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Dark Scrim Overlay -->
+    <View
+        android:id="@+id/tv_settings_video_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_tv_search_video_overlay" />
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:clipToPadding="false"
+        android:overScrollMode="never"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingTop="20dp"
+            android:paddingBottom="96dp">
 
+            <!-- Screen Title -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="16dp"
+                android:fontFamily="@font/google_sans"
+                android:text="@string/title_settings"
+                android:textColor="#FFFFFF"
+                android:textSize="26sp"
+                android:textStyle="bold" />
+
+            <!-- 1. Profile Box -->
             <LinearLayout
                 android:id="@+id/settings_profile"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="20dp"
+                android:background="@drawable/bg_mobile_settings_card"
                 android:clickable="true"
                 android:focusable="true"
-                android:foreground="@drawable/outline_drawable"
-                android:nextFocusLeft="@id/navigation_settings"
-                android:nextFocusDown="@id/settings_general"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="16dp"
                 tools:visibility="visible">
 
                 <androidx.cardview.widget.CardView
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:foreground="@drawable/outline_big_25_gray"
-                    app:cardCornerRadius="25dp">
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    app:cardBackgroundColor="#26FFFFFF"
+                    app:cardCornerRadius="24dp">
 
                     <ImageView
                         android:id="@+id/settings_profile_pic"
@@ -44,122 +74,510 @@
                         android:contentDescription="@string/account"
                         android:scaleType="centerCrop"
                         tools:src="@drawable/profile_bg_orange" />
-
                 </androidx.cardview.widget.CardView>
 
-                <TextView
-                    android:id="@+id/settings_profile_text"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:gravity="center_vertical"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp"
-                    android:textColor="?attr/textColor"
-                    android:textSize="18sp"
-                    android:textStyle="normal"
-                    tools:text="Quick Brown Fox" />
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/settings_profile_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/google_sans"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        tools:text="Quick Brown Fox" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/google_sans"
+                        android:text="Tap to switch or manage accounts"
+                        android:textColor="#9CA3AF"
+                        android:textSize="12.5sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_baseline_keyboard_arrow_right_24"
+                    app:tint="#6B7280" />
             </LinearLayout>
 
-            <TextView
+            <!-- 2. General Settings -->
+            <LinearLayout
                 android:id="@+id/settings_general"
-                style="@style/SettingsItem"
-                android:nextFocusLeft="@id/navigation_settings"
-                android:nextFocusUp="@id/settings_profile"
-                android:nextFocusDown="@id/settings_player"
-                android:text="@string/category_general" />
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_mobile_settings_card"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="16dp">
 
-            <TextView
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_mobile_search_circle_glass">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_baseline_tune_24"
+                        app:tint="#FFFFFF" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/google_sans"
+                        android:text="@string/category_general"
+                        android:textColor="#F3F4F6"
+                        android:textSize="15.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/google_sans"
+                        android:text="App language, downloads folder, clear cache, and backup"
+                        android:textColor="#9CA3AF"
+                        android:textSize="12.5sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_baseline_keyboard_arrow_right_24"
+                    app:tint="#6B7280" />
+            </LinearLayout>
+
+            <!-- 3. Player Settings -->
+            <LinearLayout
                 android:id="@+id/settings_player"
-                style="@style/SettingsItem"
-                android:nextFocusLeft="@id/navigation_settings"
-                android:nextFocusUp="@id/settings_general"
-                android:nextFocusDown="@id/settings_providers"
-                android:text="@string/category_player" />
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_mobile_settings_card"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="16dp">
 
-            <TextView
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_mobile_search_circle_glass">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_baseline_play_arrow_24"
+                        app:tint="#FFFFFF" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/google_sans"
+                        android:text="@string/category_player"
+                        android:textColor="#F3F4F6"
+                        android:textSize="15.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/google_sans"
+                        android:text="Autoplay, 2X speedup gesture, buffer size, gestures, and audio"
+                        android:textColor="#9CA3AF"
+                        android:textSize="12.5sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_baseline_keyboard_arrow_right_24"
+                    app:tint="#6B7280" />
+            </LinearLayout>
+
+            <!-- 4. Providers Settings -->
+            <LinearLayout
                 android:id="@+id/settings_providers"
-                style="@style/SettingsItem"
-                android:nextFocusLeft="@id/navigation_settings"
-                android:nextFocusUp="@id/settings_player"
-                android:nextFocusDown="@id/settings_ui"
-                android:text="@string/category_providers" />
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_mobile_settings_card"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="16dp">
 
-            <TextView
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_mobile_search_circle_glass">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_baseline_dns_24"
+                        app:tint="#FFFFFF" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/google_sans"
+                        android:text="@string/category_providers"
+                        android:textColor="#F3F4F6"
+                        android:textSize="15.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/google_sans"
+                        android:text="Preferred provider languages, adult filter, and source priorities"
+                        android:textColor="#9CA3AF"
+                        android:textSize="12.5sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_baseline_keyboard_arrow_right_24"
+                    app:tint="#6B7280" />
+            </LinearLayout>
+
+            <!-- 5. Appearance / UI Settings -->
+            <LinearLayout
                 android:id="@+id/settings_ui"
-                style="@style/SettingsItem"
-                android:nextFocusLeft="@id/navigation_settings"
-                android:nextFocusUp="@id/settings_providers"
-                android:nextFocusDown="@id/settings_updates"
-                android:text="@string/category_ui" />
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_mobile_settings_card"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="16dp">
 
-            <TextView
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_mobile_search_circle_glass">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_baseline_color_lens_24"
+                        app:tint="#FFFFFF" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/google_sans"
+                        android:text="@string/category_ui"
+                        android:textColor="#F3F4F6"
+                        android:textSize="15.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/google_sans"
+                        android:text="Theme accents, episode layout mode, poster dimensions, and style"
+                        android:textColor="#9CA3AF"
+                        android:textSize="12.5sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_baseline_keyboard_arrow_right_24"
+                    app:tint="#6B7280" />
+            </LinearLayout>
+
+            <!-- 6. Updates Settings -->
+            <LinearLayout
                 android:id="@+id/settings_updates"
-                style="@style/SettingsItem"
-                android:nextFocusLeft="@id/navigation_settings"
-                android:nextFocusUp="@id/settings_ui"
-                android:nextFocusDown="@id/settings_credits"
-                android:text="@string/category_updates" />
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_mobile_settings_card"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="16dp">
 
-            <TextView
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_mobile_search_circle_glass">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_baseline_system_update_24"
+                        app:tint="#FFFFFF" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/google_sans"
+                        android:text="@string/category_updates"
+                        android:textColor="#F3F4F6"
+                        android:textSize="15.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/google_sans"
+                        android:text="Check for new releases, auto-update plugins, and changelogs"
+                        android:textColor="#9CA3AF"
+                        android:textSize="12.5sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_baseline_keyboard_arrow_right_24"
+                    app:tint="#6B7280" />
+            </LinearLayout>
+
+            <!-- 7. Account Sync Settings -->
+            <LinearLayout
                 android:id="@+id/settings_credits"
-                style="@style/SettingsItem"
-                android:nextFocusLeft="@id/navigation_settings"
-                android:nextFocusUp="@id/settings_updates"
-                android:nextFocusDown="@id/settings_extensions"
-                android:text="@string/category_account" />
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_mobile_settings_card"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="16dp">
 
-            <TextView
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_mobile_search_circle_glass">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_baseline_people_24"
+                        app:tint="#FFFFFF" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/google_sans"
+                        android:text="@string/category_account"
+                        android:textColor="#F3F4F6"
+                        android:textSize="15.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/google_sans"
+                        android:text="Sync watch history, progress and ratings with Trakt, Simkl, MAL"
+                        android:textColor="#9CA3AF"
+                        android:textSize="12.5sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_baseline_keyboard_arrow_right_24"
+                    app:tint="#6B7280" />
+            </LinearLayout>
+
+            <!-- 8. Extensions Settings -->
+            <LinearLayout
                 android:id="@+id/settings_extensions"
-                style="@style/SettingsItem"
-                android:nextFocusLeft="@id/navigation_settings"
-                android:nextFocusUp="@id/settings_credits"
-                android:text="@string/extensions" />
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_mobile_settings_card"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="16dp">
 
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_mobile_search_circle_glass">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_baseline_extension_24"
+                        app:tint="#FFFFFF" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/google_sans"
+                        android:text="@string/extensions"
+                        android:textColor="#F3F4F6"
+                        android:textSize="15.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/google_sans"
+                        android:text="Browse online catalog, add custom repositories, and manage plugins"
+                        android:textColor="#9CA3AF"
+                        android:textSize="12.5sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_baseline_keyboard_arrow_right_24"
+                    app:tint="#6B7280" />
+            </LinearLayout>
+
+            <!-- Version & Build Info Row -->
             <LinearLayout
                 android:id="@+id/app_version_info"
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_gravity="center"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="12dp"
+                android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <TextView
                     android:id="@+id/app_version"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:padding="10dp"
-                    android:textColor="?attr/textColor"
-                    tools:text="0.0.0" />
+                    android:fontFamily="@font/google_sans"
+                    android:textColor="#6B7280"
+                    android:textSize="12sp"
+                    tools:text="1.0.1" />
 
                 <TextView
                     android:id="@+id/delimiter0"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
                     android:text="•"
-                    android:textColor="?attr/textColor" />
+                    android:textColor="#6B7280" />
 
                 <TextView
                     android:id="@+id/commit_hash"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:padding="10dp"
-                    android:textColor="?attr/textColor"
-                    tools:text="1234567" />
+                    android:fontFamily="@font/google_sans"
+                    android:textColor="#6B7280"
+                    android:textSize="12sp"
+                    tools:text="102" />
 
                 <TextView
                     android:id="@+id/delimiter1"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
                     android:text="•"
-                    android:textColor="?attr/textColor" />
+                    android:textColor="#6B7280" />
 
                 <TextView
                     android:id="@+id/build_date"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:padding="10dp"
-                    android:textColor="?attr/textColor"
-                    tools:text="21/03/2024 09:02 pm" />
+                    android:fontFamily="@font/google_sans"
+                    android:textColor="#6B7280"
+                    android:textSize="12sp"
+                    tools:text="Release" />
             </LinearLayout>
         </LinearLayout>
     </ScrollView>

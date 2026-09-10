@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:background="?attr/primaryGrayBackground"
+    android:background="@android:color/transparent"
     android:layout_height="match_parent">
 
     <com.lagradost.cloudstream3.utils.PercentageCropImageView
@@ -12,13 +12,15 @@
         android:layout_height="match_parent"
         android:scaleType="matrix"
         app:cropYCenterOffsetPct="0.20"
+        app:enableBottomFade="true"
         tools:src="@drawable/example_poster" />
 
+    <!-- Legacy title_shadow kept for ViewBinding, set to transparent so bg_hero_tv_vignette governs aesthetics -->
     <View
         android:id="@+id/title_shadow"
         android:layout_width="match_parent"
         android:layout_height="250dp"
         android:layout_gravity="bottom"
-        android:background="@drawable/background_shadow" />
+        android:background="@android:color/transparent" />
 
 </FrameLayout>

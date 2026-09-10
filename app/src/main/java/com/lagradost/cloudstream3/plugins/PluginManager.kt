@@ -71,6 +71,8 @@ import java.io.InputStreamReader
 // Different keys for local and not since local can be removed at any time without app knowing, hence the local are getting rebuilt on every app start
 const val PLUGINS_KEY = "PLUGINS_KEY"
 const val PLUGINS_KEY_LOCAL = "PLUGINS_KEY_LOCAL"
+// Sentinel key for detecting overhauled prepackaged plugin assets
+const val PREPACKAGED_PLUGINS_CHECKSUM_KEY = "prepackaged_plugins_checksum_v2"
 
 const val EXTENSIONS_CHANNEL_ID = "cloudstream3.extensions"
 const val EXTENSIONS_CHANNEL_NAME = "Extensions"
@@ -493,6 +495,103 @@ object PluginManager {
             unloadPlugin(it.filePath)
         }
         ___DO_NOT_CALL_FROM_A_PLUGIN_loadAllLocalPlugins(activity, true)
+    }
+
+    /**
+     * Extracts and registers prepackaged plugins bundled inside the APK's assets/plugins/ directory.
+     * Performs a full wipe of old plugin data whenever the asset binary has changed,
+     * ensuring an overhauled plugin is treated as a completely new installation.
+     */
+    suspend fun initPrepackagedPlugins(context: Context) {
+        try {
+            val assetManager = context.assets
+            val pluginList = assetManager.list("plugins") ?: return
+            val prepackagedFolder = File("${context.filesDir}/${ONLINE_PLUGINS_FOLDER}/Prepackaged")
+
+            // Build a combined checksum from all bundled .cs3 files to detect overhauls
+            val combinedChecksum = buildString {
+                for (pluginFileName in pluginList) {
+                    if (!pluginFileName.endsWith(".cs3")) continue
+                    assetManager.open("plugins/$pluginFileName").use { input ->
+                        val bytes = input.readBytes()
+                        append(pluginFileName)
+                        append(":")
+                        append(bytes.size)
+                        append(":")
+                        // Simple FNV-like checksum using the first+last 64 bytes for speed
+                        val sample = (bytes.take(64) + bytes.takeLast(64)).toByteArray()
+                        append(sample.fold(0L) { acc, b -> acc * 31 + b.toLong() })
+                        append(";")
+                    }
+                }
+            }
+
+            val storedChecksum = getKey<String>(PREPACKAGED_PLUGINS_CHECKSUM_KEY)
+            val needsFullWipe = storedChecksum != combinedChecksum
+
+            if (needsFullWipe) {
+                // --- FULL WIPE: Remove all old prepackaged plugin files ---
+                if (prepackagedFolder.exists()) {
+                    prepackagedFolder.listFiles()?.forEach { oldFile ->
+                        try { oldFile.delete() } catch (_: Exception) {}
+                    }
+                }
+                // Remove old prepackaged entries from the plugin registry
+                lock.withLock {
+                    val cleaned = getPluginsOnline().filter { plugin ->
+                        !plugin.filePath.contains("/Prepackaged/") &&
+                        !plugin.filePath.contains("\\Prepackaged\\")
+                    }
+                    setKey(PLUGINS_KEY, cleaned.toTypedArray())
+                }
+                Log.i("PluginManager", "Prepackaged plugins wiped — new asset detected (checksum changed)")
+            }
+
+            if (!prepackagedFolder.exists()) {
+                prepackagedFolder.mkdirs()
+            }
+
+            // --- FRESH INSTALL: Extract and register every bundled .cs3 ---
+            var hasNewPlugin = false
+            val currentOnline = getPluginsOnline().toMutableList()
+
+            for (pluginFileName in pluginList) {
+                if (!pluginFileName.endsWith(".cs3")) continue
+                val internalName = pluginFileName.removeSuffix(".cs3")
+                val targetFile = File(prepackagedFolder, pluginFileName)
+
+                assetManager.open("plugins/$pluginFileName").use { input ->
+                    val assetBytes = input.readBytes()
+                    targetFile.writeBytes(assetBytes)
+                }
+
+                // Remove any stale entry with the same internalName, then add fresh
+                currentOnline.removeAll { it.internalName == internalName }
+                currentOnline.add(
+                    PluginData(
+                        internalName = internalName,
+                        url = "https://raw.githubusercontent.com/sehgalvansh716-pixel/Personal/master/$pluginFileName",
+                        isOnline = true,
+                        filePath = targetFile.absolutePath,
+                        version = 114
+                    )
+                )
+                hasNewPlugin = true
+            }
+
+            if (hasNewPlugin) {
+                lock.withLock {
+                    setKey(PLUGINS_KEY, currentOnline.toTypedArray())
+                }
+            }
+
+            // Persist the new checksum so subsequent launches skip the wipe
+            if (needsFullWipe || storedChecksum == null) {
+                setKey(PREPACKAGED_PLUGINS_CHECKSUM_KEY, combinedChecksum)
+            }
+        } catch (t: Throwable) {
+            logError(t)
+        }
     }
 
     /**

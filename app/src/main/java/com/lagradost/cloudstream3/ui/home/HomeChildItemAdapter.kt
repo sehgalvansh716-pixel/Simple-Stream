@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import androidx.viewbinding.ViewBinding
 import com.lagradost.cloudstream3.R
@@ -18,6 +19,7 @@ import com.lagradost.cloudstream3.ui.BaseDiffCallback
 import com.lagradost.cloudstream3.ui.ViewHolderState
 import com.lagradost.cloudstream3.ui.newSharedPool
 import com.lagradost.cloudstream3.ui.search.SEARCH_ACTION_LOAD
+import com.lagradost.cloudstream3.ui.search.SEARCH_ACTION_FOCUSED
 import com.lagradost.cloudstream3.ui.search.SearchClickCallback
 import com.lagradost.cloudstream3.ui.search.SearchResultBuilder
 import com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR
@@ -36,7 +38,7 @@ class HomeScrollViewHolderState(view: ViewBinding) : ViewHolderState<Boolean>(vi
         if (state) {
             wasFocused = false
             // only refocus if tv
-            if (isLayout(TV)) {
+            if (isLayout(TV or EMULATOR)) {
                 itemView.requestFocus()
             }
         }
@@ -58,7 +60,7 @@ class ResumeItemAdapter(
     override val footers = if (isLayout(TV or EMULATOR)) 1 else 0
 
     override fun onCreateFooter(parent: ViewGroup): ViewHolderState<Boolean> {
-        val expanded = parent.context.isBottomLayout()
+        val expanded = if (isLayout(TV or EMULATOR)) false else parent.context.isBottomLayout()
         val inflater = LayoutInflater.from(parent.context)
         val binding = if (expanded) HomeRemoveGridExpandedBinding.inflate(
             inflater,
@@ -84,8 +86,30 @@ class ResumeItemAdapter(
                 updateLayoutParms(binding.backgroundCard, setWidth, setHeight)
             }
         }
+        val bgCard = holder.itemView.findViewById<androidx.cardview.widget.CardView>(R.id.background_card)
+        val isFooterFocused = holder.itemView.isFocused
+        bgCard?.foreground = if (isFooterFocused) ContextCompat.getDrawable(holder.itemView.context, R.drawable.outline) else null
+        if (isLayout(TV or EMULATOR)) {
+            holder.itemView.scaleX = if (isFooterFocused) 1.10f else 1.0f
+            holder.itemView.scaleY = if (isFooterFocused) 1.10f else 1.0f
+            holder.itemView.translationZ = if (isFooterFocused) 12f else 0f
+        }
+        holder.itemView.setOnFocusChangeListener { view, hasFocus ->
+            bgCard?.foreground = if (hasFocus) ContextCompat.getDrawable(view.context, R.drawable.outline) else null
+            if (isLayout(TV or EMULATOR)) {
+                val scale = if (hasFocus) 1.10f else 1.0f
+                view.animate().cancel()
+                view.animate()
+                    .scaleX(scale)
+                    .scaleY(scale)
+                    .translationZ(if (hasFocus) 12f else 0f)
+                    .setDuration(200)
+                    .setInterpolator(android.view.animation.DecelerateInterpolator())
+                    .start()
+            }
+        }
         holder.itemView.apply {
-            if (isLayout(TV)) {
+            if (isLayout(TV or EMULATOR)) {
                 isFocusableInTouchMode = true
                 isFocusable = true
             }
@@ -148,7 +172,7 @@ open class HomeChildItemAdapter(
     protected var setHeight = 0
 
     override fun onCreateContent(parent: ViewGroup): ViewHolderState<Boolean> {
-        val expanded = parent.context.isBottomLayout()
+        val expanded = if (isLayout(TV or EMULATOR)) false else parent.context.isBottomLayout()
         val inflater = LayoutInflater.from(parent.context)
         val binding = if (expanded) HomeResultGridExpandedBinding.inflate(
             inflater,
@@ -198,6 +222,9 @@ open class HomeChildItemAdapter(
         when (val binding = holder.view) {
             is HomeResultGridBinding -> {
                 updateLayoutParms(binding.backgroundCard, w, h)
+                if (isFirstItem) {
+                    binding.backgroundCard.nextFocusLeftId = R.id.nav_rail_view
+                }
             }
 
             is HomeResultGridExpandedBinding -> {
@@ -222,6 +249,9 @@ open class HomeChildItemAdapter(
                 // ok, so here we hijack the callback to fix the focus
                 when (click.action) {
                     SEARCH_ACTION_LOAD -> (holder as? HomeScrollViewHolderState)?.wasFocused = true
+                    SEARCH_ACTION_FOCUSED -> {
+                        HomeFragment.lastFocusedItem = java.lang.ref.WeakReference(holder.itemView)
+                    }
                 }
                 clickCallback(click)
             },

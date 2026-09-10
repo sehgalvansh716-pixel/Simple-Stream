@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/episode_card_root"
+    android:layout_width="260dp"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="16dp"
+    android:layout_marginBottom="8dp"
+    android:background="@null"
+    android:clickable="true"
+    android:defaultFocusHighlightEnabled="false"
+    android:focusable="true"
+    android:orientation="vertical">
+
+    <!-- 16:9 Landscape Thumbnail Container with Clean 12dp Focus Ring (Zero Elevation Box) -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/episode_thumbnail_card"
+        android:layout_width="260dp"
+        android:layout_height="146dp"
+        android:clickable="false"
+        android:focusable="false"
+        android:foreground="@drawable/fg_tv_episode_card"
+        app:cardBackgroundColor="#14161D"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:cardMaxElevation="0dp"
+        app:cardPreventCornerOverlap="false">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <!-- Episode Thumbnail Image -->
+            <ImageView
+                android:id="@+id/episode_poster"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@null"
+                android:scaleType="centerCrop"
+                tools:src="@drawable/example_poster" />
+
+            <!-- Subtle Vignette Scrim over Thumbnail -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#1A000000" />
+
+            <!-- Top-Left Episode Number Badge (e.g. E1) -->
+            <TextView
+                android:id="@+id/episode_number_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|start"
+                android:layout_margin="8dp"
+                android:background="@drawable/bg_tv_episode_badge"
+                android:paddingStart="8dp"
+                android:paddingTop="2dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="2dp"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                tools:text="E1" />
+
+            <!-- Top-Right Watched Status Icon Badge -->
+            <ImageView
+                android:id="@+id/episode_watched_badge"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="top|end"
+                android:layout_margin="8dp"
+                android:background="@drawable/bg_tv_episode_badge"
+                android:contentDescription="@null"
+                android:padding="4dp"
+                android:src="@drawable/ic_tv_eye_watched"
+                android:visibility="visible"
+                app:tint="#D1D5DB" />
+
+            <!-- Bottom-Right Duration Badge (e.g. 44m) -->
+            <TextView
+                android:id="@+id/episode_duration_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="8dp"
+                android:background="@drawable/bg_tv_episode_badge"
+                android:paddingStart="6dp"
+                android:paddingTop="2dp"
+                android:paddingEnd="6dp"
+                android:paddingBottom="2dp"
+                android:textColor="#E0E0E0"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                tools:text="44m" />
+
+            <!-- Centered TV Play Circle Button (Appears on focus) -->
+            <ImageView
+                android:id="@+id/episode_play_icon"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_tv_card_play_circle"
+                android:contentDescription="@null"
+                android:elevation="4dp"
+                android:padding="9dp"
+                android:src="@drawable/ic_tv_play_black"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <!-- Linear Watch Progress Bar -->
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/episode_progress"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_gravity="bottom"
+                android:visibility="gone"
+                app:indicatorColor="?attr/colorPrimary"
+                app:trackColor="#66000000"
+                app:trackCornerRadius="0dp"
+                app:trackThickness="4dp"
+                tools:progress="65"
+                tools:visibility="visible" />
+        </FrameLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Episode Metadata below Thumbnail -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="8dp"
+        android:paddingStart="2dp"
+        android:paddingEnd="2dp">
+
+        <TextView
+            android:id="@+id/episode_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="#E9EAEE"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            tools:text="Pilot" />
+
+        <TextView
+            android:id="@+id/episode_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:lineSpacingExtra="2dp"
+            android:maxLines="2"
+            android:textColor="#9BA0A4"
+            android:textSize="12sp"
+            tools:text="CBI consultant Patrick Jane, Senior Agent Teresa Lisbon and her team investigate the double murder in Palm Springs." />
+    </LinearLayout>
+</LinearLayout>

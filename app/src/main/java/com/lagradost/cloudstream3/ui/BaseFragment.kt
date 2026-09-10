@@ -15,9 +15,14 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.lagradost.cloudstream3.CommonActivity.showToast
 import com.lagradost.cloudstream3.R
 import com.lagradost.cloudstream3.mvvm.logError
+import com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR
 import com.lagradost.cloudstream3.ui.settings.Globals.TV
 import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
 import com.lagradost.cloudstream3.ui.settings.SettingsFragment.Companion.setSystemBarsPadding
+import androidx.core.content.ContextCompat
+import androidx.core.view.updateLayoutParams
+import com.lagradost.cloudstream3.ui.utils.TvThemeBackgroundHelper
+import com.lagradost.cloudstream3.utils.UIHelper.toPx
 import com.lagradost.cloudstream3.utils.txt
 
 /**
@@ -166,6 +171,19 @@ abstract class BaseFragment<T : ViewBinding>(
         onViewReady(view, savedInstanceState)
     }
 
+    override fun onResume() {
+        super.onResume()
+        view?.let { v ->
+            if (v.alpha < 1.0f) {
+                v.clearAnimation()
+                v.alpha = 1.0f
+            }
+            if (v.visibility != View.VISIBLE) {
+                v.visibility = View.VISIBLE
+            }
+        }
+    }
+
     /**
      * Called when the device configuration changes (e.g., orientation).
      * Re-applies system bar padding fixes to the root view to ensure it
@@ -268,16 +286,107 @@ abstract class BaseBottomSheetDialogFragment<T : ViewBinding>(
 }
 
 abstract class BasePreferenceFragmentCompat() : PreferenceFragmentCompat() {
+    private var themeBackgroundHelper: TvThemeBackgroundHelper? = null
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setSystemBarsPadding()
+
+        val rootContainer = (view as? ViewGroup) ?: view.findViewById<ViewGroup>(R.id.settings_top_root)
+        if (rootContainer != null) {
+            view.setBackgroundColor(0x00000000)
+            rootContainer.clipChildren = false
+            rootContainer.clipToPadding = false
+            themeBackgroundHelper?.release()
+            themeBackgroundHelper = TvThemeBackgroundHelper(requireContext()).apply {
+                attachToContainer(rootContainer, 0)
+            }
+        } else {
+            view.setBackgroundColor(0xFF0B0E14.toInt())
+        }
+
+        val isTv = isLayout(TV or EMULATOR)
+        if (isTv) {
+
+            view.findViewById<View>(R.id.settings_toolbar)?.apply {
+                setBackgroundColor(0x00000000)
+                setPadding(44.toPx, paddingTop, 44.toPx, paddingBottom)
+            }
+            view.findViewById<View>(android.R.id.list_container)?.apply {
+                background = ContextCompat.getDrawable(context, R.drawable.bg_tv_settings_card)
+                clipToOutline = true
+                outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
+                (this as? ViewGroup)?.clipChildren = true
+                (this as? ViewGroup)?.clipToPadding = true
+                updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    leftMargin = 44.toPx
+                    rightMargin = 44.toPx
+                    topMargin = 8.toPx
+                    bottomMargin = 24.toPx
+                }
+            }
+            listView?.apply {
+                setPadding(16.toPx, 12.toPx, 16.toPx, 32.toPx)
+                clipToPadding = true
+                clipChildren = true
+            }
+        } else {
+            view.setBackgroundColor(0x00000000)
+            view.findViewById<View>(R.id.settings_toolbar)?.apply {
+                setBackgroundColor(0x00000000)
+            }
+            view.findViewById<View>(android.R.id.list_container)?.apply {
+                background = ContextCompat.getDrawable(context, R.drawable.bg_mobile_settings_card)
+                clipToOutline = true
+                outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
+                (this as? ViewGroup)?.clipChildren = true
+                (this as? ViewGroup)?.clipToPadding = true
+                updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    leftMargin = 14.toPx
+                    rightMargin = 14.toPx
+                    topMargin = 6.toPx
+                    bottomMargin = 14.toPx
+                }
+            }
+            listView?.apply {
+                setPadding(12.toPx, 10.toPx, 12.toPx, 88.toPx)
+                clipToPadding = false
+                clipChildren = false
+            }
+        }
+
         listView?.post {
-            if (isLayout(TV)) {
+            if (isTv) {
                 if (activity?.currentFocus == null || activity?.currentFocus == view) {
                     listView?.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        view?.let { v ->
+            if (v.alpha < 1.0f) {
+                v.clearAnimation()
+                v.alpha = 1.0f
+            }
+            if (v.visibility != View.VISIBLE) {
+                v.visibility = View.VISIBLE
+            }
+        }
+        themeBackgroundHelper?.resume()
+    }
+
+    override fun onPause() {
+        themeBackgroundHelper?.pause()
+        super.onPause()
+    }
+
+    override fun onDestroyView() {
+        themeBackgroundHelper?.release()
+        themeBackgroundHelper = null
+        super.onDestroyView()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

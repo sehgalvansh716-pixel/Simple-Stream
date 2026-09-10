@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Selected state: Solid luminous white active pill with dark text -->
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="100dp" />
+            <solid android:color="#FFFFFFFF" />
+        </shape>
+    </item>
+
+    <item android:state_checked="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="100dp" />
+            <solid android:color="#FFFFFFFF" />
+        </shape>
+    </item>
+
+    <item android:state_activated="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="100dp" />
+            <solid android:color="#FFFFFFFF" />
+        </shape>
+    </item>
+
+    <!-- Pressed state -->
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="100dp" />
+            <solid android:color="#40FFFFFF" />
+            <stroke android:width="1.2dp" android:color="#80FFFFFF" />
+        </shape>
+    </item>
+
+    <!-- Default state: Frosted obsidian glass base + luminous frost glaze + 1.2dp specular rim -->
+    <item>
+        <layer-list>
+            <!-- Layer 0: Dark obsidian glass base -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="100dp" />
+                    <solid android:color="#261A2433" />
+                </shape>
+            </item>
+            <!-- Layer 1: Ambient frost glaze and crisp specular border -->
+            <item
+                android:top="1dp"
+                android:bottom="1dp"
+                android:left="1dp"
+                android:right="1dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="100dp" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#24FFFFFF"
+                        android:centerColor="#0CFFFFFF"
+                        android:endColor="#04FFFFFF" />
+                    <stroke android:width="1.2dp" android:color="#40FFFFFF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>

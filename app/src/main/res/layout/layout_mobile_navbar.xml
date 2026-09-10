@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navbar_capsule"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_mobile_floating_navbar_glass"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <!-- Tab 1: Home -->
+    <FrameLayout
+        android:id="@+id/mobile_tab_home"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?android:attr/selectableItemBackgroundBorderless">
+
+        <FrameLayout
+            android:id="@+id/mobile_tab_home_pill"
+            android:layout_width="52dp"
+            android:layout_height="38dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_mobile_nav_pill_active">
+
+            <ImageView
+                android:id="@+id/mobile_tab_home_icon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:scaleType="fitCenter"
+                android:src="@drawable/home_icon_outline_24"
+                app:tint="#FFFFFF"
+                android:contentDescription="@string/title_home" />
+        </FrameLayout>
+    </FrameLayout>
+
+    <!-- Tab 2: Search -->
+    <FrameLayout
+        android:id="@+id/mobile_tab_search"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?android:attr/selectableItemBackgroundBorderless">
+
+        <FrameLayout
+            android:id="@+id/mobile_tab_search_pill"
+            android:layout_width="52dp"
+            android:layout_height="38dp"
+            android:layout_gravity="center">
+
+            <ImageView
+                android:id="@+id/mobile_tab_search_icon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:scaleType="fitCenter"
+                android:src="@drawable/search_icon"
+                app:tint="#7E8B9B"
+                android:contentDescription="@string/title_search" />
+        </FrameLayout>
+    </FrameLayout>
+
+    <!-- Tab 3: Library -->
+    <FrameLayout
+        android:id="@+id/mobile_tab_library"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?android:attr/selectableItemBackgroundBorderless">
+
+        <FrameLayout
+            android:id="@+id/mobile_tab_library_pill"
+            android:layout_width="52dp"
+            android:layout_height="38dp"
+            android:layout_gravity="center">
+
+            <ImageView
+                android:id="@+id/mobile_tab_library_icon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:scaleType="fitCenter"
+                android:src="@drawable/library_icon"
+                app:tint="#7E8B9B"
+                android:contentDescription="@string/library" />
+        </FrameLayout>
+    </FrameLayout>
+
+    <!-- Tab 4: Downloads -->
+    <FrameLayout
+        android:id="@+id/mobile_tab_downloads"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?android:attr/selectableItemBackgroundBorderless">
+
+        <FrameLayout
+            android:id="@+id/mobile_tab_downloads_pill"
+            android:layout_width="52dp"
+            android:layout_height="38dp"
+            android:layout_gravity="center">
+
+            <ImageView
+                android:id="@+id/mobile_tab_downloads_icon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:scaleType="fitCenter"
+                android:src="@drawable/netflix_download"
+                app:tint="#7E8B9B"
+                android:contentDescription="@string/title_downloads" />
+        </FrameLayout>
+    </FrameLayout>
+
+    <!-- Tab 5: Settings -->
+    <FrameLayout
+        android:id="@+id/mobile_tab_settings"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?android:attr/selectableItemBackgroundBorderless">
+
+        <FrameLayout
+            android:id="@+id/mobile_tab_settings_pill"
+            android:layout_width="52dp"
+            android:layout_height="38dp"
+            android:layout_gravity="center">
+
+            <ImageView
+                android:id="@+id/mobile_tab_settings_icon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:scaleType="fitCenter"
+                android:src="@drawable/settings_icon_outline"
+                app:tint="#7E8B9B"
+                android:contentDescription="@string/title_settings" />
+        </FrameLayout>
+    </FrameLayout>
+</LinearLayout>

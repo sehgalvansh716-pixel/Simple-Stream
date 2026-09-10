@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- True-Liquid-Glass Dialog Background for Centered Mobile Modals and AlertDialogs -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Layer 0: Deep Obsidian Absorption Base -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <solid android:color="#E6080B10" />
+        </shape>
+    </item>
+
+    <!-- Layer 1: Subtle Frost Glaze Gradient -->
+    <item
+        android:top="1.2dp"
+        android:left="1.2dp"
+        android:right="1.2dp"
+        android:bottom="1.2dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="23dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#20FFFFFF"
+                android:centerColor="#08FFFFFF"
+                android:endColor="#02FFFFFF"
+                android:type="linear" />
+        </shape>
+    </item>
+
+    <!-- Layer 2: Top Edge Specular Glare Line -->
+    <item
+        android:top="1.2dp"
+        android:left="32dp"
+        android:right="32dp"
+        android:bottom="60dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="1dp" />
+            <gradient
+                android:angle="0"
+                android:startColor="#00FFFFFF"
+                android:centerColor="#55FFFFFF"
+                android:endColor="#00FFFFFF" />
+        </shape>
+    </item>
+
+    <!-- Layer 3: Specular Refractive Perimeter Rim -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <solid android:color="@android:color/transparent" />
+            <stroke
+                android:width="1.2dp"
+                android:color="#35FFFFFF" />
+        </shape>
+    </item>
+</layer-list>

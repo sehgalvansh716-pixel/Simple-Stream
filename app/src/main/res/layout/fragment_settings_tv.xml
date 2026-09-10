@@ -1,0 +1,641 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/tv_settings_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0B0E14">
+
+    <!-- 1. Ambient Green Silk Background Video Loop -->
+    <TextureView
+        android:id="@+id/tv_settings_video"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Atmospheric Dark Scrim Overlay -->
+    <View
+        android:id="@+id/tv_settings_video_overlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/bg_tv_search_video_overlay"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#80070A0F"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- 2. Main Content Container -->
+    <RelativeLayout
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:paddingStart="44dp"
+        android:paddingEnd="44dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Header: Back Button, Logo, and "Settings" Title -->
+        <LinearLayout
+            android:id="@+id/tv_settings_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginTop="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:elevation="10dp">
+
+            <ImageView
+                android:id="@+id/tv_settings_back"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="@drawable/bg_tv_settings_action_pill"
+                android:contentDescription="@string/go_back"
+                android:focusable="true"
+                android:clickable="true"
+                android:padding="8dp"
+                android:src="@drawable/ic_baseline_arrow_back_24"
+                app:tint="@color/color_tv_settings_action_pill_text"
+                android:nextFocusDown="@id/settings_profile" />
+
+            <ImageView
+                android:id="@+id/tv_settings_logo"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="12dp"
+                android:contentDescription="@string/app_name"
+                android:scaleType="fitCenter"
+                android:src="@drawable/splash_logo_white" />
+
+            <TextView
+                android:id="@+id/tv_settings_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:fontFamily="@font/google_sans"
+                android:text="⚙ Settings"
+                android:textColor="#FFFFFF"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Vertical Scrollable List of Glassmorphic Category Cards -->
+        <ScrollView
+            android:id="@+id/tv_settings_content_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/tv_settings_header"
+            android:layout_marginTop="16dp"
+            android:paddingBottom="60dp"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <!-- 1. Profile Box -->
+                <LinearLayout
+                    android:id="@+id/settings_profile"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_tv_settings_category_card"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:nextFocusUp="@id/tv_settings_back"
+                    android:nextFocusDown="@id/settings_general">
+
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        app:cardCornerRadius="26dp"
+                        app:cardBackgroundColor="#26FFFFFF">
+
+                        <ImageView
+                            android:id="@+id/settings_profile_pic"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:contentDescription="@string/account"
+                            android:scaleType="centerCrop"
+                            tools:src="@drawable/profile_bg_orange" />
+                    </androidx.cardview.widget.CardView>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/settings_profile_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/google_sans"
+                            android:textColor="#FFFFFF"
+                            android:textSize="17sp"
+                            android:textStyle="bold"
+                            tools:text="Active Profile" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="@font/google_sans"
+                            android:text="Current profile • Click to switch or manage profiles"
+                            android:textColor="#9BA0A4"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="34dp"
+                        android:background="@drawable/bg_tv_settings_action_pill"
+                        android:gravity="center"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="@string/switch_account"
+                        android:textColor="@color/color_tv_settings_action_pill_text"
+                        android:textSize="13sp"
+                        android:fontFamily="@font/google_sans"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- 2. General Settings Box -->
+                <LinearLayout
+                    android:id="@+id/settings_general"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_tv_settings_category_card"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:nextFocusUp="@id/settings_profile"
+                    android:nextFocusDown="@id/settings_player">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_tv_settings_action_pill"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_baseline_tune_24"
+                        app:tint="#FFFFFF" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/google_sans"
+                            android:text="@string/category_general"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="@font/google_sans"
+                            android:text="App language, downloads folder, clear cache, and backup / restore"
+                            android:textColor="#9BA0A4"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_baseline_keyboard_arrow_right_24"
+                        app:tint="#80FFFFFF" />
+                </LinearLayout>
+
+                <!-- 3. Player Settings Box -->
+                <LinearLayout
+                    android:id="@+id/settings_player"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_tv_settings_category_card"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:nextFocusUp="@id/settings_general"
+                    android:nextFocusDown="@id/settings_providers">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_tv_settings_action_pill"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_baseline_play_arrow_24"
+                        app:tint="#FFFFFF" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/google_sans"
+                            android:text="@string/category_player"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="@font/google_sans"
+                            android:text="Autoplay, 2X speedup gesture, buffer size, gestures, and audio pass-through"
+                            android:textColor="#9BA0A4"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_baseline_keyboard_arrow_right_24"
+                        app:tint="#80FFFFFF" />
+                </LinearLayout>
+
+                <!-- 4. Providers Settings Box -->
+                <LinearLayout
+                    android:id="@+id/settings_providers"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_tv_settings_category_card"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:nextFocusUp="@id/settings_player"
+                    android:nextFocusDown="@id/settings_ui">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_tv_settings_action_pill"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_baseline_dns_24"
+                        app:tint="#FFFFFF" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/google_sans"
+                            android:text="@string/category_providers"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="@font/google_sans"
+                            android:text="Preferred provider languages, adult content filter, and source priorities"
+                            android:textColor="#9BA0A4"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_baseline_keyboard_arrow_right_24"
+                        app:tint="#80FFFFFF" />
+                </LinearLayout>
+
+                <!-- 5. Appearance / UI Settings Box -->
+                <LinearLayout
+                    android:id="@+id/settings_ui"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_tv_settings_category_card"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:nextFocusUp="@id/settings_providers"
+                    android:nextFocusDown="@id/settings_updates">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_tv_settings_action_pill"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_baseline_color_lens_24"
+                        app:tint="#FFFFFF" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/google_sans"
+                            android:text="@string/category_ui"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="@font/google_sans"
+                            android:text="Theme accents, episode layout mode, poster dimensions, and banner style"
+                            android:textColor="#9BA0A4"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_baseline_keyboard_arrow_right_24"
+                        app:tint="#80FFFFFF" />
+                </LinearLayout>
+
+                <!-- 6. Updates Settings Box -->
+                <LinearLayout
+                    android:id="@+id/settings_updates"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_tv_settings_category_card"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:nextFocusUp="@id/settings_ui"
+                    android:nextFocusDown="@id/settings_credits">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_tv_settings_action_pill"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_baseline_system_update_24"
+                        app:tint="#FFFFFF" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/google_sans"
+                            android:text="@string/category_updates"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="@font/google_sans"
+                            android:text="Check for new releases, auto-update plugins, and changelogs"
+                            android:textColor="#9BA0A4"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_baseline_keyboard_arrow_right_24"
+                        app:tint="#80FFFFFF" />
+                </LinearLayout>
+
+                <!-- 7. Account Sync Settings Box -->
+                <LinearLayout
+                    android:id="@+id/settings_credits"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_tv_settings_category_card"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:nextFocusUp="@id/settings_updates"
+                    android:nextFocusDown="@id/settings_extensions">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_tv_settings_action_pill"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_baseline_people_24"
+                        app:tint="#FFFFFF" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/google_sans"
+                            android:text="@string/category_account"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="@font/google_sans"
+                            android:text="Sync watch history, progress and ratings with Trakt, Simkl, MAL, AniList"
+                            android:textColor="#9BA0A4"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_baseline_keyboard_arrow_right_24"
+                        app:tint="#80FFFFFF" />
+                </LinearLayout>
+
+                <!-- 8. Extensions Settings Box -->
+                <LinearLayout
+                    android:id="@+id/settings_extensions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_tv_settings_category_card"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:nextFocusUp="@id/settings_credits"
+                    android:nextFocusDown="@id/app_version_info">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_tv_settings_action_pill"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_baseline_extension_24"
+                        app:tint="#FFFFFF" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/google_sans"
+                            android:text="@string/extensions"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="@font/google_sans"
+                            android:text="Browse online plugin catalog, add custom repositories, and install local .cs3 plugins"
+                            android:textColor="#9BA0A4"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_baseline_keyboard_arrow_right_24"
+                        app:tint="#80FFFFFF" />
+                </LinearLayout>
+
+                <!-- Version & Build Info Row -->
+                <LinearLayout
+                    android:id="@+id/app_version_info"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="30dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:nextFocusUp="@id/settings_extensions">
+
+                    <TextView
+                        android:id="@+id/app_version"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/google_sans"
+                        android:textColor="#66FFFFFF"
+                        android:textSize="12sp"
+                        tools:text="1.0.1" />
+
+                    <TextView
+                        android:id="@+id/delimiter0"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:text="•"
+                        android:textColor="#66FFFFFF" />
+
+                    <TextView
+                        android:id="@+id/commit_hash"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/google_sans"
+                        android:textColor="#66FFFFFF"
+                        android:textSize="12sp"
+                        tools:text="102" />
+
+                    <TextView
+                        android:id="@+id/delimiter1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:text="•"
+                        android:textColor="#66FFFFFF" />
+
+                    <TextView
+                        android:id="@+id/build_date"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/google_sans"
+                        android:textColor="#66FFFFFF"
+                        android:textSize="12sp"
+                        tools:text="Release" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </ScrollView>
+
+    </RelativeLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

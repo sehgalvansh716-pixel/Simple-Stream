@@ -1,12 +1,18 @@
 package com.lagradost.cloudstream3.ui.settings
 
+import android.graphics.Matrix
+import android.graphics.SurfaceTexture
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.util.Log
+import android.view.Surface
+import android.view.TextureView
 import android.view.View
 import android.widget.ImageView
 import androidx.annotation.StringRes
 import androidx.core.view.children
 import androidx.core.view.updateLayoutParams
+import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -15,6 +21,7 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.lagradost.cloudstream3.BuildConfig
 import com.lagradost.cloudstream3.R
 import com.lagradost.cloudstream3.databinding.MainSettingsBinding
+import com.lagradost.cloudstream3.MainActivity
 import com.lagradost.cloudstream3.mvvm.logError
 import com.lagradost.cloudstream3.mvvm.safe
 import com.lagradost.cloudstream3.syncproviders.AccountManager
@@ -36,6 +43,7 @@ import com.lagradost.cloudstream3.utils.UIHelper.navigate
 import com.lagradost.cloudstream3.utils.UIHelper.toPx
 import com.lagradost.cloudstream3.utils.getImageFromDrawable
 import com.lagradost.cloudstream3.utils.txt
+import com.lagradost.cloudstream3.ui.utils.TvAmbientVideoHelper
 import java.io.File
 import java.text.DateFormat
 import java.text.SimpleDateFormat
@@ -44,8 +52,88 @@ import java.util.Locale
 import java.util.TimeZone
 
 class SettingsFragment : BaseFragment<MainSettingsBinding>(
-    BaseFragment.BindingCreator.Inflate(MainSettingsBinding::inflate)
+    BaseFragment.BindingCreator.Bind(MainSettingsBinding::bind)
 ) {
+    override fun pickLayout(): Int? =
+        if (isLayout(TV or EMULATOR)) R.layout.fragment_settings_tv else R.layout.main_settings
+
+    private var ambientVideoHelper: TvAmbientVideoHelper? = null
+
+    private val onAccountReload = { _: Boolean ->
+        activity?.runOnUiThread {
+            binding?.let { updateProfileDisplay(it) }
+        }
+        Unit
+    }
+
+    override fun onResume() {
+        super.onResume()
+        binding?.root?.apply {
+            clearAnimation()
+            alpha = 1.0f
+            scaleX = 1.0f
+            scaleY = 1.0f
+            translationX = 0f
+            translationY = 0f
+            visibility = View.VISIBLE
+        }
+        binding?.let { updateProfileDisplay(it) }
+        ambientVideoHelper?.play()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        ambientVideoHelper?.pause()
+    }
+
+    override fun onDestroyView() {
+        MainActivity.reloadAccountEvent -= onAccountReload
+        try {
+            ambientVideoHelper?.release()
+            ambientVideoHelper = null
+        } catch (_: Exception) {}
+        super.onDestroyView()
+    }
+
+    private fun hasProfilePictureFromAccountManagers(accountManagers: Array<AuthRepo>, binding: MainSettingsBinding): Boolean {
+        for (syncApi in accountManagers) {
+            val login = syncApi.authUser()
+            val pic = login?.profilePicture ?: continue
+
+            binding.settingsProfilePic.let { imageView ->
+                imageView.loadImage(pic) {
+                    error { getImageFromDrawable(context ?: return@error null, errorProfilePic) }
+                }
+            }
+            binding.settingsProfileText.text = login.name
+            return true
+        }
+        return false
+    }
+
+    private fun updateProfileDisplay(binding: MainSettingsBinding) {
+        if (!hasProfilePictureFromAccountManagers(AccountManager.allApis, binding)) {
+            val act = activity ?: return
+            val currentAccount = try {
+                DataStoreHelper.accounts.firstOrNull {
+                    it.keyIndex == DataStoreHelper.selectedKeyIndex
+                } ?: DataStoreHelper.getDefaultAccount(act)
+            } catch (t: Throwable) {
+                null
+            }
+
+            binding.settingsProfilePic.loadImage(currentAccount?.image)
+            binding.settingsProfileText.text = currentAccount?.name ?: getString(R.string.account)
+        }
+    }
+
+    private fun initTvSettingsVideo(rootView: View) {
+        val textureView = rootView.findViewById<TextureView>(R.id.tv_settings_video) ?: return
+        ambientVideoHelper?.release()
+        ambientVideoHelper = TvAmbientVideoHelper(rootView.context).apply {
+            attach(textureView, R.raw.tv_search_bg, autoPlay = true)
+        }
+    }
     companion object {
         fun PreferenceFragmentCompat?.getPref(id: Int): Preference? {
             if (this == null) return null
@@ -90,7 +178,9 @@ class SettingsFragment : BaseFragment<MainSettingsBinding>(
          * */
         fun PreferenceFragmentCompat.setPaddingBottom() {
             if (isLayout(TV or EMULATOR)) {
-                listView?.setPadding(0, 0, 0, 100.toPx)
+                listView?.setPadding(16.toPx, 12.toPx, 16.toPx, 32.toPx)
+                listView?.clipToPadding = true
+                listView?.clipChildren = true
             }
         }
 
@@ -187,41 +277,28 @@ class SettingsFragment : BaseFragment<MainSettingsBinding>(
         showToast(activity,"${VideoDownloadManager.downloadStatusEvent.size} :
         ${VideoDownloadManager.downloadProgressEvent.size}") **/
 
-        fun hasProfilePictureFromAccountManagers(accountManagers: Array<AuthRepo>): Boolean {
-            for (syncApi in accountManagers) {
-                val login = syncApi.authUser()
-                val pic = login?.profilePicture ?: continue
+        MainActivity.reloadAccountEvent += onAccountReload
+        updateProfileDisplay(binding)
 
-                binding.settingsProfilePic.let { imageView ->
-                    imageView.loadImage(pic) {
-                        // Fallback to random error drawable
-                        error { getImageFromDrawable(context ?: return@error null, errorProfilePic) }
-                    }
-                }
-                binding.settingsProfileText.text = login.name
-                return true // sync profile exists
-            }
-            return false // not syncing
+        binding.root.apply {
+            clearAnimation()
+            alpha = 1.0f
+            scaleX = 1.0f
+            scaleY = 1.0f
+            translationX = 0f
+            translationY = 0f
+            visibility = View.VISIBLE
         }
 
-        // display local account information if not syncing
-        if (!hasProfilePictureFromAccountManagers(AccountManager.allApis)) {
-            val activity = activity ?: return
-            val currentAccount = try {
-                DataStoreHelper.accounts.firstOrNull {
-                    it.keyIndex == DataStoreHelper.selectedKeyIndex
-                } ?: activity.let { DataStoreHelper.getDefaultAccount(activity) }
-
-            } catch (t: IllegalStateException) {
-                Log.e("AccountManager", "Activity not found", t)
-                null
+        val isTv = isLayout(TV or EMULATOR)
+        initTvSettingsVideo(binding.root)
+        if (isTv) {
+            // Back button
+            binding.root.findViewById<View?>(R.id.tv_settings_back)?.setOnClickListener {
+                activity?.onBackPressedDispatcher?.onBackPressed()
             }
-
-            binding.settingsProfilePic.loadImage(currentAccount?.image)
-            binding.settingsProfileText.text = currentAccount?.name
         }
 
-        val isTv = isLayout(TV)
         binding.apply {
             settingsProfile.apply {
                 setOnClickListener {
@@ -249,8 +326,14 @@ class SettingsFragment : BaseFragment<MainSettingsBinding>(
                 }
             }
 
-            // Default focus on TV only if navigation rail is not currently focused
-            if (isLayout(TV) && activity?.findViewById<View>(R.id.nav_rail_view)?.hasFocus() != true) {
+            // Default focus on TV to settings_profile only if navigation rail / top bar is not currently focused
+            if (isTv) {
+                if (activity?.findViewById<View>(R.id.nav_rail_view)?.hasFocus() != true &&
+                    activity?.findViewById<View>(R.id.tv_top_bar)?.hasFocus() != true
+                ) {
+                    settingsProfile.requestFocus()
+                }
+            } else if (activity?.findViewById<View>(R.id.nav_rail_view)?.hasFocus() != true) {
                 settingsGeneral.requestFocus()
             }
         }

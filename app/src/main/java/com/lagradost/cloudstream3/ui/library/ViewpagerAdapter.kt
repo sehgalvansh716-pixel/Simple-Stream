@@ -76,7 +76,10 @@ class ViewpagerAdapter(
 
         binding.pageRecyclerview.tag = position
         binding.pageRecyclerview.apply {
-            spanCount = binding.root.context.getSpanCount()
+            val isTv = isLayout(TV or EMULATOR)
+            spanCount = if (isTv) 4 else binding.root.context.getSpanCount()
+            clipChildren = false
+            clipToPadding = false
             if (adapter == null) { //  || rebind
                 // Only add the items after it has been attached since the items rely on ItemWidth
                 // Which is only determined after the recyclerview is attached.

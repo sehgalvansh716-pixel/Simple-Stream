@@ -1757,7 +1757,12 @@ class CS3IPlayer : IPlayer {
     ): List<MediaSource> {
         return audioTracks.mapNotNull { audio ->
             try {
-                val mediaItem = getMediaItem(MimeTypes.AUDIO_UNKNOWN, audio.url)
+                val mime = when {
+                    audio.url.contains(".m3u8", ignoreCase = true) -> MimeTypes.APPLICATION_M3U8
+                    audio.url.contains(".mpd", ignoreCase = true) -> MimeTypes.APPLICATION_MPD
+                    else -> MimeTypes.AUDIO_UNKNOWN
+                }
+                val mediaItem = getMediaItem(mime, audio.url)
                 val dataSourceFactory = createOnlineSource(audio.headers, interceptor)
                 DefaultMediaSourceFactory(dataSourceFactory).createMediaSource(mediaItem)
             } catch (e: Exception) {

@@ -20,7 +20,6 @@
 
 <p align="center">
   <a href="#-quick-download">🚀 Quick Download</a> •
-  <a href="#-whats-new-in-v102-pre">🌟 What's New in v1.0.2 PRE</a> •
   <a href="#-key-features">✨ Key Features</a> •
   <a href="#-android-tv--remote-experience">📺 Android TV</a> •
   <a href="#-installation-guide">📦 Installation</a> •
@@ -44,57 +43,8 @@
 
 | Build Tier | Version | Package ID | Download Link |
 | :--- | :--- | :--- | :--- |
-| **Latest Release** | `1.0.2 PRE` | `com.github.sehgalvansh716pixel.simplestream` | [**Download SimpleStream-1.0.2-Pre.apk**](https://github.com/sehgalvansh716-pixel/Simple-Stream/releases/download/v1.0.2-PRE/SimpleStream-1.0.2-Pre.apk) |
-| Baseline Release | `1.0.1` | `com.github.sehgalvansh716pixel.simplestream` | [Download SimpleStream-1.0.1.apk](https://github.com/sehgalvansh716-pixel/Simple-Stream/releases/download/v1.0.1/SimpleStream-1.0.1.apk) |
-| Initial Release | `1.0.0` | `com.github.sehgalvansh716pixel.simplestream` | [Download SimpleStream-1.0.0.apk](https://github.com/sehgalvansh716-pixel/Simple-Stream/releases/download/v1.0.0/SimpleStream-1.0.0.apk) |
-
----
-
-## 🌟 What's New in v1.0.2 PRE
-
-### 📺 Polished Android TV Home & D-Pad Focus
-- **Clean TV Home Header**: Removed duplicate header artifacts and restructured header layout for clean big-screen visibility.
-- **Enhanced Card Focus Highlights**: High-contrast white focus outlines (`outline.xml`) for pinpoint navigation clarity on 10-foot interfaces.
-- **Adaptive Thumbnail Ratio Handling**: Corrected portrait thumbnail rendering and layout expansions in home grids and preview rows.
-
-### 📱 Mobile UI Polish & Fluid Interactions
-- **Refined Settings & Extensions**: Polished dropdown menus, smooth selector sheets, and streamlined repository controls.
-- **Dynamic Content Card Orientation**: Intelligent aspect-ratio detection dynamically scales landscape vs portrait media cards without cropping or distortion.
-
-### 🎬 In-Player Gestures & Drawer Switcher
-- **YouTube-Style 2X Press-and-Hold**: Fast, responsive speed boost with ultra-compact frosted glass HUD pill and haptic feedback.
-- **Netflix-Style Glassmorphic Drawer**: Glide-in episode switcher with custom season selection dropdowns and instant scroll-to-playing episode.
-
-### 🔌 Native Internal Provider Suite
-- **Direct Kotlin Integration**: Built directly into `InternalStreamBridge` for Android 14+ compatibility without external dex restrictions.
-- **Secret Unlock Persistence**: Entering code `1908` unlocks the pre-packaged NetMirror provider suite with permanent session persistence.
-
----
-
-## 🌟 Previous Releases
-
-### What Was New in v1.0.1
-
-### 📺 Complete Android TV & 10-Foot Remote Experience
-- **Official 16:9 Leanback Launcher Banner**: Full Android TV launcher tile support with clean, high-resolution artwork (`Tv Logo.png`).
-- **Seamless D-Pad Remote Navigation**: Natural directional navigation across Home, Search, Library, Downloads, and Settings without focus traps.
-- **TV Initial Setup Optimization**: Streamlined first-run TV wizard and large-screen episode grid views.
-
-### 🖼️ Dynamic Content Card Orientation
-- **Adaptive Aspect Ratios**: Home cards dynamically detect landscape vs portrait media thumbnails (e.g. YouTube feeds, backdrops) and auto-expand to 16:9 widescreen cards, eliminating awkward cropping and letterboxing.
-
-### ⚡ YouTube-Style 2X Press-and-Hold Speed Gesture
-- **Instant Speed Boost**: Long-press anywhere on the player screen while controls are hidden to temporarily boost playback speed to `2.0x`.
-- **Ultra-Compact Glass Pill**: Delicate frosted glass HUD indicator (`2x ▶▶`) positioned discreetly near the top without obstructing your video.
-- **Haptic Feedback**: Responsive tactile vibration upon speedup engagement and release.
-
-### 🍿 Netflix-Style In-Player Season & Episode Switcher
-- **Glassmorphic Slide-Out Drawer**: Frosted Obsidian panel with subtle hairline reflection that glides smoothly in from the right edge.
-- **Interactive Season Dropdown**: Easily jump between seasons directly from the player with episode counts and instant auto-scroll to the playing episode.
-
-### 🔌 Pre-packaged Internal Provider Bridge
-- **Instant Activation**: Enter code `1908` in Settings → Extensions → Add Repository to unlock the pre-packaged NetMirror provider suite.
-- **Permanent Persistence**: Providers remain unlocked permanently across app restarts.
+| **Current Release** | `1.0.2 PRE` | `com.github.sehgalvansh716pixel.simplestream` | [**Download SimpleStream-1.0.2.apk**](https://github.com/sehgalvansh716-pixel/Simple-Stream/releases/download/v1.0.2-PRE/SimpleStream-1.0.2.apk) |
+| **Previous Stable** | `1.0.1` | `com.github.sehgalvansh716pixel.simplestream` | [**Download SimpleStream-1.0.1.apk**](https://github.com/sehgalvansh716-pixel/Simple-Stream/releases/download/v1.0.1/SimpleStream-1.0.1.apk) |
 
 ---
 
@@ -107,7 +57,7 @@
 
 ### 🎨 Clean & Modern UI / UX
 - **Obsidian Aesthetic**: Zero visual clutter, smooth micro-interactions, tailored dark palette (`#0B0C10` canvas with `#6366F1` accents).
-- **Gesture Control Suite**: Intuitive vertical swipes for volume and brightness, horizontal double-taps for seeking, pinch-to-zoom, and hold-to-speedup.
+- **Gesture Control Suite**: Intuitive vertical swipes for volume and brightness, horizontal double-taps for seeking, and pinch-to-zoom.
 - **Biometric Security**: Protect your private watch history, playlists, and bookmarks using Device Biometrics (Fingerprint / Face Unlock) or TV PIN lock.
 
 ### 🧩 Modular Plugin Ecosystem
@@ -128,17 +78,17 @@
 
 ## 📺 Android TV & Remote Experience
 
-SimpleStream delivers a first-class 10-foot experience built specifically for TV remotes:
-- **Leanback Launcher Integration**: Official 16:9 banner app tile and "Next Up" episode recommendations on your Android TV / Google TV home screen.
-- **D-Pad Navigation**: Optimized focus rails and predictable remote navigation across all menus.
-- **Big-Screen Playback**: In-player season selectors, audio/subtitle toggles, and episode carousels designed for armchair viewing.
+SimpleStream offers first-class support for the 10-foot television interface:
+- **D-Pad Navigation**: Fully optimized layout for TV remotes, gamepads, and directional arrow controllers.
+- **Leanback Launcher Integration**: Live channels and "Next Up" episode recommendations on your Android TV / Google TV home screen.
+- **Direct Playback Shortcuts**: Resume your favorite series right from your TV dashboard.
 
 ---
 
 ## 📦 Installation Guide
 
 ### Android Phones & Tablets
-1. Download **`SimpleStream-1.0.1.apk`** from the [Latest Release](https://github.com/sehgalvansh716-pixel/Simple-Stream/releases/latest).
+1. Download **`SimpleStream-1.0.0.apk`** from the [Latest Release](https://github.com/sehgalvansh716-pixel/Simple-Stream/releases/latest).
 2. Tap the downloaded `.apk` file. If prompted, enable **"Allow from this source"** in your device settings.
 3. Tap **Install** and launch SimpleStream from your app drawer.
 
@@ -146,7 +96,7 @@ SimpleStream delivers a first-class 10-foot experience built specifically for TV
 1. Install **Downloader by AFTVnews** from the Google Play Store or Amazon Appstore.
 2. In Downloader, enter the direct release URL:
    ```
-   https://github.com/sehgalvansh716-pixel/Simple-Stream/releases/download/v1.0.1/SimpleStream-1.0.1.apk
+   https://github.com/sehgalvansh716-pixel/Simple-Stream/releases/download/v1.0.0/SimpleStream-1.0.0.apk
    ```
 3. Once downloaded, select **Install** and start streaming!
 
@@ -167,17 +117,17 @@ SimpleStream features a built-in Over-The-Air (OTA) updater directly linked to t
 - **Android SDK** (API 34 / Build-Tools 34.0.0)
 - **PowerShell** or Unix Shell
 
-### Compile Release APK
+### Compile Debug APK
 ```bash
 # Clone the repository
 git clone https://github.com/sehgalvansh716-pixel/Simple-Stream.git
 cd Simple-Stream
 
-# Compile stable release APK
-./gradlew assembleStableRelease
+# Compile stable debug APK
+./gradlew assembleStableDebug
 ```
 The compiled APK will be located at:
-`app/build/outputs/apk/stable/release/app-stable-release.apk`
+`app/build/outputs/apk/stable/debug/app-stable-debug.apk`
 
 ---
 
@@ -186,7 +136,7 @@ The compiled APK will be located at:
 If you are an AI coding assistant (or human contributor) working on SimpleStream:
 - **Mandatory Manual**: Please read [AGENTS.md](AGENTS.md) before making any code modifications.
 - **Critical Invariant**: Never modify internal class package names (`com.lagradost.cloudstream3`); binary compatibility with community extensions depends on this contract.
-- **Version Roadmap**: SimpleStream `1.0.2 PRE` is the active release. Development of future updates takes place in the isolated `Simple Stream 1.0.2/` sandbox.
+- **Version Roadmap**: SimpleStream `1.0.0` is the baseline milestone. See [ROADMAP.md](docs/ROADMAP.md) for planned future features.
 
 ---
 

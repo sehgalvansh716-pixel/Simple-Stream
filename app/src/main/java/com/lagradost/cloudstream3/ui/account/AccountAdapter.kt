@@ -53,10 +53,11 @@ class AccountAdapter(
                 accountName.text = item.name
                 accountImage.loadImage(item.image)
                 lockIcon.isVisible = item.lockPin != null
-                outline.isVisible = !isTv && isLastUsedAccount
+                outline.isVisible = isLastUsedAccount
 
                 if (isTv) {
                     // For emulator but this is fine on TV also
+                    root.isFocusable = true
                     root.isFocusableInTouchMode = true
                     if (isLastUsedAccount) {
                         root.requestFocus()
@@ -142,6 +143,18 @@ class AccountAdapter(
     override fun onBindFooter(holder: ViewHolderState<Any>) {
         val binding = holder.view as? AccountListItemAddBinding ?: return
         binding.apply {
+            val isTv = isLayout(TV or EMULATOR) || !root.isInTouchMode
+            if (isTv) {
+                root.isFocusable = true
+                root.isFocusableInTouchMode = true
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    root.foreground = ContextCompat.getDrawable(
+                        root.context,
+                        R.drawable.outline_drawable
+                    )
+                }
+            }
+
             root.setOnClickListener {
                 val accounts = this@AccountAdapter.immutableCurrentList
 
