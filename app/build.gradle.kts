@@ -107,8 +107,8 @@ android {
         applicationId = "com.github.sehgalvansh716pixel.simplestream"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 102
-        versionName = "1.0.1"
+        versionCode = 103
+        versionName = "1.0.2 PRE"
 
         manifestPlaceholders["target_sdk_version"] = libs.versions.targetSdk.get()
 

@@ -3,13 +3,10 @@ package com.lagradost.cloudstream3.ui.home
 import android.content.Context
 import android.os.Bundle
 import android.os.Parcelable
-import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.Toast
-import androidx.core.view.children
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
@@ -25,10 +22,7 @@ import com.google.android.material.chip.ChipGroup
 import com.google.android.material.navigation.NavigationBarItemView
 import com.lagradost.cloudstream3.CloudStreamApp.Companion.getActivity
 import com.lagradost.cloudstream3.CommonActivity.activity
-import com.lagradost.cloudstream3.CommonActivity.showToast
 import com.lagradost.cloudstream3.HomePageList
-import com.lagradost.cloudstream3.ui.APIRepository.Companion.noneApi
-import com.lagradost.cloudstream3.ui.home.HomeFragment.Companion.selectHomepage
 import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.MainActivity
 import com.lagradost.cloudstream3.R
@@ -588,6 +582,25 @@ class HomeParentItemAdapterPreview(
             }
 
             (binding as? FragmentHomeHeadTvBinding)?.apply {
+                /*homePreviewChangeApi.setOnClickListener { view ->
+                    view.context.selectHomepage(viewModel.repo?.name) { api ->
+                        viewModel.loadAndCancel(api, forceReload = true, fromUI = true)
+                    }
+                }
+                homePreviewReloadProvider.setOnClickListener {
+                    viewModel.loadAndCancel(
+                        viewModel.apiName.value ?: noneApi.name,
+                        forceReload = true,
+                        fromUI = true
+                    )
+                    showToast(R.string.action_reload, Toast.LENGTH_SHORT)
+                    true
+                }
+                homePreviewSearchButton.setOnClickListener { _ ->
+                    // Open blank screen.
+                    viewModel.queryTextSubmit("")
+                }*/
+
                 // A workaround to the focus problem of always centering the view on focus
                 // as that causes higher android versions to stretch the ui when switching between shows
                 var lastFocusTimeoutMs = 0L
@@ -602,41 +615,23 @@ class HomeParentItemAdapterPreview(
                     }
                 }
 
-                homePreviewInfoBtt.setOnKeyListener { _, keyCode, event ->
-                    if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
-                    when (keyCode) {
-                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                            if (previewViewpager.currentItem < previewAdapter.itemCount - 1) {
-                                previewViewpager.setCurrentItem(previewViewpager.currentItem + 1, true)
-                            }
-                            true
-                        }
-                        KeyEvent.KEYCODE_DPAD_LEFT -> {
-                            if (previewViewpager.currentItem > 0) {
-                                previewViewpager.setCurrentItem(previewViewpager.currentItem - 1, true)
-                                true
-                            } else {
-                                (itemView.context.getActivity() as? MainActivity)?.binding?.navRailView
-                                    ?.findViewById<View>(R.id.navigation_home)?.requestFocus() ?: false
-                            }
-                        }
-                        KeyEvent.KEYCODE_DPAD_UP -> {
-                            (itemView.context.getActivity() as? MainActivity)?.findViewById<View>(R.id.home_change_api)?.requestFocus()
-                            true
-                        }
-                        KeyEvent.KEYCODE_DPAD_DOWN -> {
-                            if (resumeHolder.isVisible && (resumeRecyclerView.adapter?.itemCount ?: 0) > 0) {
-                                resumeRecyclerView.requestFocus()
-                                true
-                            } else if (bookmarkHolder.isVisible) {
-                                (toggleListHolder?.children?.firstOrNull { it.isVisible && it.isFocusable }
-                                    ?: bookmarkRecyclerView).requestFocus()
-                                true
-                            } else {
-                                false
-                            }
-                        }
-                        else -> false
+                homePreviewHiddenNextFocus.setOnFocusChangeListener { _, hasFocus ->
+                    if (!hasFocus) return@setOnFocusChangeListener
+                    previewViewpager.setCurrentItem(previewViewpager.currentItem + 1, true)
+                    homePreviewInfoBtt.requestFocus()
+                }
+
+                homePreviewHiddenPrevFocus.setOnFocusChangeListener { _, hasFocus ->
+                    if (!hasFocus) return@setOnFocusChangeListener
+                    if (previewViewpager.currentItem <= 0) {
+                        //Focus the Home item as the default focus will be the header item
+                        (activity as? MainActivity)?.binding?.navRailView?.findViewById<NavigationBarItemView>(
+                            R.id.navigation_home
+                        )?.requestFocus()
+                    } else {
+                        previewViewpager.setCurrentItem(previewViewpager.currentItem - 1, true)
+                        binding.homePreviewInfoBtt.requestFocus()
+                        //binding.homePreviewPlayBtt.requestFocus()
                     }
                 }
             }
@@ -794,6 +789,12 @@ class HomeParentItemAdapterPreview(
                 observe(viewModel.preview) {
                     updatePreview(it)
                 }
+                /*if (binding is FragmentHomeHeadTvBinding) {
+                    observe(viewModel.apiName) { name ->
+                        binding.homePreviewChangeApi.text = name
+                        binding.homePreviewReloadProvider.isGone = (name == noneApi.name)
+                    }
+                }*/
                 observe(viewModel.resumeWatching) {
                     updateResume(it)
                 }

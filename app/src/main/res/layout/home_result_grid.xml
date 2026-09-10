@@ -13,8 +13,7 @@
     android:elevation="10dp"
     android:foreground="@drawable/outline_drawable"
     app:cardBackgroundColor="?attr/primaryGrayBackground"
-    app:cardCornerRadius="@dimen/rounded_image_radius"
-    app:cardPreventCornerOverlap="false">
+    app:cardCornerRadius="@dimen/rounded_image_radius">
 
     <ImageView
         android:id="@+id/imageView"

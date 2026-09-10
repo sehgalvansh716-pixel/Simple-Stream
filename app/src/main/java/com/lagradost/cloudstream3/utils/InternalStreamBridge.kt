@@ -51,19 +51,12 @@ object InternalStreamBridge {
     fun init(context: Context? = null) {
         if (isUnlocked()) {
             registerProviders()
-            if (DataStoreHelper.currentHomePage.isNullOrBlank() || DataStoreHelper.currentHomePage == "None") {
-                DataStoreHelper.currentHomePage = "NetMirror - Netflix"
-            }
         }
     }
 
     fun unlock(context: Context? = null): Boolean {
         setKey(STORAGE_KEY, true)
         registerProviders()
-
-        if (DataStoreHelper.currentHomePage.isNullOrBlank() || DataStoreHelper.currentHomePage == "None") {
-            DataStoreHelper.currentHomePage = "NetMirror - Netflix"
-        }
 
         ioSafe {
             val repoData = RepositoryData(
@@ -584,7 +577,7 @@ abstract class InternalStreamBase(val ottCode: String) : MainAPI() {
         }.distinctBy { it.url }
 
         if (items.isEmpty()) return null
-        val isHorizontal = false
+        val isHorizontal = (ottCode == "pv")
         return HomePageList(name, items, isHorizontalImages = isHorizontal)
     }
 

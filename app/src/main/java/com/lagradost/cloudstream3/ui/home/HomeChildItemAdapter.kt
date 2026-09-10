@@ -18,7 +18,6 @@ import com.lagradost.cloudstream3.ui.BaseDiffCallback
 import com.lagradost.cloudstream3.ui.ViewHolderState
 import com.lagradost.cloudstream3.ui.newSharedPool
 import com.lagradost.cloudstream3.ui.search.SEARCH_ACTION_LOAD
-import com.lagradost.cloudstream3.ui.search.SEARCH_ACTION_FOCUSED
 import com.lagradost.cloudstream3.ui.search.SearchClickCallback
 import com.lagradost.cloudstream3.ui.search.SearchResultBuilder
 import com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR
@@ -199,9 +198,6 @@ open class HomeChildItemAdapter(
         when (val binding = holder.view) {
             is HomeResultGridBinding -> {
                 updateLayoutParms(binding.backgroundCard, w, h)
-                if (isFirstItem) {
-                    binding.backgroundCard.nextFocusLeftId = R.id.nav_rail_view
-                }
             }
 
             is HomeResultGridExpandedBinding -> {
@@ -226,9 +222,6 @@ open class HomeChildItemAdapter(
                 // ok, so here we hijack the callback to fix the focus
                 when (click.action) {
                     SEARCH_ACTION_LOAD -> (holder as? HomeScrollViewHolderState)?.wasFocused = true
-                    SEARCH_ACTION_FOCUSED -> {
-                        HomeFragment.lastFocusedItem = java.lang.ref.WeakReference(holder.itemView)
-                    }
                 }
                 clickCallback(click)
             },

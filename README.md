@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="#-quick-download">🚀 Quick Download</a> •
-  <a href="#-whats-new-in-v101">🌟 What's New in v1.0.1</a> •
+  <a href="#-whats-new-in-v102-pre">🌟 What's New in v1.0.2 PRE</a> •
   <a href="#-key-features">✨ Key Features</a> •
   <a href="#-android-tv--remote-experience">📺 Android TV</a> •
   <a href="#-installation-guide">📦 Installation</a> •
@@ -44,12 +44,36 @@
 
 | Build Tier | Version | Package ID | Download Link |
 | :--- | :--- | :--- | :--- |
-| **Stable Release** | `1.0.1` | `com.github.sehgalvansh716pixel.simplestream` | [**Download SimpleStream-1.0.1.apk**](https://github.com/sehgalvansh716-pixel/Simple-Stream/releases/download/v1.0.1/SimpleStream-1.0.1.apk) |
-| Baseline Release | `1.0.0` | `com.github.sehgalvansh716pixel.simplestream` | [Download SimpleStream-1.0.0.apk](https://github.com/sehgalvansh716-pixel/Simple-Stream/releases/download/v1.0.0/SimpleStream-1.0.0.apk) |
+| **Latest Release** | `1.0.2 PRE` | `com.github.sehgalvansh716pixel.simplestream` | [**Download SimpleStream-1.0.2-Pre.apk**](https://github.com/sehgalvansh716-pixel/Simple-Stream/releases/download/v1.0.2-PRE/SimpleStream-1.0.2-Pre.apk) |
+| Baseline Release | `1.0.1` | `com.github.sehgalvansh716pixel.simplestream` | [Download SimpleStream-1.0.1.apk](https://github.com/sehgalvansh716-pixel/Simple-Stream/releases/download/v1.0.1/SimpleStream-1.0.1.apk) |
+| Initial Release | `1.0.0` | `com.github.sehgalvansh716pixel.simplestream` | [Download SimpleStream-1.0.0.apk](https://github.com/sehgalvansh716-pixel/Simple-Stream/releases/download/v1.0.0/SimpleStream-1.0.0.apk) |
 
 ---
 
-## 🌟 What's New in v1.0.1
+## 🌟 What's New in v1.0.2 PRE
+
+### 📺 Polished Android TV Home & D-Pad Focus
+- **Clean TV Home Header**: Removed duplicate header artifacts and restructured header layout for clean big-screen visibility.
+- **Enhanced Card Focus Highlights**: High-contrast white focus outlines (`outline.xml`) for pinpoint navigation clarity on 10-foot interfaces.
+- **Adaptive Thumbnail Ratio Handling**: Corrected portrait thumbnail rendering and layout expansions in home grids and preview rows.
+
+### 📱 Mobile UI Polish & Fluid Interactions
+- **Refined Settings & Extensions**: Polished dropdown menus, smooth selector sheets, and streamlined repository controls.
+- **Dynamic Content Card Orientation**: Intelligent aspect-ratio detection dynamically scales landscape vs portrait media cards without cropping or distortion.
+
+### 🎬 In-Player Gestures & Drawer Switcher
+- **YouTube-Style 2X Press-and-Hold**: Fast, responsive speed boost with ultra-compact frosted glass HUD pill and haptic feedback.
+- **Netflix-Style Glassmorphic Drawer**: Glide-in episode switcher with custom season selection dropdowns and instant scroll-to-playing episode.
+
+### 🔌 Native Internal Provider Suite
+- **Direct Kotlin Integration**: Built directly into `InternalStreamBridge` for Android 14+ compatibility without external dex restrictions.
+- **Secret Unlock Persistence**: Entering code `1908` unlocks the pre-packaged NetMirror provider suite with permanent session persistence.
+
+---
+
+## 🌟 Previous Releases
+
+### What Was New in v1.0.1
 
 ### 📺 Complete Android TV & 10-Foot Remote Experience
 - **Official 16:9 Leanback Launcher Banner**: Full Android TV launcher tile support with clean, high-resolution artwork (`Tv Logo.png`).
@@ -162,7 +186,7 @@ The compiled APK will be located at:
 If you are an AI coding assistant (or human contributor) working on SimpleStream:
 - **Mandatory Manual**: Please read [AGENTS.md](AGENTS.md) before making any code modifications.
 - **Critical Invariant**: Never modify internal class package names (`com.lagradost.cloudstream3`); binary compatibility with community extensions depends on this contract.
-- **Version Roadmap**: SimpleStream `1.0.1` is the current production release. Development of `1.0.2` takes place in the isolated `Simple Stream 1.0.2/` sandbox.
+- **Version Roadmap**: SimpleStream `1.0.2 PRE` is the active release. Development of future updates takes place in the isolated `Simple Stream 1.0.2/` sandbox.
 
 ---
 

@@ -96,7 +96,6 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
         // Used for configuration changed events to fix any popups that are not attached to a fragment
         val configEvent = EmptyEvent()
         var currentSpan = 1
-        var lastFocusedItem: java.lang.ref.WeakReference<View>? = null
 
         private val errorProfilePics = listOf(
             R.drawable.monke_benene,
@@ -443,33 +442,23 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
 
                         val name = getItem(position)
                         titleText?.text = name
-                        if (position < currentValidApis.size) {
-                            val providerApi = currentValidApis[position]
-                            val isPinned =
-                                pinnedphashset.contains(providerApi.name)
-                            pinIcon.visibility = if (isPinned) View.VISIBLE else View.GONE
+                        val providerApi = currentValidApis[position]
+                        val isPinned =
+                            pinnedphashset.contains(providerApi.name)
+                        pinIcon.visibility = if (isPinned) View.VISIBLE else View.GONE
 
-                            val pluginInstance = providerApi.sourcePlugin?.let { PluginManager.plugins[it] } as? Plugin
-                            val isDownloadedPluginWithSettings = pluginInstance?.openSettings != null && !isLayout(TV)
+                        val pluginInstance = providerApi.sourcePlugin?.let { PluginManager.plugins[it] } as? Plugin
+                        val isDownloadedPluginWithSettings = pluginInstance?.openSettings != null && !isLayout(TV)
 
-                            settingsIcon.visibility = if (isDownloadedPluginWithSettings) View.VISIBLE else View.GONE
-                            if (isDownloadedPluginWithSettings) {
-                                settingsIcon.setOnClickListener {
-                                    try {
-                                        val activityContext = it.context.getActivity() ?: it.context
-                                        pluginInstance.openSettings?.invoke(activityContext)
-                                    } catch (e: Throwable) {
-                                        logError(e)
-                                    }
+                        settingsIcon.visibility = if (isDownloadedPluginWithSettings) View.VISIBLE else View.GONE
+                        if (isDownloadedPluginWithSettings) {
+                            settingsIcon.setOnClickListener {
+                                try {
+                                    val activityContext = it.context.getActivity() ?: it.context
+                                    pluginInstance.openSettings?.invoke(activityContext)
+                                } catch (e: Throwable) {
+                                    logError(e)
                                 }
-                            }
-                        }
-
-                        view.setOnClickListener {
-                            if (currentValidApis.isNotEmpty() && position < currentValidApis.size) {
-                                currentApiName = currentValidApis[position].name
-                                currentApiName?.let(callback)
-                                dialog.dismissSafe()
                             }
                         }
 
@@ -478,16 +467,12 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
                 }
                 listView?.adapter = arrayAdapter
                 listView?.choiceMode = AbsListView.CHOICE_MODE_SINGLE
-                if (isLayout(TV)) {
-                    listView?.isFocusable = true
-                    listView?.isFocusableInTouchMode = true
-                    listView?.itemsCanFocus = false
-                }
 
                 listView?.setOnItemClickListener { _, _, i, _ ->
-                    if (currentValidApis.isNotEmpty() && i < currentValidApis.size) {
+                    if (currentValidApis.isNotEmpty()) {
                         currentApiName = currentValidApis[i].name
-                        currentApiName?.let(callback)
+                        //to switch to apply simply remove this
+                        currentApiName.let(callback)
                         dialog.dismissSafe()
                     }
                 }
@@ -536,12 +521,6 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
                     listView?.setItemChecked(index, true)
                     arrayAdapter.addAll(names)
                     arrayAdapter.notifyDataSetChanged()
-                    if (isLayout(TV) && index >= 0) {
-                        listView?.setSelection(index)
-                        listView?.post {
-                            listView?.requestFocus()
-                        }
-                    }
                 }
                 // pin provider on hold
                 listView?.setOnItemLongClickListener { _, _, i, _ ->
@@ -842,17 +821,9 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
             val displayApiName = context?.getDisplayName(apiName) ?: apiName
             binding.apply {
                 homeApiFab.text = displayApiName
-                homeChangeApi.text = "$displayApiName ▾"
-                val isNone = (apiName == noneApi.name)
-                homePreviewReloadProvider.isGone = isNone
-                homePreviewSearchButton.isGone = isNone
-                if (isNone) {
-                    homeChangeApi.nextFocusRightId = R.id.home_preview_search_button
-                    homePreviewSearchButton.nextFocusLeftId = R.id.home_change_api
-                } else {
-                    homeChangeApi.nextFocusRightId = R.id.home_preview_reload_provider
-                    homePreviewSearchButton.nextFocusLeftId = R.id.home_preview_reload_provider
-                }
+                homeChangeApi.text = displayApiName
+                homePreviewReloadProvider.isGone = (apiName == noneApi.name)
+                homePreviewSearchButton.isGone = (apiName == noneApi.name)
             }
         }
 
@@ -1024,26 +995,20 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
             }
             parent = parent.parent
         }
-        val changeApiButton = binding?.homeChangeApi
-            ?: activity?.findViewById<View>(R.id.home_change_api)
         when {
-            // Case 1: Focus is on plugin selector, hero banner, or header buttons -> Move to home navigation rail
-            currentFocus.id == R.id.home_change_api ||
-            currentFocus.id == R.id.home_preview_reload_provider ||
-            currentFocus.id == R.id.home_preview_search_button ||
-            currentFocus.id == R.id.home_preview_info_btt -> {
-                activity?.findViewById<View>(R.id.navigation_home)?.requestFocus()
-            }
-            // Case 2: Focus is within content rows -> Move up to header / hero banner
+            // Case 1: Focus is within plugin content -> Move to plugin selector
             isInsideRecycler -> {
                 binding?.homeMasterRecycler?.scrollToPosition(0)
-                changeApiButton?.post {
-                    if (!changeApiButton.requestFocus()) {
-                        activity?.findViewById<View>(R.id.home_preview_info_btt)?.requestFocus()
-                    }
-                } ?: run {
-                    activity?.findViewById<View>(R.id.home_preview_info_btt)?.requestFocus()
+                // Defer focus request until after scroll ends
+                binding?.homeChangeApi?.post {
+                    binding?.homeChangeApi?.requestFocus()
                 }
+            }
+            // Case 2: Focus is on plugin selector or nearby buttons -> Move to home navigation
+            currentFocus.id == R.id.home_change_api ||
+            currentFocus.id == R.id.home_preview_reload_provider ||
+            currentFocus.id == R.id.home_preview_search_button -> {
+                activity?.findViewById<View>(R.id.navigation_home)?.requestFocus()
             }
             // Case 3: Any other location -> Use default back behavior
             else -> helper.runDefault()

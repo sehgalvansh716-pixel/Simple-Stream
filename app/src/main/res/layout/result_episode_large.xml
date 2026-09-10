@@ -8,12 +8,11 @@
 
     android:layout_height="wrap_content"
     android:layout_marginBottom="10dp"
-    android:foreground="@drawable/outline_active_episode"
+    android:foreground="@drawable/outline_drawable"
     android:nextFocusRight="@id/download_button"
     app:cardBackgroundColor="?attr/boxItemBackground"
     app:cardElevation="0dp"
     app:cardMaxElevation="0dp"
-    app:cardPreventCornerOverlap="false"
     app:cardCornerRadius="@dimen/rounded_image_radius">
 
     <LinearLayout
@@ -35,7 +34,7 @@
                 android:layout_height="72dp"
                 app:cardElevation="0dp"
                 app:cardMaxElevation="0dp"
-                android:foreground="@drawable/outline_active_episode">
+                android:foreground="@drawable/outline_drawable">
 
                 <ImageView
                     android:id="@+id/episode_poster"
